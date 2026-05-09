@@ -1,6 +1,6 @@
-# Digital Creatives Hub OS
+# Creative Coworking
 
-A comprehensive space booking and management system built with React, TypeScript, and Supabase.
+A professional workspace booking and management system built with React, TypeScript, and Supabase. Perfect for government agencies, businesses, and creative professionals.
 
 ## Features
 

@@ -34,7 +34,7 @@ export default function Layout({ children, session }: LayoutProps) {
               {/* Logo */}
               <Link to="/" className="flex items-center">
                 <span className="text-xl font-bold text-primary-600">
-                  Digital Creatives Hub
+                  Creative Coworking
                 </span>
               </Link>
 

@@ -54,19 +54,19 @@ export default function Home() {
           <div className="text-center">
             <div className="flex justify-center mb-6">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-                <Sparkles className="w-4 h-4 mr-1" />
-                Now Live on Netlify
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Government-Ready Solution
               </span>
             </div>
             <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl md:text-7xl">
-              <span className="block">Your Creative Space</span>
+              <span className="block">Creative</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600">
-                Awaits You
+                Coworking
               </span>
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
-              Join the premier hub for digital creatives. Book inspiring workspaces, 
-              collaborate with talented professionals, and bring your ideas to life.
+              Professional coworking spaces for government agencies, businesses, and creative professionals. 
+              Book meeting rooms, workspaces, and event venues with ease.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
