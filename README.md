@@ -27,7 +27,7 @@ A comprehensive space booking and management system built with React, TypeScript
 ### Notifications & Communication
 - **Email Notifications** - Automated emails for booking updates
 - **Real-time Alerts** - In-app notification system
-- **Notification Preferences** - Customizable notification settings
+- **Notification Preferences
 - **Booking Reminders** - Automated reminders before bookings
 
 ### Advanced Features
