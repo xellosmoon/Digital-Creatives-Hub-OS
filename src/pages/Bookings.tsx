@@ -2,8 +2,19 @@ import { useState } from 'react';
 import SpaceSelector from '../components/booking/SpaceSelector';
 import TimeSlotPicker from '../components/booking/TimeSlotPicker';
 import GuestBookingForm from '../components/booking/GuestBookingForm';
-import { Space } from '../types';
 import { ArrowLeft } from 'lucide-react';
+
+interface Space {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+  image_url?: string;
+  location?: string;
+  capacity: number;
+  hourly_rate: number;
+  amenities?: string[];
+}
 
 export default function Bookings() {
   const [step, setStep] = useState<'space' | 'time' | 'details'>('space');
