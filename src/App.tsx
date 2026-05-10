@@ -17,6 +17,7 @@ const BookingLookup = lazy(() => import('./pages/BookingLookup'));
 const SpaceManagement = lazy(() => import('./pages/SpaceManagement'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
+const TestDashboard = lazy(() => import('./pages/TestDashboard'));
 
 // Components
 import Layout from './components/shared/Layout';
@@ -80,6 +81,14 @@ function App() {
               element={
                 <ProtectedRoute session={session}>
                   <Settings session={session!} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/test-dashboard"
+              element={
+                <ProtectedRoute session={session}>
+                  <TestDashboard />
                 </ProtectedRoute>
               }
             />

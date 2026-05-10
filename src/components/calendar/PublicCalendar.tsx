@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Users, Clock } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Clock, Users, Calendar as CalendarIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import QuickBookingModal from './QuickBookingModal';
+import EventDetailsModal from './EventDetailsModal';
 
 interface CalendarBooking {
   id: string;
@@ -12,6 +14,12 @@ interface CalendarBooking {
   guest_name?: string;
   attendees: number;
   purpose?: string;
+  is_public_event?: boolean;
+  event_title?: string;
+  event_description?: string;
+  event_poster_url?: string;
+  event_registration_link?: string;
+  event_organizer?: string;
   space: {
     id: string;
     name: string;
@@ -23,6 +31,9 @@ export default function PublicCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<CalendarBooking[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [showEventModal, setShowEventModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,18 +68,32 @@ export default function PublicCalendar() {
 
       const { data, error } = await supabase
         .from('bookings')
-        .select(`
-          *,
-          space:spaces (*)
-        `)
+        .select('*')
         .eq('status', 'approved')
-        .gte('date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('date', format(monthEnd, 'yyyy-MM-dd'))
-        .order('date', { ascending: true })
+        .gte('start_time', monthStart.toISOString())
+        .lte('start_time', monthEnd.toISOString())
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      setBookings(data || []);
+
+      // Fetch space details for each booking
+      if (data && data.length > 0) {
+        const spaceIds = [...new Set(data.map(b => b.space_id))];
+        const { data: spacesData } = await supabase
+          .from('spaces')
+          .select('id, name, type')
+          .in('id', spaceIds);
+
+        // Combine bookings with space data
+        const bookingsWithSpaces = data.map(booking => ({
+          ...booking,
+          space: spacesData?.find(space => space.id === booking.space_id) || { name: 'Unknown Space', type: 'unknown' }
+        }));
+
+        setBookings(bookingsWithSpaces);
+      } else {
+        setBookings([]);
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -191,25 +216,56 @@ export default function PublicCalendar() {
                 return (
                   <div
                     key={idx}
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => {
+                      const publicEvents = dayBookings.filter(b => b.is_public_event);
+                      
+                      if (publicEvents.length > 0) {
+                        // If there's a public event, show event details
+                        setSelectedEvent(publicEvents[0]);
+                        setShowEventModal(true);
+                      } else if (isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date())) {
+                        // Otherwise, show booking modal for future dates
+                        setSelectedDate(day);
+                        setShowBookingModal(true);
+                      }
+                    }}
                     className={`
-                      bg-white p-2 min-h-[100px] cursor-pointer hover:bg-gray-50
+                      bg-white p-2 min-h-[100px] relative group
                       ${!isCurrentMonth ? 'text-gray-400' : ''}
                       ${isToday ? 'bg-primary-50' : ''}
                       ${isSelected ? 'ring-2 ring-primary-500' : ''}
+                      ${isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date()) 
+                        ? 'cursor-pointer hover:bg-gray-50' 
+                        : 'cursor-not-allowed opacity-60'}
                     `}
                   >
-                    <div className="font-medium text-sm mb-1">
-                      {format(day, 'd')}
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-sm">{format(day, 'd')}</span>
+                      {(isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date())) && (
+                        <Plus className="w-4 h-4 text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
                     </div>
                     <div className="space-y-1">
                       {dayBookings.slice(0, 3).map((booking, bookingIdx) => (
                         <div
                           key={bookingIdx}
-                          className="bg-primary-100 text-primary-800 px-1 py-0.5 rounded text-xs truncate"
+                          className={`px-1 py-0.5 rounded text-xs truncate ${
+                            booking.is_public_event 
+                              ? 'bg-amber-100 text-amber-800 font-medium' 
+                              : 'bg-primary-100 text-primary-800'
+                          }`}
                         >
-                          {format(new Date(booking.start_time), 'HH:mm')} - 
-                          {renderBookingInfo(booking)}
+                          {booking.is_public_event ? (
+                            <>
+                              <CalendarIcon className="inline w-3 h-3 mr-1" />
+                              {booking.event_title || booking.purpose}
+                            </>
+                          ) : (
+                            <>
+                              {format(new Date(booking.start_time), 'HH:mm')} - 
+                              {renderBookingInfo(booking)}
+                            </>
+                          )}
                         </div>
                       ))}
                       {dayBookings.length > 3 && (
@@ -260,6 +316,34 @@ export default function PublicCalendar() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Quick Booking Modal */}
+      {showBookingModal && selectedDate && (
+        <QuickBookingModal
+          date={selectedDate}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedDate(null);
+          }}
+        />
+      )}
+
+      {/* Event Details Modal */}
+      {showEventModal && selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => {
+            setShowEventModal(false);
+            setSelectedEvent(null);
+          }}
+          onBookSpace={() => {
+            setShowEventModal(false);
+            setSelectedEvent(null);
+            setShowBookingModal(true);
+            setSelectedDate(new Date(selectedEvent.start_time));
+          }}
+        />
       )}
     </div>
   );

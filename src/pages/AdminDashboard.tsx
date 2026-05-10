@@ -57,23 +57,35 @@ export default function AdminDashboard() {
     try {
       let query = supabase
         .from('bookings')
-        .select(`
-          *,
-          space:spaces (
-            name,
-            hourly_rate
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
         query = query.eq('status', filter);
       }
 
-      const { data, error } = await query;
+      const { data: bookingsData, error } = await query;
 
       if (error) throw error;
-      setBookings(data || []);
+
+      // Fetch space details for each booking
+      if (bookingsData && bookingsData.length > 0) {
+        const spaceIds = [...new Set(bookingsData.map(b => b.space_id))];
+        const { data: spacesData } = await supabase
+          .from('spaces')
+          .select('id, name, hourly_rate')
+          .in('id', spaceIds);
+
+        // Combine bookings with space data
+        const bookingsWithSpaces = bookingsData.map(booking => ({
+          ...booking,
+          space: spacesData?.find(space => space.id === booking.space_id) || { name: 'Unknown Space', hourly_rate: 0 }
+        }));
+
+        setBookings(bookingsWithSpaces);
+      } else {
+        setBookings([]);
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
       toast.error('Failed to fetch bookings');

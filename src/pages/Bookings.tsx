@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import SpaceSelector from '../components/booking/SpaceSelector';
 import TimeSlotPicker from '../components/booking/TimeSlotPicker';
 import GuestBookingForm from '../components/booking/GuestBookingForm';
 import { ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface Space {
   id: string;
@@ -17,10 +19,53 @@ interface Space {
 }
 
 export default function Bookings() {
+  const location = useLocation();
   const [step, setStep] = useState<'space' | 'time' | 'details'>('space');
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
+  const [preselectedDate, setPreselectedDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Check if we have pre-selected values from calendar
+    if (location.state) {
+      const { preselectedDate: date, preselectedSpace: spaceId, preselectedTime: time } = location.state;
+      
+      if (date) {
+        setPreselectedDate(date);
+      }
+      
+      if (spaceId) {
+        // Fetch the space details
+        fetchSpaceById(spaceId);
+      }
+      
+      if (time && date) {
+        // Set pre-selected time
+        const [hours, minutes] = time.split(':');
+        const startTime = new Date(date);
+        startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        setSelectedStartTime(startTime);
+      }
+    }
+  }, [location.state]);
+
+  const fetchSpaceById = async (spaceId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('spaces')
+        .select('*')
+        .eq('id', spaceId)
+        .single();
+
+      if (!error && data) {
+        setSelectedSpace(data);
+        setStep('time');
+      }
+    } catch (error) {
+      console.error('Error fetching space:', error);
+    }
+  };
 
   const handleSpaceSelect = (space: Space) => {
     setSelectedSpace(space);
@@ -122,6 +167,8 @@ export default function Bookings() {
             <TimeSlotPicker
               spaceId={selectedSpace.id}
               onSelect={handleTimeSelect}
+              initialDate={preselectedDate || undefined}
+              initialTime={selectedStartTime || undefined}
             />
           </div>
         )}

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, User, Mail, Phone, Calendar } from 'lucide-react';
+import { Check, X, Clock, User, Mail, Phone, Calendar, Edit } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { notifyGuestOfBookingUpdate } from '../../lib/emailService';
 import toast from 'react-hot-toast';
+import BookingEditModal from './BookingEditModal';
 import { Booking } from '../../types';
 
 interface BookingApprovalCardProps {
@@ -18,6 +19,19 @@ interface BookingApprovalCardProps {
 
 export default function BookingApprovalCard({ booking, onUpdate }: BookingApprovalCardProps) {
   const [loading, setLoading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Helper to safely format dates
+  const formatDate = (dateString: string | null | undefined, formatStr: string) => {
+    if (!dateString) return 'No date';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return format(date, formatStr);
+    } catch {
+      return 'Invalid date';
+    }
+  };
 
   const handleApproval = async (approved: boolean) => {
     setLoading(true);
@@ -74,9 +88,9 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           <div className="flex items-center text-sm text-gray-600 mb-3">
             <Calendar className="h-4 w-4 mr-1" />
             <span>
-              {format(new Date(booking.start_time), 'MMM d, yyyy')} • 
-              {format(new Date(booking.start_time), 'h:mm a')} - 
-              {format(new Date(booking.end_time), 'h:mm a')}
+              {formatDate(booking.start_time, 'MMM d, yyyy')} • 
+              {formatDate(booking.start_time, 'h:mm a')} - 
+              {formatDate(booking.end_time, 'h:mm a')}
             </span>
           </div>
 
@@ -119,32 +133,50 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       </div>
 
       {/* Action Buttons */}
-      {booking.status === 'pending' && (
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => handleApproval(true)}
-            disabled={loading}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-          >
-            <Check className="h-4 w-4 mr-2" />
-            Approve
-          </button>
-          <button
-            onClick={() => handleApproval(false)}
-            disabled={loading}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Reject
-          </button>
-        </div>
-      )}
+      <div className="flex gap-3 mt-4">
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Booking
+        </button>
+        {booking.status === 'pending' && (
+          <>
+            <button
+              onClick={() => handleApproval(true)}
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Approve
+            </button>
+            <button
+              onClick={() => handleApproval(false)}
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Reject
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Timestamp */}
       <div className="mt-4 text-xs text-gray-500">
         <Clock className="h-3 w-3 inline mr-1" />
         Requested {format(new Date(booking.created_at), 'MMM d, yyyy h:mm a')}
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <BookingEditModal
+          booking={booking}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={onUpdate}
+        />
+      )}
     </div>
   );
 }

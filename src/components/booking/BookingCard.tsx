@@ -8,7 +8,12 @@ import BookingModifyModal from './BookingModifyModal';
 
 interface BookingCardProps {
   booking: Booking & {
-    space: {
+    space?: {
+      name: string;
+      location?: string;
+      hourly_rate: number;
+    };
+    spaces?: {
       name: string;
       location?: string;
       hourly_rate: number;
@@ -22,6 +27,9 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  
+  // Handle both 'space' and 'spaces' property names
+  const spaceData = booking.space || booking.spaces || { name: 'Unknown Space', location: '', hourly_rate: 0 };
 
   const getStatusIcon = () => {
     switch (booking.status) {
@@ -82,7 +90,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
 
   const totalCost = () => {
     const hours = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-    return hours * booking.space.hourly_rate;
+    return hours * spaceData.hourly_rate;
   };
 
   return (
@@ -90,7 +98,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{booking.space.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{spaceData.name}</h3>
             <div className="flex items-center mt-1 space-x-2">
               {getStatusIcon()}
               <span className={`text-sm font-medium ${
@@ -118,10 +126,10 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
             <Clock className="h-4 w-4 mr-2" />
             {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
           </div>
-          {booking.space.location && (
+          {spaceData.location && (
             <div className="flex items-center text-sm text-gray-600">
               <MapPin className="h-4 w-4 mr-2" />
-              {booking.space.location}
+              {spaceData.location}
             </div>
           )}
           <div className="flex items-center text-sm text-gray-600">
@@ -183,7 +191,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
               Are you sure you want to cancel this booking? This action cannot be undone.
             </p>
             <div className="bg-gray-50 rounded-md p-4 mb-6">
-              <p className="text-sm font-medium text-gray-900">{booking.space.name}</p>
+              <p className="text-sm font-medium text-gray-900">{spaceData.name}</p>
               <p className="text-sm text-gray-600">
                 {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')} at{' '}
                 {format(new Date(booking.start_time), 'h:mm a')}

@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabase';
 interface TimeSlotPickerProps {
   spaceId: string;
   onSelect: (startTime: Date, endTime: Date) => void;
+  initialDate?: Date;
+  initialTime?: Date;
 }
 
 interface TimeSlot {
@@ -13,10 +15,10 @@ interface TimeSlot {
   available: boolean;
 }
 
-export default function TimeSlotPicker({ spaceId, onSelect }: TimeSlotPickerProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initialTime }: TimeSlotPickerProps) {
+  const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(null);
+  const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(initialTime || null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
   const [existingBookings, setExistingBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

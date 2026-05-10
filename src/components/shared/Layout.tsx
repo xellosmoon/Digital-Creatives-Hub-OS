@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { Home, Calendar, User, LogOut, Search, Settings } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Search, Settings, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
 
@@ -13,6 +13,30 @@ interface LayoutProps {
 
 export default function Layout({ children, session }: LayoutProps) {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [session]);
+
+  const checkAdminStatus = async () => {
+    if (!session?.user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!error && data?.role === 'admin') {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -71,13 +95,24 @@ export default function Layout({ children, session }: LayoutProps) {
                   </Link>
                 )}
                 {session && (
-                  <Link
-                    to="/dashboard"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Link>
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
             </div>

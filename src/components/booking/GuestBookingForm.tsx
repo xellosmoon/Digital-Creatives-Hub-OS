@@ -47,12 +47,7 @@ export default function GuestBookingForm({
     setLoading(true);
 
     try {
-      // Format date and times properly
-      const bookingDate = format(startTime, 'yyyy-MM-dd');
-      const startTimeStr = format(startTime, 'HH:mm:ss');
-      const endTimeStr = format(endTime, 'HH:mm:ss');
-
-      // Create booking
+      // Create booking with full timestamps
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -60,9 +55,9 @@ export default function GuestBookingForm({
           guest_name: formData.guestName,
           guest_email: formData.guestEmail,
           guest_phone: formData.guestPhone,
-          date: bookingDate,
-          start_time: startTimeStr,
-          end_time: endTimeStr,
+          date: format(startTime, 'yyyy-MM-dd'),
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
           purpose: formData.purpose,
           attendees: formData.attendees,
           status: 'pending'
@@ -76,9 +71,11 @@ export default function GuestBookingForm({
       const { error: notificationError } = await supabase
         .from('admin_notifications')
         .insert({
-          booking_id: bookingData.id,
+          type: 'new_booking',
+          title: 'New Booking Request',
           message: `New booking request from ${formData.guestName} for ${spaceName}`,
-          is_read: false
+          data: { booking_id: bookingData.id },
+          read: false
         });
 
       if (notificationError) {

@@ -30,18 +30,22 @@ export default function Dashboard() {
   const fetchBookings = async (userId: string) => {
     setLoading(true);
     try {
+      // Get user's email
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email;
+
       let query = supabase
         .from('bookings')
-        .select(`
-          *,
-          space:spaces (
-            name,
-            location,
-            hourly_rate
-          )
-        `)
-        .eq('user_id', userId)
-        .order('start_time', { ascending: false });
+        .select('*');
+      
+      // Build OR condition properly
+      if (userEmail) {
+        query = query.or(`user_id.eq.${userId},guest_email.eq.${userEmail}`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+      
+      query = query.order('start_time', { ascending: false });
 
       // Apply filter
       const now = new Date().toISOString();
@@ -51,10 +55,30 @@ export default function Dashboard() {
         query = query.lt('start_time', now);
       }
 
-      const { data, error } = await query;
+      const { data: bookingsData, error: bookingsError } = await query;
 
-      if (error) throw error;
-      setBookings(data || []);
+      if (bookingsError) throw bookingsError;
+
+      // Fetch space details for each booking
+      if (bookingsData && bookingsData.length > 0) {
+        const spaceIds = [...new Set(bookingsData.map(b => b.space_id))];
+        const { data: spacesData, error: spacesError } = await supabase
+          .from('spaces')
+          .select('id, name, location, hourly_rate')
+          .in('id', spaceIds);
+
+        if (spacesError) throw spacesError;
+
+        // Combine bookings with space data
+        const bookingsWithSpaces = bookingsData.map(booking => ({
+          ...booking,
+          spaces: spacesData?.find(space => space.id === booking.space_id) || null
+        }));
+
+        setBookings(bookingsWithSpaces);
+      } else {
+        setBookings([]);
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
       toast.error('Failed to load bookings');
