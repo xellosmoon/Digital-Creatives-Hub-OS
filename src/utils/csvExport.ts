@@ -43,18 +43,38 @@ export function exportToCSV(data: any[], filename: string) {
 
 export function formatBookingForExport(booking: any) {
   return {
-    'Booking ID': booking.id,
-    'Space': booking.space?.name || 'N/A',
-    'User Name': booking.user_name,
-    'User Email': booking.user_email,
-    'Date': new Date(booking.date).toLocaleDateString(),
-    'Start Time': booking.start_time,
-    'End Time': booking.end_time,
-    'Attendees': booking.attendees,
+    'Reference': booking.booking_reference || booking.id,
+    'Package': booking.package?.name || 'N/A',
+    'Guest Name': booking.guest_name || 'N/A',
+    'Guest Email': booking.guest_email || 'N/A',
+    'Guest Phone': booking.guest_phone || 'N/A',
+    'Date': booking.booking_date || 'N/A',
+    'Start Time': booking.start_time ? new Date(booking.start_time).toLocaleTimeString() : 'N/A',
+    'End Time': booking.end_time ? new Date(booking.end_time).toLocaleTimeString() : 'N/A',
+    'Seats': booking.seats_used || 1,
     'Status': booking.status,
     'Purpose': booking.purpose || 'N/A',
-    'Total Cost': booking.total_cost ? `₱${booking.total_cost}` : 'N/A',
+    'Total Price': booking.total_price ? `₱${booking.total_price}` : 'N/A',
     'Created At': new Date(booking.created_at).toLocaleString(),
+  };
+}
+
+export function formatAttendanceForDTIExport(attendance: any) {
+  return {
+    'Full Name': attendance.full_name || 'N/A',
+    'Creative Domain (PCIDA)': attendance.creative_domain || 'N/A',
+    'Organization': attendance.organization || 'N/A',
+    'Designation': attendance.designation || 'N/A',
+    'Sector': attendance.sector || 'N/A',
+    'Gender': attendance.gender || 'N/A',
+    'Mobile': attendance.mobile_number || 'N/A',
+    'Email': attendance.email || 'N/A',
+    'Status': attendance.status || 'N/A',
+    'Time In': attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleTimeString() : 'N/A',
+    'Confirmed At': attendance.confirmed_at ? new Date(attendance.confirmed_at).toLocaleTimeString() : '',
+    'Time Out': attendance.check_out_time ? new Date(attendance.check_out_time).toLocaleTimeString() : '',
+    'Walk-in': attendance.is_walk_in ? 'Yes' : 'No',
+    'Date': attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleDateString() : 'N/A',
   };
 }
 

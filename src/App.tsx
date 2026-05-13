@@ -17,7 +17,14 @@ const BookingLookup = lazy(() => import('./pages/BookingLookup'));
 const SpaceManagement = lazy(() => import('./pages/SpaceManagement'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
+const EventManagement = lazy(() => import('./pages/EventManagement'));
 const TestDashboard = lazy(() => import('./pages/TestDashboard'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const MyBorrows = lazy(() => import('./pages/MyBorrows'));
+const SeatManagement = lazy(() => import('./pages/SeatManagement'));
+const ProposeEvent = lazy(() => import('./pages/ProposeEvent'));
+const CheckIn = lazy(() => import('./pages/CheckIn'));
 
 // Components
 import Layout from './components/shared/Layout';
@@ -66,6 +73,9 @@ function App() {
               <Route path="/bookings" element={<Bookings />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/booking-lookup" element={<BookingLookup />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/propose-event" element={<ProposeEvent />} />
+              <Route path="/check-in" element={<CheckIn />} />
             
             {/* Protected Routes */}
             <Route
@@ -81,6 +91,14 @@ function App() {
               element={
                 <ProtectedRoute session={session}>
                   <Settings session={session!} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-borrows"
+              element={
+                <ProtectedRoute session={session}>
+                  <MyBorrows />
                 </ProtectedRoute>
               }
             />
@@ -105,6 +123,30 @@ function App() {
               element={
                 <ProtectedRoute session={session} requireAdmin>
                   <SpaceManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/events"
+              element={
+                <ProtectedRoute session={session} requireAdmin>
+                  <EventManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/inventory"
+              element={
+                <ProtectedRoute session={session} requireAdmin>
+                  <AdminInventory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/seats"
+              element={
+                <ProtectedRoute session={session} requireAdmin>
+                  <SeatManagement />
                 </ProtectedRoute>
               }
             />

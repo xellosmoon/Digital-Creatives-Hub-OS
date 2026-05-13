@@ -54,6 +54,16 @@ export interface Booking {
   booking_reference: string;
   created_at: string;
   updated_at: string;
+  /** Legacy event fields (added via add-event-fields.sql migration) */
+  is_public_event?: boolean;
+  event_title?: string;
+  event_description?: string;
+  event_poster_url?: string;
+  event_registration_link?: string;
+  event_organizer?: string;
+  event_contact_email?: string;
+  event_contact_phone?: string;
+  is_featured_event?: boolean;
   space?: Space;
   profile?: Profile;
 }
@@ -75,4 +85,31 @@ export interface GuestConversion {
   converted_at: string;
   total_guest_bookings: number;
   first_booking_date: string | null;
+}
+
+/** A public event sourced from the dedicated `events` table. */
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  registration_link: string | null;
+  organizer: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  space_id: string | null;
+  start_time: string;
+  end_time: string;
+  is_featured: boolean;
+  status: 'draft' | 'published' | 'cancelled';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  /** Joined from spaces table */
+  space?: {
+    id: string;
+    name: string;
+    type: string;
+    location?: string;
+  };
 }

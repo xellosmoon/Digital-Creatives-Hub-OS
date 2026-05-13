@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { Home, Calendar, User, LogOut, Search, Settings, Shield } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
 
@@ -76,7 +76,7 @@ export default function Layout({ children, session }: LayoutProps) {
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
-                  Book Space
+                  Book Seat
                 </Link>
                 <Link
                   to="/calendar"
@@ -84,6 +84,13 @@ export default function Layout({ children, session }: LayoutProps) {
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Calendar
+                </Link>
+                <Link
+                  to="/inventory"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Inventory
                 </Link>
                 {!session && (
                   <Link
@@ -103,14 +110,37 @@ export default function Layout({ children, session }: LayoutProps) {
                       <User className="w-4 h-4 mr-2" />
                       Dashboard
                     </Link>
+                    <Link
+                      to="/my-borrows"
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                    >
+                      <ClipboardList className="w-4 h-4 mr-2" />
+                      My Borrows
+                    </Link>
                     {isAdmin && (
-                      <Link
-                        to="/admin"
-                        className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
-                      >
-                        <Shield className="w-4 h-4 mr-2" />
-                        Admin
-                      </Link>
+                      <>
+                        <Link
+                          to="/admin"
+                          className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                        >
+                          <Shield className="w-4 h-4 mr-2" />
+                          Admin
+                        </Link>
+                        <Link
+                          to="/admin/seats"
+                          className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                        >
+                          <Armchair className="w-4 h-4 mr-2" />
+                          Seats
+                        </Link>
+                        <Link
+                          to="/admin/inventory"
+                          className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
+                        >
+                          <Package className="w-4 h-4 mr-2" />
+                          Inventory Mgmt
+                        </Link>
+                      </>
                     )}
                   </>
                 )}

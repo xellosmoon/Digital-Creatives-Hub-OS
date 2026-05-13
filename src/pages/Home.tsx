@@ -1,15 +1,23 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, Sparkles, Coffee, Wifi, Monitor } from 'lucide-react';
+import { Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, Video, Navigation, Webcam, PartyPopper, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const [spaces, setSpaces] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalSpaces: 0, totalBookings: 0, happyUsers: 0 });
+
+  const EQUIP_ICONS: Record<string, React.ElementType> = {
+    interactive_display: Monitor, drawing_tablet: PenTool, computer: Cpu,
+    action_camera: Video, camera: Camera, smartphone: Smartphone,
+    drone: Navigation, webcam: Webcam,
+  };
 
   useEffect(() => {
     fetchSpaces();
     fetchStats();
+    fetchEquipment();
   }, []);
 
   const fetchSpaces = async () => {
@@ -19,6 +27,28 @@ export default function Home() {
       .eq('is_active', true)
       .limit(3);
     setSpaces(data || []);
+  };
+
+  const fetchEquipment = async () => {
+    try {
+      const { data: assets } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (!assets) { setEquipment([]); return; }
+      const { data: items } = await supabase.from('items').select('id, asset_id, status');
+      const itemList = items || [];
+      const enriched = assets.map((a: any) => {
+        const assetItems = itemList.filter((i: any) => i.asset_id === a.id);
+        return {
+          ...a,
+          totalItems: assetItems.length,
+          availableItems: assetItems.filter((i: any) => i.status === 'available').length,
+        };
+      });
+      setEquipment(enriched);
+    } catch { setEquipment([]); }
   };
 
   const fetchStats = async () => {
@@ -68,7 +98,22 @@ export default function Home() {
               Professional coworking spaces for government agencies, businesses, and creative professionals. 
               Book meeting rooms, workspaces, and event venues with ease.
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Check-In Banner */}
+            <div className="mt-10 mb-6">
+              <Link
+                to="/check-in"
+                className="group relative inline-flex items-center justify-center w-full sm:w-auto px-10 py-5 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-200/50 transition-all duration-300 hover:scale-105 hover:shadow-emerald-300/60"
+              >
+                <span className="relative z-10 flex items-center">
+                  <ClipboardCheck className="mr-3 w-7 h-7" />
+                  Check In to the Hub
+                  <ArrowRight className="ml-3 w-6 h-6 transition-transform group-hover:translate-x-1" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Link>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/bookings"
                 className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-purple-600 rounded-full overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
@@ -78,6 +123,16 @@ export default function Home() {
                   <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Link>
+              <Link
+                to="/propose-event"
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-full overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              >
+                <span className="relative z-10 flex items-center">
+                  <PartyPopper className="mr-2 w-5 h-5" />
+                  Propose an Event
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
               <Link
                 to="/calendar"
@@ -230,6 +285,67 @@ export default function Home() {
                 className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-primary-600 bg-primary-50 rounded-full hover:bg-primary-100 transition-colors"
               >
                 View All Spaces
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Borrow Gear Section */}
+      {equipment.length > 0 && (
+        <div className="py-20 bg-gradient-to-b from-white to-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="flex justify-center mb-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  <Package className="w-4 h-4 mr-1" />
+                  Equipment Lending
+                </span>
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Borrow Gear</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Professional cameras, drones, and creative tools available for checkout
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {equipment.slice(0, 8).map((item: any) => {
+                const Icon = EQUIP_ICONS[item.category] ?? Package;
+                const allOut = item.availableItems === 0;
+                return (
+                  <div key={item.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-primary-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity" />
+                    <div className="p-6 relative z-10">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4">
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
+                      <div className={`inline-flex items-center text-sm font-medium px-2.5 py-1 rounded-full mb-3 ${
+                        allOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                      }`}>
+                        <span className="font-bold mr-1">{item.availableItems}</span> of {item.totalItems} available
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <Link
+                          to="/inventory"
+                          className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm"
+                        >
+                          {allOut ? 'View Details' : 'Borrow Now'}
+                          <ArrowRight className="ml-1 w-4 h-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-center mt-12">
+              <Link
+                to="/inventory"
+                className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
+              >
+                <Package className="mr-2 w-5 h-5" />
+                View All Equipment
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
             </div>

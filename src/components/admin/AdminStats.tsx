@@ -25,7 +25,7 @@ export default function AdminStats() {
   const fetchStats = async () => {
     try {
       const { data: bookings, error } = await supabase
-        .from('bookings')
+        .from('hub_bookings')
         .select('status');
 
       if (error) throw error;

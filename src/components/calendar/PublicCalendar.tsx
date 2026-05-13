@@ -1,162 +1,170 @@
 import { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Clock, Users, Calendar as CalendarIcon } from 'lucide-react';
+import {
+  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval,
+} from 'date-fns';
+import {
+  ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useEvents } from '../../lib/useEvents';
+import type { CalendarEvent } from '../../types';
+import type { HubBooking, DailyOccupancy, HubCapacityConfig } from '../../types/hub';
 import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
+import EventChip from './EventChip';
 
-interface CalendarBooking {
-  id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  user_name?: string;
-  guest_name?: string;
-  attendees: number;
-  purpose?: string;
-  is_public_event?: boolean;
-  event_title?: string;
-  event_description?: string;
-  event_poster_url?: string;
-  event_registration_link?: string;
-  event_organizer?: string;
-  space: {
-    id: string;
-    name: string;
-    type: string;
-  };
+// ── Hub booking with only the joined package columns we SELECT ──────
+interface CalendarHubBooking extends Omit<HubBooking, 'package'> {
+  package?: { slug: string; name: string; is_bundle: boolean };
+}
+
+// ── Aggregated day-level summary ───────────────────────────────────
+interface DaySummary {
+  totalSeats: number;       // from config
+  bookedSeats: number;      // from daily_occupancy or sum of hub_bookings
+  workshopQ2: boolean;
+  workshopQ4: boolean;
+  coworkingCount: number;   // # of individual coworking bookings
+  bundleBookings: CalendarHubBooking[];
+  workshopBookings: CalendarHubBooking[];
 }
 
 export default function PublicCalendar() {
+  // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState<CalendarBooking[]>([]);
+  const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
+  const [occupancyMap, setOccupancyMap] = useState<Record<string, DailyOccupancy>>({});
+  const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
 
+  // Events from the dedicated `events` table
+  const { events, loading: eventsLoading } = useEvents(currentDate);
+
+  const loading = bookingsLoading || eventsLoading;
+
+  // ── Fetch hub bookings + occupancy + capacity config ─────────────
   useEffect(() => {
-    fetchBookings();
-    
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('public-bookings')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'bookings',
-          filter: 'status=eq.approved'
-        }, 
-        () => {
-          fetchBookings();
-        }
-      )
+    fetchHubData();
+
+    // Real-time: refresh when hub_bookings or daily_occupancy change
+    const sub = supabase
+      .channel('calendar-hub')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_bookings' }, () => fetchHubData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_occupancy' }, () => fetchHubData())
       .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => { sub.unsubscribe(); };
   }, [currentDate]);
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchHubData = async () => {
+    setBookingsLoading(true);
     try {
-      const monthStart = startOfMonth(currentDate);
-      const monthEnd = endOfMonth(currentDate);
+      const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('status', 'approved')
-        .gte('start_time', monthStart.toISOString())
-        .lte('start_time', monthEnd.toISOString())
-        .order('start_time', { ascending: true });
+      // Parallel: bookings, occupancy rows, capacity config
+      const [bookingsRes, occRes, configRes] = await Promise.all([
+        supabase
+          .from('hub_bookings')
+          .select('*, package:rental_packages(slug, name, is_bundle)')
+          .in('status', ['approved', 'active'])
+          .gte('booking_date', monthStart)
+          .lte('booking_date', monthEnd)
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('daily_occupancy')
+          .select('*')
+          .gte('occupancy_date', monthStart)
+          .lte('occupancy_date', monthEnd),
+        supabase
+          .from('hub_capacity_config')
+          .select('*')
+          .limit(1)
+          .single(),
+      ]);
 
-      if (error) throw error;
+      setHubBookings((bookingsRes.data as CalendarHubBooking[]) ?? []);
 
-      // Fetch space details for each booking
-      if (data && data.length > 0) {
-        const spaceIds = [...new Set(data.map(b => b.space_id))];
-        const { data: spacesData } = await supabase
-          .from('spaces')
-          .select('id, name, type')
-          .in('id', spaceIds);
-
-        // Combine bookings with space data
-        const bookingsWithSpaces = data.map(booking => ({
-          ...booking,
-          space: spacesData?.find(space => space.id === booking.space_id) || { name: 'Unknown Space', type: 'unknown' }
-        }));
-
-        setBookings(bookingsWithSpaces);
-      } else {
-        setBookings([]);
+      // Index occupancy by date string for fast lookup
+      const occMap: Record<string, DailyOccupancy> = {};
+      for (const row of (occRes.data ?? []) as DailyOccupancy[]) {
+        occMap[row.occupancy_date] = row;
       }
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
+      setOccupancyMap(occMap);
+
+      const config = configRes.data as HubCapacityConfig | null;
+      setTotalSeats((config?.total_seats ?? 28) + (config?.manual_adjustment ?? 0));
+    } catch (err) {
+      console.error('Error fetching hub data:', err);
     } finally {
-      setLoading(false);
+      setBookingsLoading(false);
     }
   };
 
+  // ── Day-level helpers ────────────────────────────────────────────
   const getDaysInMonth = () => {
     const start = startOfWeek(startOfMonth(currentDate));
     const end = endOfWeek(endOfMonth(currentDate));
     return eachDayOfInterval({ start, end });
   };
 
-  const getBookingsForDay = (date: Date) => {
-    return bookings.filter(booking => 
-      isSameDay(new Date(booking.start_time), date)
+  const getEventsForDay = (date: Date) =>
+    events.filter(ev => isSameDay(new Date(ev.start_time), date));
+
+  /** Build an aggregated summary for a single day. */
+  const getDaySummary = (date: Date): DaySummary => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const occ = occupancyMap[dateStr];
+    const dayBookings = hubBookings.filter(b => b.booking_date === dateStr);
+
+    // Separate coworking (non-bundle, non-workshop) from bundles & workshops
+    const coworkingCount = dayBookings.filter(
+      b => !b.is_workshop && !b.package?.is_bundle
+    ).length;
+    const bundleBookings = dayBookings.filter(
+      b => !b.is_workshop && b.package?.is_bundle
     );
+    const workshopBookings = dayBookings.filter(b => b.is_workshop);
+
+    return {
+      totalSeats,
+      bookedSeats: occ?.total_booked_seats ?? dayBookings.reduce((s, b) => s + b.seats_used, 0),
+      workshopQ2: occ?.workshop_block_q2 ?? false,
+      workshopQ4: occ?.workshop_block_q4 ?? false,
+      coworkingCount,
+      bundleBookings,
+      workshopBookings,
+    };
   };
 
+  // ── Month navigation ─────────────────────────────────────────────
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
-    if (direction === 'next') {
-      newDate.setMonth(newDate.getMonth() + 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() - 1);
-    }
+    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
     setCurrentDate(newDate);
   };
 
-  const renderBookingInfo = (booking: CalendarBooking) => {
-    // Default privacy settings - in production, these could be stored in the database
-    const settings = {
-      show_organizer_name: true,
-      show_attendee_count: true,
-      show_booking_purpose: false
-    };
-
-    // For coworking spaces, show anonymous info
-    if (booking.space.type === 'coworking') {
-      return (
-        <div className="text-xs">
-          <span className="font-medium">{booking.space.name}</span>
-          {settings.show_attendee_count && (
-            <span className="ml-1 text-gray-500">({booking.attendees} person)</span>
-          )}
-        </div>
-      );
-    }
-
-    // For other spaces, show based on settings
-    return (
-      <div className="text-xs">
-        <span className="font-medium">{booking.space.name}</span>
-        {settings.show_organizer_name && booking.guest_name && (
-          <div className="text-gray-600">{booking.guest_name}</div>
-        )}
-        {settings.show_booking_purpose && booking.purpose && (
-          <div className="text-gray-500 truncate">{booking.purpose}</div>
-        )}
-      </div>
-    );
+  // ── Event chip click → open Event Details modal ──────────────────
+  const handleEventClick = (ev: CalendarEvent) => {
+    setSelectedEvent(ev);
+    setShowEventModal(true);
   };
 
+  // ── Occupancy bar color helper ───────────────────────────────────
+  const occBarColor = (pct: number, isFullBlock: boolean) => {
+    if (isFullBlock) return 'bg-red-400';
+    if (pct >= 90) return 'bg-red-400';
+    if (pct >= 60) return 'bg-orange-400';
+    if (pct >= 30) return 'bg-yellow-400';
+    return 'bg-green-400';
+  };
+
+  // ── JSX ──────────────────────────────────────────────────────────
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Calendar Header */}
@@ -166,22 +174,13 @@ export default function PublicCalendar() {
             {format(currentDate, 'MMMM yyyy')}
           </h2>
           <div className="flex space-x-2">
-            <button
-              onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-gray-100 rounded-md"
-            >
+            <button onClick={() => navigateMonth('prev')} className="p-2 hover:bg-gray-100 rounded-md">
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-2 hover:bg-gray-100 rounded-md text-sm font-medium"
-            >
+            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
               Today
             </button>
-            <button
-              onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-gray-100 rounded-md"
-            >
+            <button onClick={() => navigateMonth('next')} className="p-2 hover:bg-gray-100 rounded-md">
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
@@ -198,81 +197,114 @@ export default function PublicCalendar() {
           <>
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-px mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-700 py-2">
-                  {day}
-                </div>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                <div key={d} className="text-center text-sm font-medium text-gray-700 py-2">{d}</div>
               ))}
             </div>
 
             {/* Calendar Days */}
             <div className="grid grid-cols-7 gap-px bg-gray-200">
               {getDaysInMonth().map((day, idx) => {
-                const dayBookings = getBookingsForDay(day);
+                const dayEvents = getEventsForDay(day);
+                const summary   = getDaySummary(day);
                 const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday = isSameDay(day, new Date());
+                const isToday    = isSameDay(day, new Date());
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
+                const isFuture   = isAfter(startOfDay(day), startOfDay(new Date())) || isToday;
+
+                const occPct = summary.totalSeats > 0
+                  ? Math.round((summary.bookedSeats / summary.totalSeats) * 100)
+                  : 0;
+                const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
 
                 return (
                   <div
                     key={idx}
                     onClick={() => {
-                      const publicEvents = dayBookings.filter(b => b.is_public_event);
-                      
-                      if (publicEvents.length > 0) {
-                        // If there's a public event, show event details
-                        setSelectedEvent(publicEvents[0]);
-                        setShowEventModal(true);
-                      } else if (isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date())) {
-                        // Otherwise, show booking modal for future dates
+                      if (isFuture) {
                         setSelectedDate(day);
                         setShowBookingModal(true);
                       }
                     }}
                     className={`
-                      bg-white p-2 min-h-[100px] relative group
+                      bg-white p-2 min-h-[110px] relative group
                       ${!isCurrentMonth ? 'text-gray-400' : ''}
                       ${isToday ? 'bg-primary-50' : ''}
                       ${isSelected ? 'ring-2 ring-primary-500' : ''}
-                      ${isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date()) 
-                        ? 'cursor-pointer hover:bg-gray-50' 
-                        : 'cursor-not-allowed opacity-60'}
+                      ${isFuture ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed opacity-60'}
                     `}
                   >
+                    {/* Day number + add icon */}
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-medium text-sm">{format(day, 'd')}</span>
-                      {(isAfter(startOfDay(day), startOfDay(new Date())) || isSameDay(day, new Date())) && (
+                      {isFuture && (
                         <Plus className="w-4 h-4 text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
-                    <div className="space-y-1">
-                      {dayBookings.slice(0, 3).map((booking, bookingIdx) => (
-                        <div
-                          key={bookingIdx}
-                          className={`px-1 py-0.5 rounded text-xs truncate ${
-                            booking.is_public_event 
-                              ? 'bg-amber-100 text-amber-800 font-medium' 
-                              : 'bg-primary-100 text-primary-800'
-                          }`}
-                        >
-                          {booking.is_public_event ? (
-                            <>
-                              <CalendarIcon className="inline w-3 h-3 mr-1" />
-                              {booking.event_title || booking.purpose}
-                            </>
-                          ) : (
-                            <>
-                              {format(new Date(booking.start_time), 'HH:mm')} - 
-                              {renderBookingInfo(booking)}
-                            </>
-                          )}
+
+                    {/* ── Occupancy mini-bar ── */}
+                    {isCurrentMonth && (summary.bookedSeats > 0 || isFullBlock) && (
+                      <div className="mb-1">
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div
+                            className={`${occBarColor(occPct, isFullBlock)} h-1.5 rounded-full transition-all`}
+                            style={{ width: `${isFullBlock ? 100 : Math.min(occPct, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-400" />
+                          <span className="text-[10px] text-gray-500">
+                            {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Day content */}
+                    <div className="space-y-0.5">
+                      {/* ── Event chips (clickable individually) ── */}
+                      {dayEvents.slice(0, 2).map(ev => (
+                        <EventChip key={ev.id} event={ev} onClick={handleEventClick} />
+                      ))}
+
+                      {/* ── Workshop blocks ── */}
+                      {summary.workshopBookings.slice(0, 1).map(wb => (
+                        <div key={wb.id} className="px-1 py-0.5 rounded text-[10px] truncate bg-red-100 text-red-800 flex items-center gap-0.5">
+                          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                          Workshop
                         </div>
                       ))}
-                      {dayBookings.length > 3 && (
-                        <div className="text-xs text-gray-500 text-center">
-                          +{dayBookings.length - 3} more
+
+                      {/* ── Grouped coworking count ── */}
+                      {summary.coworkingCount > 0 && (
+                        <div className="px-1 py-0.5 rounded text-[10px] truncate bg-primary-100 text-primary-800">
+                          <Users className="inline w-3 h-3 mr-0.5" />
+                          {summary.coworkingCount} coworker{summary.coworkingCount > 1 ? 's' : ''}
                         </div>
                       )}
+
+                      {/* ── Bundle bookings ── */}
+                      {summary.bundleBookings.slice(0, 1).map(bb => (
+                        <div key={bb.id} className="px-1 py-0.5 rounded text-[10px] truncate bg-purple-100 text-purple-800 flex items-center gap-0.5">
+                          <Wrench className="w-3 h-3 flex-shrink-0" />
+                          {bb.package?.name ?? 'Bundle'}
+                        </div>
+                      ))}
+
+                      {/* Overflow */}
+                      {(() => {
+                        const shown = dayEvents.slice(0, 2).length
+                          + Math.min(summary.workshopBookings.length, 1)
+                          + (summary.coworkingCount > 0 ? 1 : 0)
+                          + Math.min(summary.bundleBookings.length, 1);
+                        const total = dayEvents.length
+                          + summary.workshopBookings.length
+                          + (summary.coworkingCount > 0 ? 1 : 0)
+                          + summary.bundleBookings.length;
+                        return total > shown ? (
+                          <div className="text-[10px] text-gray-500 text-center">+{total - shown} more</div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 );
@@ -282,50 +314,89 @@ export default function PublicCalendar() {
         )}
       </div>
 
-      {/* Selected Date Details */}
-      {selectedDate && (
-        <div className="px-6 py-4 border-t border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-          </h3>
-          <div className="space-y-2">
-            {getBookingsForDay(selectedDate).length === 0 ? (
-              <p className="text-gray-500 text-sm">No bookings for this date</p>
-            ) : (
-              getBookingsForDay(selectedDate).map((booking, idx) => (
-                <div key={idx} className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm font-medium">
-                          {booking.start_time} - {booking.end_time}
-                        </span>
+      {/* ── Selected Date Details panel ─────────────────────────────── */}
+      {selectedDate && (() => {
+        const summary = getDaySummary(selectedDate);
+        const dayEvts = getEventsForDay(selectedDate);
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const dayAllBookings = hubBookings.filter(b => b.booking_date === dateStr);
+        const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
+        const available = isFullBlock ? 0 : Math.max(0, summary.totalSeats - summary.bookedSeats);
+
+        return (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-1">
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </h3>
+
+            {/* Seat summary */}
+            <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+              <span className="font-medium text-gray-900">{available} seats available</span>
+              <span>of {summary.totalSeats}</span>
+              {isFullBlock && (
+                <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-medium">
+                  <AlertTriangle className="w-3 h-3" /> Full Hub Blocked
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {/* Events */}
+              {dayEvts.map(ev => (
+                <button
+                  key={ev.id}
+                  onClick={() => handleEventClick(ev)}
+                  className="w-full bg-amber-50 rounded-lg p-3 text-left hover:bg-amber-100 transition-colors"
+                >
+                  <span className="text-sm font-medium text-amber-900">{ev.title}</span>
+                  <span className="block text-xs text-amber-700 mt-0.5">
+                    {format(new Date(ev.start_time), 'h:mm a')} – {format(new Date(ev.end_time), 'h:mm a')}
+                  </span>
+                </button>
+              ))}
+
+              {/* Hub bookings grouped by type */}
+              {dayAllBookings.length === 0 && dayEvts.length === 0 ? (
+                <p className="text-gray-500 text-sm">No bookings for this date</p>
+              ) : (
+                dayAllBookings.map(b => (
+                  <div key={b.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium">
+                            {format(new Date(b.start_time), 'h:mm a')} – {format(new Date(b.end_time), 'h:mm a')}
+                          </span>
+                          {b.is_workshop && (
+                            <span className="text-[10px] font-medium bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Workshop</span>
+                          )}
+                          {b.package?.is_bundle && (
+                            <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Bundle</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {b.package?.name ?? 'Coworking'}{b.guest_name ? ` · ${b.guest_name}` : ''}
+                        </p>
                       </div>
-                      <div className="mt-1">
-                        {renderBookingInfo(booking)}
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Users className="h-4 w-4 mr-1" />
+                        {b.seats_used}
                       </div>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Users className="h-4 w-4 mr-1" />
-                      {booking.attendees}
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Quick Booking Modal */}
       {showBookingModal && selectedDate && (
         <QuickBookingModal
           date={selectedDate}
-          onClose={() => {
-            setShowBookingModal(false);
-            setSelectedDate(null);
-          }}
+          onClose={() => { setShowBookingModal(false); setSelectedDate(null); }}
         />
       )}
 
@@ -333,15 +404,13 @@ export default function PublicCalendar() {
       {showEventModal && selectedEvent && (
         <EventDetailsModal
           event={selectedEvent}
-          onClose={() => {
-            setShowEventModal(false);
-            setSelectedEvent(null);
-          }}
+          onClose={() => { setShowEventModal(false); setSelectedEvent(null); }}
           onBookSpace={() => {
             setShowEventModal(false);
+            const eventDate = new Date(selectedEvent.start_time);
             setSelectedEvent(null);
+            setSelectedDate(eventDate);
             setShowBookingModal(true);
-            setSelectedDate(new Date(selectedEvent.start_time));
           }}
         />
       )}
