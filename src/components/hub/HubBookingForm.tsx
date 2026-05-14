@@ -146,7 +146,7 @@ export default function HubBookingForm({
       {isBundle && (
         <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-purple-50 text-purple-700">
           <Info className="h-4 w-4" />
-          This bundle reserves equipment from the shared inventory. Individual gadget rentals will be hidden to prevent double-booking.
+          This bundle reserves equipment from the shared gadget pool. Individual gadget rentals will be hidden to prevent double-booking.
         </div>
       )}
 

@@ -19,12 +19,13 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
 const EventManagement = lazy(() => import('./pages/EventManagement'));
 const TestDashboard = lazy(() => import('./pages/TestDashboard'));
-const Inventory = lazy(() => import('./pages/Inventory'));
-const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const Gadgets = lazy(() => import('./pages/Gadgets'));
+const AdminGadgets = lazy(() => import('./pages/AdminGadgets'));
 const MyBorrows = lazy(() => import('./pages/MyBorrows'));
 const SeatManagement = lazy(() => import('./pages/SeatManagement'));
 const ProposeEvent = lazy(() => import('./pages/ProposeEvent'));
 const CheckIn = lazy(() => import('./pages/CheckIn'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 // Components
 import Layout from './components/shared/Layout';
@@ -70,96 +71,97 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/bookings" element={<Bookings />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/booking-lookup" element={<BookingLookup />} />
-              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/gadgets" element={<Gadgets />} />
               <Route path="/propose-event" element={<ProposeEvent />} />
               <Route path="/check-in" element={<CheckIn />} />
-            
-            {/* Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute session={session}>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute session={session}>
-                  <Settings session={session!} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-borrows"
-              element={
-                <ProtectedRoute session={session}>
-                  <MyBorrows />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test-dashboard"
-              element={
-                <ProtectedRoute session={session}>
-                  <TestDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/spaces"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <SpaceManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/events"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <EventManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/inventory"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <AdminInventory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/seats"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <SeatManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/analytics"
-              element={
-                <ProtectedRoute session={session} requireAdmin>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Suspense>
+
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Settings session={session!} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-borrows"
+                element={
+                  <ProtectedRoute session={session}>
+                    <MyBorrows />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test-dashboard"
+                element={
+                  <ProtectedRoute session={session}>
+                    <TestDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/spaces"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <SpaceManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/events"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <EventManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/gadgets"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <AdminGadgets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/seats"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <SeatManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <ProtectedRoute session={session} requireAdmin>
+                    <Analytics />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
         </Layout>
       </Router>
       <Toaster position="top-right" />

@@ -19,7 +19,9 @@ export default {
           800: '#92400e',
           900: '#78350f',
           950: '#451a03',
-        }
+        },
+        'brandBlue': '#0C2340',
+        'brandOrange': '#F59E0B',
       }
     },
   },

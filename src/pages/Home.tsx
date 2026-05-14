@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, Video, Navigation, Webcam, PartyPopper, ClipboardCheck } from 'lucide-react';
+import { 
+  Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, 
+  Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, 
+  Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb, 
+  Layers, Laptop, Globe, HeartHandshake, Moon, Presentation, Armchair
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
@@ -55,11 +60,11 @@ export default function Home() {
     const { count: spacesCount } = await supabase
       .from('spaces')
       .select('*', { count: 'exact', head: true });
-    
+
     const { count: bookingsCount } = await supabase
       .from('bookings')
       .select('*', { count: 'exact', head: true });
-    
+
     setStats({
       totalSpaces: spacesCount || 0,
       totalBookings: bookingsCount || 0,
@@ -67,14 +72,26 @@ export default function Home() {
     });
   };
 
+  function OfferCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
+    return (
+      <div className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#F59E0B]/20 transition-all duration-500">
+        <div className="w-14 h-14 rounded-2xl bg-[#0C2340]/5 flex items-center justify-center mb-6 group-hover:bg-[#F59E0B]/10 transition-colors">
+          <Icon className="w-7 h-7 text-[#0C2340] group-hover:text-[#F59E0B] transition-colors" />
+        </div>
+        <h3 className="text-xl font-bold text-[#0C2340] mb-3">{title}</h3>
+        <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative overflow-hidden">
       {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-purple-50 -z-10">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 -z-10">
         <div className="absolute inset-0 opacity-30">
-          <div className="absolute -top-4 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute -bottom-8 -left-4 w-72 h-72 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+          <div className="absolute -top-4 -right-4 w-72 h-72 bg-[#0C2340]/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+          <div className="absolute -bottom-8 -left-4 w-72 h-72 bg-[#F59E0B]/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-[#F59E0B]/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
       </div>
 
@@ -82,21 +99,17 @@ export default function Home() {
       <div className="relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Government-Ready Solution
+            <div className="flex justify-center mb-4">
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Creative As One, Iligan
               </span>
             </div>
-            <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl md:text-7xl">
-              <span className="block">Creative</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600">
-                Coworking
-              </span>
+            <h1 className="text-5xl font-extrabold text-[#0C2340] sm:text-6xl md:text-7xl mb-6">
+              Digital Creatives Hub Iligan
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
-              Professional coworking spaces for government agencies, businesses, and creative professionals. 
-              Book meeting rooms, workspaces, and event venues with ease.
+              Your 24/7 innovation, collaboration, and co-working space designed to fuel imagination, spark ideas, and build community.
             </p>
             {/* Check-In Banner */}
             <div className="mt-10 mb-6">
@@ -116,32 +129,52 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/bookings"
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary-600 to-purple-600 rounded-full overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-[#0C2340] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               >
                 <span className="relative z-10 flex items-center">
                   Book a Space Now
                   <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
               <Link
                 to="/propose-event"
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-full overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-[#F59E0B] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               >
                 <span className="relative z-10 flex items-center">
                   <PartyPopper className="mr-2 w-5 h-5" />
                   Propose an Event
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F59E0B] to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
               <Link
                 to="/calendar"
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-gray-700 bg-white rounded-full shadow-lg border-2 border-gray-200 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-primary-300"
+                className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-gray-700 bg-white rounded-2xl shadow-lg border-2 border-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-[#F59E0B]/30"
               >
                 <Calendar className="mr-2 w-5 h-5" />
                 View Calendar
               </Link>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* What We Offer Section */}
+      <div className="py-24 bg-white relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-[#0C2340] sm:text-4xl">What We Offer</h2>
+            <div className="w-20 h-1.5 bg-[#F59E0B] mx-auto mt-4 rounded-full"></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <OfferCard icon={Clock} title="24/7 Operations" description="Work anytime, day or night, in a secure and inspired environment." />
+            <OfferCard icon={Presentation} title="Meetings/Events Venue" description="Professional spaces perfect for workshops, seminars, and gatherings." />
+            <OfferCard icon={Briefcase} title="Virtual Office Space" description="Establish your business presence with our professional mailing address." />
+            <OfferCard icon={Zap} title="Fast Internet Speed" description="Blazing fast fiber internet to keep your creative workflow uninterrupted." />
+            <OfferCard icon={Lightbulb} title="Innovation Hub" description="Access to tools and a community focused on groundbreaking ideas." />
+            <OfferCard icon={Layers} title="Collaborative Space" description="Connect, share, and grow with a network of talented digital pros." />
+            <OfferCard icon={Armchair} title="Co-working Space" description="Ergonomic and flexible workstations designed for productivity." />
+            <OfferCard icon={Camera} title="Digital Gadgets & Media Gear" description="High-end equipment available for rent to level up your production." />
           </div>
         </div>
       </div>
@@ -152,29 +185,29 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-primary-100 rounded-full group-hover:bg-primary-200 transition-colors">
-                  <Building2 className="w-8 h-8 text-primary-600" />
+                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 transition-colors">
+                  <Building2 className="w-8 h-8 text-[#F59E0B]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900">{stats.totalSpaces}+</div>
+              <div className="text-4xl font-bold text-[#0C2340]">{stats.totalSpaces}+</div>
               <div className="text-gray-600 mt-1">Creative Spaces</div>
             </div>
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
-                  <Users className="w-8 h-8 text-purple-600" />
+                <div className="p-3 bg-[#0C2340]/10 rounded-full group-hover:bg-[#0C2340]/20 transition-colors">
+                  <Users className="w-8 h-8 text-[#0C2340]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900">{stats.happyUsers}+</div>
+              <div className="text-4xl font-bold text-[#0C2340]">{stats.happyUsers}+</div>
               <div className="text-gray-600 mt-1">Happy Creatives</div>
             </div>
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-pink-100 rounded-full group-hover:bg-pink-200 transition-colors">
-                  <Star className="w-8 h-8 text-pink-600" />
+                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 transition-colors">
+                  <Star className="w-8 h-8 text-[#F59E0B]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900">4.9</div>
+              <div className="text-4xl font-bold text-[#0C2340]">4.9</div>
               <div className="text-gray-600 mt-1">Average Rating</div>
             </div>
           </div>
@@ -247,7 +280,7 @@ export default function Home() {
         <div className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Featured Spaces</h2>
+              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Featured Spaces</h2>
               <p className="text-xl text-gray-600">Discover our most popular creative spaces</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -300,12 +333,12 @@ export default function Home() {
               <div className="flex justify-center mb-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
                   <Package className="w-4 h-4 mr-1" />
-                  Equipment Lending
+                  Gadget Lending
                 </span>
               </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Borrow Gear</h2>
+              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Creative Gadgets</h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Professional cameras, drones, and creative tools available for checkout
+                Level up your workflow with pro gear available for instant checkout
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -320,14 +353,13 @@ export default function Home() {
                         <Icon className="w-6 h-6 text-white" />
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
-                      <div className={`inline-flex items-center text-sm font-medium px-2.5 py-1 rounded-full mb-3 ${
-                        allOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                      }`}>
+                      <div className={`inline-flex items-center text-sm font-medium px-2.5 py-1 rounded-full mb-3 ${allOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                        }`}>
                         <span className="font-bold mr-1">{item.availableItems}</span> of {item.totalItems} available
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <Link
-                          to="/inventory"
+                          to="/gadgets"
                           className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm"
                         >
                           {allOut ? 'View Details' : 'Borrow Now'}
@@ -341,11 +373,11 @@ export default function Home() {
             </div>
             <div className="text-center mt-12">
               <Link
-                to="/inventory"
+                to="/gadgets"
                 className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
               >
                 <Package className="mr-2 w-5 h-5" />
-                View All Equipment
+                Browse All Gadgets
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
             </div>
@@ -357,7 +389,7 @@ export default function Home() {
       <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Everything You Need</h2>
+            <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Everything You Need</h2>
             <p className="text-xl text-gray-600">All spaces come fully equipped with premium amenities</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -391,7 +423,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="relative py-24">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-purple-600"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-[#F59E0B]"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Join Our Creative Community Today

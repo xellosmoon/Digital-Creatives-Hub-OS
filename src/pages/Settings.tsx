@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { User, Bell, Shield, ArrowLeft } from 'lucide-react';
 import { Session } from '@supabase/supabase-js';
 import NotificationPreferences from '../components/settings/NotificationPreferences';
+import ProfileSettings from '../components/settings/ProfileSettings';
+import SecuritySettings from '../components/settings/SecuritySettings';
 
 interface SettingsProps {
   session: Session;
@@ -10,7 +12,7 @@ interface SettingsProps {
 
 export default function Settings({ session }: SettingsProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('notifications');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: User },
@@ -62,12 +64,9 @@ export default function Settings({ session }: SettingsProps) {
       </div>
 
       {/* Tab Content */}
-      <div>
+      <div className="max-w-4xl">
         {activeTab === 'profile' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Settings</h2>
-            <p className="text-gray-600">Profile settings coming soon...</p>
-          </div>
+          <ProfileSettings userId={session.user.id} />
         )}
 
         {activeTab === 'notifications' && (
@@ -75,10 +74,7 @@ export default function Settings({ session }: SettingsProps) {
         )}
 
         {activeTab === 'security' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Security Settings</h2>
-            <p className="text-gray-600">Security settings coming soon...</p>
-          </div>
+          <SecuritySettings />
         )}
       </div>
     </div>

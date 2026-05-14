@@ -12,7 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { formatPeso } from '../../lib/pricingEngine';
-import type { Borrowing, Item, BorrowingStatus } from '../../types/inventory';
+import type { Borrowing, Item, BorrowingStatus } from '../../types/gadgets';
 
 interface AdminBorrowingTableProps {
   borrowings: (Borrowing & { item?: Item; asset?: { name: string } })[];

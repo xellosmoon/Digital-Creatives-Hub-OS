@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Search, Filter } from 'lucide-react';
-import type { AssetAvailability, AssetCategory } from '../../types/inventory';
-import { CATEGORY_LABELS } from '../../types/inventory';
-import InventoryCard from './InventoryCard';
+import type { AssetAvailability, AssetCategory } from '../../types/gadgets';
+import { CATEGORY_LABELS } from '../../types/gadgets';
+import GadgetCard from './GadgetCard';
 
 interface InventoryGridProps {
   assets: AssetAvailability[];
@@ -15,7 +15,7 @@ const ALL_CATEGORIES: AssetCategory[] = [
   'action_camera', 'camera', 'smartphone', 'drone', 'webcam',
 ];
 
-export default function InventoryGrid({ assets, loading, onBorrow }: InventoryGridProps) {
+export default function GadgetGrid({ assets, loading, onBorrow }: InventoryGridProps) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<AssetCategory | 'all'>('all');
 
@@ -89,7 +89,7 @@ export default function InventoryGrid({ assets, loading, onBorrow }: InventoryGr
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map((a) => (
-            <InventoryCard key={a.asset.id} availability={a} onBorrow={onBorrow} />
+            <GadgetCard key={a.asset.id} availability={a} onBorrow={onBorrow} />
           ))}
         </div>
       )}

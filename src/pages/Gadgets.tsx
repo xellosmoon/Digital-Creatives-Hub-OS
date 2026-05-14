@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Package, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import InventoryGrid from '../components/inventory/InventoryGrid';
-import BorrowingModal from '../components/inventory/BorrowingModal';
-import type { Asset, Item, PricingTier, AssetAvailability } from '../types/inventory';
+import GadgetGrid from '../components/gadgets/GadgetGrid';
+import BorrowingModal from '../components/gadgets/BorrowingModal';
+import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 
-export default function Inventory() {
+export default function Gadgets() {
   const [assets, setAssets] = useState<AssetAvailability[]>([]);
   const [allPricing, setAllPricing] = useState<PricingTier[]>([]);
   const [allItems, setAllItems] = useState<Item[]>([]);
@@ -88,8 +88,8 @@ export default function Inventory() {
               <Package className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Equipment Inventory</h1>
-              <p className="text-sm text-gray-500">Browse and borrow DCIH equipment</p>
+              <h1 className="text-2xl font-bold text-gray-900">Gadgets & Gear</h1>
+              <p className="text-sm text-gray-500">Professional equipment for your creative flow</p>
             </div>
           </div>
           <button
@@ -105,7 +105,7 @@ export default function Inventory() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <SummaryCard
-            label="Total Equipment"
+            label="Total Gadgets"
             value={assets.reduce((s, a) => s + a.totalItems, 0)}
             color="text-gray-900"
           />
@@ -127,7 +127,7 @@ export default function Inventory() {
         </div>
 
         {/* Grid */}
-        <InventoryGrid assets={assets} loading={loading} onBorrow={handleBorrow} />
+        <GadgetGrid assets={assets} loading={loading} onBorrow={handleBorrow} />
       </div>
 
       {/* Borrowing Modal */}

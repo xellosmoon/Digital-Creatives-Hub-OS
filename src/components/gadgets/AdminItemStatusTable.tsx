@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import type { Item, ItemStatus, Borrowing, Asset } from '../../types/inventory';
+import type { Item, ItemStatus, Borrowing, Asset } from '../../types/gadgets';
 
 interface AdminItemStatusTableProps {
   items: (Item & { asset?: { name: string; slug: string; requires_notice?: string | null } })[];

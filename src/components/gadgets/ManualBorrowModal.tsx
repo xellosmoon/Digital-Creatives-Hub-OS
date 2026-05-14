@@ -9,13 +9,7 @@ import {
   resolveLocation,
   computeDurationHours,
 } from '../../lib/pricingEngine';
-import type {
-  Asset,
-  PricingTier,
-  BorrowLocation,
-  Item,
-  PriceEstimate,
-} from '../../types/inventory';
+import type { Asset, Item, PricingTier, Borrowing, BorrowLocation, PriceEstimate } from '../../types/gadgets';
 
 interface ManualBorrowModalProps {
   assets: Asset[];

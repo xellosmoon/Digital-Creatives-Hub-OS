@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Save, Package, Image, MapPin, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import type { Asset, AssetCategory, LocationMode } from '../../types/inventory';
-import { CATEGORY_LABELS } from '../../types/inventory';
+import type { Asset, AssetCategory, LocationMode, PricingTier } from '../../types/gadgets';
+import { CATEGORY_LABELS } from '../../types/gadgets';
 
 interface AssetFormModalProps {
   asset?: Asset | null;          // null = create mode, Asset = edit mode

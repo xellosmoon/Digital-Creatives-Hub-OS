@@ -8,7 +8,7 @@ import {
   Download,
 } from 'lucide-react';
 import { formatPeso } from '../../lib/pricingEngine';
-import type { Borrowing, BorrowingStatus } from '../../types/inventory';
+import type { Borrowing, Item, BorrowingStatus } from '../../types/gadgets';
 
 interface BorrowingLogsTableProps {
   borrowings: (Borrowing & { item?: { asset_tag: string | null }; asset?: { name: string } })[];

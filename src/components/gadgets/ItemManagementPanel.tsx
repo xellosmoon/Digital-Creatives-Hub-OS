@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, X, Save, Tag, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import type { Asset, Item } from '../../types/inventory';
+import type { Asset, Item } from '../../types/gadgets';
 
 interface ItemManagementPanelProps {
   asset: Asset;

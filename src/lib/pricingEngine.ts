@@ -2,7 +2,7 @@
 // DCIH Pricing Engine – Tiered, Location-Aware Rate Calculator
 // ============================================================
 import { differenceInMinutes } from 'date-fns';
-import type { PricingTier, BorrowLocation, Asset, PriceEstimate } from '../types/inventory';
+import type { PricingTier, BorrowLocation, Asset, PriceEstimate } from '../types/gadgets';
 
 /**
  * Resolve the effective location for a given asset.

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
-  CheckCircle, X, LogOut, Trash2, Timer
+  CheckCircle, X, LogOut, Trash2, Timer, Building2, Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -266,23 +266,45 @@ export default function AdminDashboard() {
                 <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
               </div>
             )}
-            <Link to="/admin/analytics" className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <BarChart3 className="h-4 w-4 mr-1.5" />Analytics
-            </Link>
-            <Link to="/admin/events" className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <CalendarDays className="h-4 w-4 mr-1.5" />Events
-            </Link>
-            <Link to="/admin/seats" className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <Armchair className="h-4 w-4 mr-1.5" />Seats
-            </Link>
-            <Link to="/admin/inventory" className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <Package className="h-4 w-4 mr-1.5" />Inventory
-            </Link>
             <button onClick={handleRefresh} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
               <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Management Navigation Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <Link to="/admin/spaces" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors mb-3">
+            <Building2 className="h-6 w-6 text-blue-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Spaces</span>
+        </Link>
+        <Link to="/admin/events" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-purple-50 rounded-xl group-hover:bg-purple-100 transition-colors mb-3">
+            <CalendarDays className="h-6 w-6 text-purple-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Events</span>
+        </Link>
+        <Link to="/admin/seats" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors mb-3">
+            <Armchair className="h-6 w-6 text-emerald-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Seats</span>
+        </Link>
+        <Link to="/admin/gadgets" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-amber-50 rounded-xl group-hover:bg-amber-100 transition-colors mb-3">
+            <Package className="h-6 w-6 text-amber-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Gadgets</span>
+        </Link>
+        <Link to="/admin/analytics" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-rose-50 rounded-xl group-hover:bg-rose-100 transition-colors mb-3">
+            <BarChart3 className="h-6 w-6 text-rose-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Analytics</span>
+        </Link>
       </div>
 
       {/* Stats */}

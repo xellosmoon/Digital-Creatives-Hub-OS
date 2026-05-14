@@ -16,7 +16,7 @@ import type {
   BorrowLocation,
   Item,
   PriceEstimate,
-} from '../../types/inventory';
+} from '../../types/gadgets';
 
 interface BorrowingModalProps {
   asset: Asset;

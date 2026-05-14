@@ -37,7 +37,7 @@ const PKG_GRAD: Record<string, string> = {
   student_pass: 'from-emerald-400 to-teal-600',
   coworker_lite: 'from-amber-400 to-orange-500',
   weekend_creator: 'from-pink-400 to-rose-500',
-  creative_suite: 'from-violet-500 to-purple-600',
+  creative_suite: 'from-[#0C2340] to-purple-600',
   production_access: 'from-indigo-500 to-blue-600',
 };
 
@@ -208,7 +208,7 @@ export default function Bookings() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-violet-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2340]" />
       </div>
     );
   }
@@ -219,7 +219,7 @@ export default function Bookings() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
       {/* ── Gradient hero strip ── */}
-      <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 text-white">
+      <div className="bg-gradient-to-r from-[#0C2340] via-[#0C2340] to-blue-600 text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="h-6 w-6 opacity-80" />
@@ -242,17 +242,17 @@ export default function Bookings() {
               return (
                 <div key={s.key} className="flex items-center flex-1">
                   {i > 0 && (
-                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-violet-500' : 'bg-gray-200'}`} />
+                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-[#0C2340]' : 'bg-gray-200'}`} />
                   )}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className={`
                       h-8 w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold
                       transition-all duration-300
-                      ${done ? 'bg-violet-600 text-white shadow-md shadow-violet-200' : active ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-500' : 'bg-gray-100 text-gray-400'}
+                      ${done ? 'bg-[#0C2340] text-white shadow-md shadow-violet-200' : active ? 'bg-violet-100 text-[#F59E0B] ring-2 ring-[#0C2340]' : 'bg-gray-100 text-gray-400'}
                     `}>
                       {done ? <Check className="h-4 w-4" /> : i + 1}
                     </span>
-                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-violet-700' : done ? 'text-violet-500' : 'text-gray-400'}`}>
+                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-[#F59E0B]' : done ? 'text-[#0C2340]' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -294,7 +294,7 @@ export default function Bookings() {
                             ${disabled
                               ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
                               : selected
-                              ? 'border-violet-500 bg-violet-50/60 ring-4 ring-violet-500/20 scale-[1.02] shadow-lg shadow-violet-100'
+                              ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg shadow-violet-100'
                               : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'}
                           `}
                         >
@@ -367,7 +367,7 @@ export default function Bookings() {
 
                           {selected && (
                             <div className="absolute bottom-4 right-4">
-                              <CheckCircle className="h-5 w-5 text-violet-600" />
+                              <CheckCircle className="h-5 w-5 text-[#0C2340]" />
                             </div>
                           )}
                         </button>
@@ -386,14 +386,14 @@ export default function Bookings() {
                   {/* Date */}
                   <div className="mb-6">
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                      <Calendar className="h-4 w-4 text-violet-500" /> Date
+                      <Calendar className="h-4 w-4 text-[#0C2340]" /> Date
                     </label>
                     <input
                       type="date"
                       value={form.date}
                       onChange={e => update({ date: e.target.value })}
                       min={format(new Date(), 'yyyy-MM-dd')}
-                      className="w-full sm:w-72 rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-300"
+                      className="w-full sm:w-72 rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
                     />
                   </div>
 
@@ -434,7 +434,7 @@ export default function Bookings() {
                     <div className="space-y-5">
                       <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                          <Clock className="h-4 w-4 text-violet-500" /> Start Time
+                          <Clock className="h-4 w-4 text-[#0C2340]" /> Start Time
                         </label>
                         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
                           {HOURS.slice(0, -1).map(h => {
@@ -454,8 +454,8 @@ export default function Bookings() {
                                 className={`
                                   px-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300
                                   ${active
-                                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-300/50 scale-105'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-violet-700 hover:scale-[1.03]'}
+                                    ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
+                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
                                 `}
                               >
                                 {h.label}
@@ -468,7 +468,7 @@ export default function Bookings() {
                       {/* Time slot grid — end */}
                       <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                          <Clock className="h-4 w-4 text-violet-500" /> End Time
+                          <Clock className="h-4 w-4 text-[#0C2340]" /> End Time
                         </label>
                         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
                           {HOURS.slice(1).map(h => {
@@ -485,8 +485,8 @@ export default function Bookings() {
                                   ${slotDisabled
                                     ? 'bg-gray-100/60 text-gray-300 cursor-not-allowed line-through'
                                     : active
-                                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-300/50 scale-105'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-violet-700 hover:scale-[1.03]'}
+                                    ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
+                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
                                 `}
                               >
                                 {h.label}
@@ -499,7 +499,7 @@ export default function Bookings() {
                   )}
 
                   {isDaily && (
-                    <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-center gap-3 text-sm text-violet-700">
+                    <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-center gap-3 text-sm text-[#F59E0B]">
                       <Info className="h-5 w-5 flex-shrink-0" />
                       Full-day pass — come and go anytime during operating hours (8 AM - 8 PM).
                     </div>
@@ -511,7 +511,7 @@ export default function Bookings() {
                       <Monitor className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-semibold text-indigo-800">Pro Tip: Bring an External Drive</p>
-                        <p className="text-xs text-indigo-600 mt-0.5">
+                        <p className="text-xs text-[#0C2340] mt-0.5">
                           Our High-Performance PCs reset after each session. Save your work to an external hard drive or cloud storage.
                         </p>
                       </div>
@@ -529,7 +529,7 @@ export default function Bookings() {
                   <div className="space-y-5">
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <User className="h-4 w-4 text-violet-500" /> Full Name *
+                        <User className="h-4 w-4 text-[#0C2340]" /> Full Name *
                       </label>
                       <input
                         type="text"
@@ -537,12 +537,12 @@ export default function Bookings() {
                         value={form.name}
                         onChange={e => update({ name: e.target.value })}
                         placeholder="Juan Dela Cruz"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-300 placeholder:text-gray-300"
+                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                       />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <Mail className="h-4 w-4 text-violet-500" /> Email Address *
+                        <Mail className="h-4 w-4 text-[#0C2340]" /> Email Address *
                       </label>
                       <input
                         type="email"
@@ -550,31 +550,31 @@ export default function Bookings() {
                         value={form.email}
                         onChange={e => update({ email: e.target.value })}
                         placeholder="juan@example.com"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-300 placeholder:text-gray-300"
+                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                       />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <Phone className="h-4 w-4 text-violet-500" /> Phone (optional)
+                        <Phone className="h-4 w-4 text-[#0C2340]" /> Phone (optional)
                       </label>
                       <input
                         type="tel"
                         value={form.phone}
                         onChange={e => update({ phone: e.target.value })}
                         placeholder="+63 917 123 4567"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-300 placeholder:text-gray-300"
+                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                       />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <FileText className="h-4 w-4 text-violet-500" /> What will you be working on?
+                        <FileText className="h-4 w-4 text-[#0C2340]" /> What will you be working on?
                       </label>
                       <textarea
                         rows={3}
                         value={form.purpose}
                         onChange={e => update({ purpose: e.target.value })}
                         placeholder="Video editing, web development, studying..."
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all duration-300 placeholder:text-gray-300 resize-none"
+                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300 resize-none"
                       />
                     </div>
                   </div>
@@ -602,32 +602,32 @@ export default function Bookings() {
                     {/* Date & Time */}
                     <div className="rounded-2xl bg-gray-50/80 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-violet-500" />
+                        <Calendar className="h-4 w-4 text-[#0C2340]" />
                         <span className="font-medium text-gray-900">{format(new Date(form.date + 'T00:00'), 'EEE, MMM d, yyyy')}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-violet-500" />
+                        <Clock className="h-4 w-4 text-[#0C2340]" />
                         <span className="font-medium text-gray-900">
-                          {isDaily ? 'Full day' : `${HOURS.find(h => h.value === form.start)?.label} \u2013 ${HOURS.find(h => h.value === form.end)?.label}`}
+                          {isDaily ? 'Full day' : `${HOURS.find(h => h.value === form.start)?.label} – ${HOURS.find(h => h.value === form.end)?.label}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-violet-500" />
+                        <Zap className="h-4 w-4 text-[#0C2340]" />
                         <span className="font-extrabold text-gray-900">{formatPeso(estimate.totalPrice)}</span>
                       </div>
                     </div>
 
                     {/* Personal details */}
                     <div className="rounded-2xl bg-gray-50/80 p-4 space-y-1.5 text-sm">
-                      <div className="flex items-center gap-2"><User className="h-4 w-4 text-violet-500" /><span className="text-gray-900">{form.name}</span></div>
-                      <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-violet-500" /><span className="text-gray-900">{form.email}</span></div>
-                      {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-violet-500" /><span className="text-gray-900">{form.phone}</span></div>}
-                      {form.purpose && <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-violet-500" /><span className="text-gray-500 italic">{form.purpose}</span></div>}
+                      <div className="flex items-center gap-2"><User className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.name}</span></div>
+                      <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.email}</span></div>
+                      {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.phone}</span></div>}
+                      {form.purpose && <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-500 italic">{form.purpose}</span></div>}
                     </div>
 
                     {/* Disclaimer */}
-                    <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-start gap-3 text-xs text-violet-700">
-                      <Shield className="h-5 w-5 text-violet-500 flex-shrink-0 mt-0.5" />
+                    <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-start gap-3 text-xs text-[#F59E0B]">
+                      <Shield className="h-5 w-5 text-[#0C2340] flex-shrink-0 mt-0.5" />
                       <p>
                         Your booking will be <span className="font-semibold">pending approval</span> by a hub admin.
                         You&apos;ll receive a confirmation email once approved. Payment is collected on-site.
@@ -654,7 +654,7 @@ export default function Bookings() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-[#0C2340] hover:from-[#F59E0B] hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     {submitting ? (
                       <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -668,7 +668,7 @@ export default function Bookings() {
                     type="button"
                     onClick={next}
                     disabled={!canProceed()}
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-[#0C2340] hover:from-[#F59E0B] hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     Continue <ArrowRight className="h-4 w-4" />
                   </button>
@@ -708,7 +708,7 @@ export default function Bookings() {
                         <div className="flex justify-between text-gray-500">
                           <span>Time</span>
                           <span className="font-medium text-gray-900">
-                            {HOURS.find(h => h.value === form.start)?.label} \u2013 {HOURS.find(h => h.value === form.end)?.label}
+                            {HOURS.find(h => h.value === form.start)?.label} – {HOURS.find(h => h.value === form.end)?.label}
                           </span>
                         </div>
                       )}

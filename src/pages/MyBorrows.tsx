@@ -14,16 +14,16 @@ import {
 } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import { formatPeso } from '../lib/pricingEngine';
-import type { Borrowing, BorrowingStatus } from '../types/inventory';
+import type { Borrowing, BorrowingStatus } from '../types/gadgets';
 import toast from 'react-hot-toast';
 
 const STATUS_CONFIG: Record<BorrowingStatus, { icon: React.ElementType; cls: string; label: string }> = {
-  pending:   { icon: Clock,         cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', label: 'Pending Approval' },
-  approved:  { icon: CheckCircle,   cls: 'bg-blue-50 text-blue-700 border-blue-200',       label: 'Approved' },
-  active:    { icon: CheckCircle,   cls: 'bg-green-50 text-green-700 border-green-200',    label: 'Active' },
-  returned:  { icon: RotateCcw,     cls: 'bg-gray-50 text-gray-600 border-gray-200',       label: 'Returned' },
-  overdue:   { icon: AlertTriangle, cls: 'bg-red-50 text-red-700 border-red-200',          label: 'Overdue' },
-  cancelled: { icon: XCircle,       cls: 'bg-gray-50 text-gray-400 border-gray-200',       label: 'Cancelled' },
+  pending: { icon: Clock, cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', label: 'Pending Approval' },
+  approved: { icon: CheckCircle, cls: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Approved' },
+  active: { icon: CheckCircle, cls: 'bg-green-50 text-green-700 border-green-200', label: 'Active' },
+  returned: { icon: RotateCcw, cls: 'bg-gray-50 text-gray-600 border-gray-200', label: 'Returned' },
+  overdue: { icon: AlertTriangle, cls: 'bg-red-50 text-red-700 border-red-200', label: 'Overdue' },
+  cancelled: { icon: XCircle, cls: 'bg-gray-50 text-gray-400 border-gray-200', label: 'Cancelled' },
 };
 
 export default function MyBorrows() {
@@ -127,11 +127,10 @@ export default function MyBorrows() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              filter === f
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filter === f
                 ? 'bg-primary-500 text-white'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-            }`}
+              }`}
           >
             {f === 'active' ? 'Active' : f === 'past' ? 'Past' : 'All'}
           </button>
@@ -147,7 +146,7 @@ export default function MyBorrows() {
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <Package className="h-12 w-12 mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">No borrowings found</p>
-          <p className="text-sm text-gray-400 mt-1">Visit the inventory to borrow equipment.</p>
+          <p className="text-sm text-gray-400 mt-1">Visit the gadgets catalog to borrow equipment.</p>
           <Link
             to="/inventory"
             className="inline-flex items-center gap-2 mt-4 px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600"
@@ -189,9 +188,8 @@ export default function MyBorrows() {
                           {(b as any).destination_location}
                         </span>
                       )}
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
-                        ((b as any).usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${((b as any).usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                        }`}>
                         <MapPin className="h-3 w-3" />
                         {((b as any).usage_type || b.location) === 'inside' ? 'Inside DCIH' : 'Outside'}
                       </span>

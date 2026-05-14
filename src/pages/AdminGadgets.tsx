@@ -8,18 +8,18 @@ import { isPast } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { formatPeso } from '../lib/pricingEngine';
-import AdminItemStatusTable from '../components/inventory/AdminItemStatusTable';
-import AdminBorrowingTable from '../components/inventory/AdminBorrowingTable';
-import BorrowingLogsTable from '../components/inventory/BorrowingLogsTable';
-import ManualBorrowModal from '../components/inventory/ManualBorrowModal';
-import AssetFormModal from '../components/inventory/AssetFormModal';
-import ItemManagementPanel from '../components/inventory/ItemManagementPanel';
-import { CATEGORY_LABELS } from '../types/inventory';
-import type { Borrowing, Item, Asset, PricingTier } from '../types/inventory';
+import AdminItemStatusTable from '../components/gadgets/AdminItemStatusTable';
+import AdminBorrowingTable from '../components/gadgets/AdminBorrowingTable';
+import BorrowingLogsTable from '../components/gadgets/BorrowingLogsTable';
+import ManualBorrowModal from '../components/gadgets/ManualBorrowModal';
+import AssetFormModal from '../components/gadgets/AssetFormModal';
+import ItemManagementPanel from '../components/gadgets/ItemManagementPanel';
+import { CATEGORY_LABELS } from '../types/gadgets';
+import type { Borrowing, Item, Asset, PricingTier } from '../types/gadgets';
 
 type TabKey = 'assets' | 'items' | 'queue' | 'active' | 'logs' | 'maintenance';
 
-export default function AdminInventory() {
+export default function AdminGadgets() {
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -56,7 +56,7 @@ export default function AdminInventory() {
       setAssets((aRes.data ?? []) as Asset[]);
       setPricing((pRes.data ?? []) as PricingTier[]);
     } catch (err) {
-      console.error('Admin inventory fetch failed', err);
+      console.error('Admin gadget fetch failed', err);
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export default function AdminInventory() {
 
     // Real-time subscription for borrowings
     const sub = supabase
-      .channel('admin-inventory')
+      .channel('admin-gadgets')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'borrowings' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => fetchData())
       .subscribe();
@@ -116,12 +116,12 @@ export default function AdminInventory() {
   };
 
   const TABS: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
-    { key: 'assets',      label: 'Assets',          icon: Layers },
-    { key: 'items',       label: 'All Units',       icon: Package },
-    { key: 'queue',       label: 'Approval Queue',  icon: Clock,          count: pendingCount },
-    { key: 'active',      label: 'Active / Overdue', icon: Activity,      count: overdueCount || undefined },
-    { key: 'logs',        label: 'Borrowing Logs',  icon: FileText },
-    { key: 'maintenance', label: 'Flagged',         icon: Wrench,         count: maintenanceCount + brokenCount || undefined },
+    { key: 'assets', label: 'Gadget Models', icon: Layers },
+    { key: 'items', label: 'All Units', icon: Package },
+    { key: 'queue', label: 'Approval Queue', icon: Clock, count: pendingCount },
+    { key: 'active', label: 'Active / Overdue', icon: Activity, count: overdueCount || undefined },
+    { key: 'logs', label: 'Borrowing Logs', icon: FileText },
+    { key: 'maintenance', label: 'Flagged', icon: Wrench, count: maintenanceCount + brokenCount || undefined },
   ];
 
   return (
@@ -134,8 +134,8 @@ export default function AdminInventory() {
               <Package className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Inventory Command Center</h1>
-              <p className="text-sm text-gray-500">Manage equipment, approvals, and borrowing logs</p>
+              <h1 className="text-2xl font-bold text-gray-900">Gadget Ops Center</h1>
+              <p className="text-sm text-gray-500">Manage gear, track borrowings, and maintain equipment</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -175,19 +175,17 @@ export default function AdminInventory() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  active
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active
                     ? 'bg-primary-500 text-white'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {t.label}
                 {t.count != null && t.count > 0 && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      active ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'
-                    }`}
+                    className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${active ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'
+                      }`}
                   >
                     {t.count}
                   </span>
@@ -208,7 +206,7 @@ export default function AdminInventory() {
               {/* Add Asset button */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                  Equipment Catalogue ({assets.length})
+                  Gadget Catalogue ({assets.length})
                 </h3>
                 <button
                   onClick={() => { setEditingAsset(null); setShowAssetForm(true); }}

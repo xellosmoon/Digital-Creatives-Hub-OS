@@ -1,6 +1,6 @@
 import { Monitor, PenTool, Cpu, Video, Camera, Smartphone, Navigation, Webcam, AlertTriangle } from 'lucide-react';
-import type { AssetAvailability, AssetCategory } from '../../types/inventory';
-import { CATEGORY_LABELS } from '../../types/inventory';
+import type { AssetAvailability, AssetCategory } from '../../types/gadgets';
+import { CATEGORY_LABELS } from '../../types/gadgets';
 
 interface InventoryCardProps {
   availability: AssetAvailability;
@@ -18,7 +18,7 @@ const ICON_MAP: Record<AssetCategory, React.ElementType> = {
   webcam: Webcam,
 };
 
-export default function InventoryCard({ availability, onBorrow }: InventoryCardProps) {
+export default function GadgetCard({ availability, onBorrow }: InventoryCardProps) {
   const { asset, totalItems, availableItems, maintenanceItems } = availability;
   const Icon = ICON_MAP[asset.category] ?? Monitor;
   const allUnavailable = availableItems === 0;
