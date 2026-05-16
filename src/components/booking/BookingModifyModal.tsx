@@ -10,8 +10,8 @@ interface BookingModifyModalProps {
     space_id: string;
     start_time: string;
     end_time: string;
-    attendees: number;
-    purpose: string;
+    attendees: number | null;
+    purpose: string | null;
     space: { name: string; hourly_rate: number };
     booking_reference: string;
   };
@@ -27,8 +27,8 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
     date: format(new Date(booking.start_time), 'yyyy-MM-dd'),
     startTime: format(new Date(booking.start_time), 'HH:mm'),
     endTime: format(new Date(booking.end_time), 'HH:mm'),
-    attendees: booking.attendees,
-    purpose: booking.purpose
+    attendees: booking.attendees ?? 1,
+    purpose: booking.purpose ?? ''
   });
 
   useEffect(() => {

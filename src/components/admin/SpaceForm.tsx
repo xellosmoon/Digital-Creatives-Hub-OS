@@ -15,7 +15,7 @@ interface SpaceFormProps {
     amenities?: string[];
     privacy_level?: string;
     is_active?: boolean;
-  };
+  } | null;
   onClose: () => void;
   onSuccess: () => void;
 }
