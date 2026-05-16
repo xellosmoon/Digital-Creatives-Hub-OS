@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { X, Calendar, Clock, User, Mail, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -17,7 +17,7 @@ interface BookingEditModalProps {
   onUpdate: () => void;
 }
 
-export default function BookingEditModal({ booking, onClose, onUpdate }: BookingEditModalProps) {
+export default function BookingEditModal({ booking, onClose, onUpdate }: BookingEditModalProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState<'details' | 'reschedule' | 'event'>('details');
   const [formData, setFormData] = useState({
@@ -42,12 +42,12 @@ export default function BookingEditModal({ booking, onClose, onUpdate }: Booking
   const [newStartTime, setNewStartTime] = useState<Date | null>(null);
   const [newEndTime, setNewEndTime] = useState<Date | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         ...formData,
         updated_at: new Date().toISOString()
       };
@@ -79,14 +79,15 @@ export default function BookingEditModal({ booking, onClose, onUpdate }: Booking
       toast.success(editMode === 'reschedule' ? 'Booking rescheduled successfully' : 'Booking updated successfully');
       onUpdate();
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update booking');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update booking';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTimeSelect = (startTime: Date, endTime: Date) => {
+  const handleTimeSelect = (startTime: Date, endTime: Date): void => {
     setNewStartTime(startTime);
     setNewEndTime(endTime);
   };
@@ -212,7 +213,7 @@ export default function BookingEditModal({ booking, onClose, onUpdate }: Booking
                   </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as Booking['status'] })}
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   >
                     <option value="pending">Pending</option>

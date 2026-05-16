@@ -9,7 +9,7 @@ import {
   resolveLocation,
   computeDurationHours,
 } from '../../lib/pricingEngine';
-import type { Asset, Item, PricingTier, Borrowing, BorrowLocation, PriceEstimate } from '../../types/gadgets';
+import type { Asset, Item, PricingTier, BorrowLocation, PriceEstimate } from '../../types/gadgets';
 
 interface ManualBorrowModalProps {
   assets: Asset[];
@@ -25,7 +25,7 @@ export default function ManualBorrowModal({
   pricing,
   onClose,
   onSuccess,
-}: ManualBorrowModalProps) {
+}: ManualBorrowModalProps): JSX.Element {
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
   const [borrowerEmail, setBorrowerEmail] = useState('');
@@ -90,7 +90,7 @@ export default function ManualBorrowModal({
     return `${(h / 24).toFixed(1)} days (${h.toFixed(0)} hrs)`;
   }, [startTime, endTime]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!selectedAssetId || !selectedItemId) {
       toast.error('Please select an asset and a specific unit.');
       return;
@@ -111,12 +111,8 @@ export default function ManualBorrowModal({
     setSubmitting(true);
     try {
       // Resolve borrower user_id from email if provided
-      let userId: string | null = null;
+      const userId: string | null = null;
       if (borrowerEmail.trim()) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .limit(1);
         // Try to find user by email in auth (admin can see via profiles join)
         // Fallback: store null and record the email in notes
       }
@@ -147,8 +143,9 @@ export default function ManualBorrowModal({
 
       toast.success('Manual borrowing created — item is now active!');
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create manual borrowing.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create manual borrowing.';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

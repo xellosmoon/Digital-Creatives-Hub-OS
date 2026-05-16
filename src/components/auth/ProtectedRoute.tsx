@@ -13,7 +13,7 @@ export default function ProtectedRoute({
   children, 
   session, 
   requireAdmin = false 
-}: ProtectedRouteProps) {
+}: ProtectedRouteProps): JSX.Element {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(requireAdmin);
 

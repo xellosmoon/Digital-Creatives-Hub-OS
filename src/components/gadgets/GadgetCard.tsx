@@ -18,7 +18,7 @@ const ICON_MAP: Record<AssetCategory, React.ElementType> = {
   webcam: Webcam,
 };
 
-export default function GadgetCard({ availability, onBorrow }: InventoryCardProps) {
+export default function GadgetCard({ availability, onBorrow }: InventoryCardProps): JSX.Element {
   const { asset, totalItems, availableItems, maintenanceItems } = availability;
   const Icon = ICON_MAP[asset.category] ?? Monitor;
   const allUnavailable = availableItems === 0;

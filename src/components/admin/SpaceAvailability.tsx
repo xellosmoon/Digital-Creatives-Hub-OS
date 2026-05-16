@@ -28,7 +28,7 @@ interface BlackoutDate {
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export default function SpaceAvailability({ spaceId, spaceName, onClose }: SpaceAvailabilityProps) {
+export default function SpaceAvailability({ spaceId, spaceName, onClose }: SpaceAvailabilityProps): JSX.Element {
   const [schedules, setSchedules] = useState<AvailabilitySchedule[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<BlackoutDate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,9 +38,10 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
 
   useEffect(() => {
     fetchAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId]);
 
-  const fetchAvailability = async () => {
+  const fetchAvailability = async (): Promise<void> => {
     try {
       // Fetch availability schedules
       const { data: schedulesData, error: schedulesError } = await supabase
@@ -86,13 +87,13 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
     }
   };
 
-  const handleScheduleChange = (dayIndex: number, field: keyof AvailabilitySchedule, value: any) => {
+  const handleScheduleChange = (dayIndex: number, field: keyof AvailabilitySchedule, value: string | boolean): void => {
     setSchedules(prev => prev.map((schedule, index) => 
       index === dayIndex ? { ...schedule, [field]: value } : schedule
     ));
   };
 
-  const handleAddBlackoutDate = () => {
+  const handleAddBlackoutDate = (): void => {
     if (!newBlackoutDate) {
       toast.error('Please select a date');
       return;
@@ -109,11 +110,11 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
     setNewBlackoutReason('');
   };
 
-  const handleRemoveBlackoutDate = (index: number) => {
+  const handleRemoveBlackoutDate = (index: number): void => {
     setBlackoutDates(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     setSaving(true);
     try {
       // Save availability schedules
@@ -150,7 +151,6 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
       if (fetchError) throw fetchError;
 
       // Delete removed blackout dates
-      const existingDates = existingBlackouts?.map(b => b.date) || [];
       const currentDates = blackoutDates.map(b => b.date);
       const datesToDelete = existingBlackouts?.filter(b => !currentDates.includes(b.date)) || [];
 

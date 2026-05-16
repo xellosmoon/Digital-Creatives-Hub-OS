@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Users, Settings, AlertTriangle, Save, RefreshCw, Armchair, Monitor, Palette, UserCheck } from 'lucide-react';
+import { Settings, AlertTriangle, Save, RefreshCw, Armchair, Monitor, Palette, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import type { HubCapacityConfig, DailyOccupancy, HubZone, HubBooking, RentalPackage } from '../types/hub';
 
-export default function SeatManagement() {
+export default function SeatManagement(): JSX.Element {
   const [config, setConfig] = useState<HubCapacityConfig | null>(null);
   const [occupancy, setOccupancy] = useState<DailyOccupancy | null>(null);
   const [zones, setZones] = useState<HubZone[]>([]);
@@ -22,9 +22,10 @@ export default function SeatManagement() {
 
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  const fetchAll = async () => {
+  const fetchAll = async (): Promise<void> => {
     setLoading(true);
     try {
       const [configRes, occupancyRes, zonesRes, bookingsRes] = await Promise.all([
@@ -65,7 +66,7 @@ export default function SeatManagement() {
     }
   };
 
-  const handleSaveAdjustment = async () => {
+  const handleSaveAdjustment = async (): Promise<void> => {
     if (!config) return;
     setSaving(true);
     try {
@@ -83,14 +84,15 @@ export default function SeatManagement() {
       if (error) throw error;
       toast.success('Seat adjustment saved');
       fetchAll();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveWorkshopBlock = async () => {
+  const handleSaveWorkshopBlock = async (): Promise<void> => {
     setSaving(true);
     try {
       const { error } = await supabase.from('daily_occupancy').upsert(
@@ -107,8 +109,9 @@ export default function SeatManagement() {
       if (error) throw error;
       toast.success('Workshop block updated');
       fetchAll();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save workshop block');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save workshop block';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

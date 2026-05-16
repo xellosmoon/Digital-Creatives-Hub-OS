@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
-  CheckCircle, X, LogOut, Trash2, Timer, Building2, Shield
+  CheckCircle, X, LogOut, Trash2, Timer, Building2, Check, XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -23,8 +23,8 @@ function timeElapsed(from: string): string {
   return `${h}h ${m}m`;
 }
 
-export default function AdminDashboard() {
-  const [bookings, setBookings] = useState<any[]>([]);
+export default function AdminDashboard(): JSX.Element {
+  const [bookings, setBookings] = useState<{ id: string; booking_reference: string; guest_name: string | null; guest_email: string | null; guest_phone: string | null; booking_date: string; start_time: string; end_time: string; seats_used: number; total_price: number; status: string; purpose: string | null; notes: string | null; is_workshop: boolean; created_at: string; admin_contacted: boolean; admin_contacted_at: string | null; package?: { id: string; slug: string; name: string; hourly_rate: number | null; daily_rate: number | null; billing_mode: string; seats_consumed: number; is_bundle: boolean } }[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
@@ -35,7 +35,6 @@ export default function AdminDashboard() {
   const [showForceBook, setShowForceBook] = useState(false);
   const [activeTab, setActiveTab] = useState<'bookings' | 'floor'>('floor');
   const [floorView, setFloorView] = useState<'pending' | 'active' | 'checked_out'>('pending');
-  const [now, setNow] = useState(new Date());
 
   // Manual check-in form
   const [manualForm, setManualForm] = useState({
@@ -47,12 +46,6 @@ export default function AdminDashboard() {
     name: '', email: '', phone: '', date: format(new Date(), 'yyyy-MM-dd'),
     start: '09:00', end: '17:00', seats: 1, reason: '',
   });
-
-  // Tick timer for elapsed time display (every 30s)
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     fetchBookings();
@@ -71,9 +64,10 @@ export default function AdminDashboard() {
       .subscribe();
 
     return () => { subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (): Promise<void> => {
     setLoading(true);
     try {
       let query = supabase
@@ -96,7 +90,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = async (): Promise<void> => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
       const { data, error } = await supabase
@@ -112,44 +106,47 @@ export default function AdminDashboard() {
   };
 
   // ── Secretariat: Confirm Entrance ──────────────────────────────
-  const handleConfirmEntrance = async (id: string, name: string) => {
+  const handleConfirmEntrance = async (id: string, name: string): Promise<void> => {
     try {
       const { error } = await supabase.rpc('confirm_entrance', { p_attendance_id: id });
       if (error) throw error;
       toast.success(`${name} confirmed on floor!`);
       fetchAttendance();
-    } catch (err: any) {
-      toast.error(err.message || 'Confirm failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Confirm failed';
+      toast.error(errorMessage);
     }
   };
 
   // ── Secretariat: Check Out ─────────────────────────────────────
-  const handleCheckout = async (id: string, name: string) => {
+  const handleCheckout = async (id: string, name: string): Promise<void> => {
     try {
       const { error } = await supabase.rpc('checkout_user', { p_attendance_id: id });
       if (error) throw error;
       toast.success(`${name} checked out.`);
       fetchAttendance();
-    } catch (err: any) {
-      toast.error(err.message || 'Checkout failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Checkout failed';
+      toast.error(errorMessage);
     }
   };
 
   // ── Clear All Active ───────────────────────────────────────────
-  const handleClearAll = async () => {
+  const handleClearAll = async (): Promise<void> => {
     if (!window.confirm('Check out ALL active and pending users? This cannot be undone.')) return;
     try {
       const { data, error } = await supabase.rpc('clear_all_active');
       if (error) throw error;
       toast.success(`${data} user(s) checked out.`);
       fetchAttendance();
-    } catch (err: any) {
-      toast.error(err.message || 'Clear all failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Clear all failed';
+      toast.error(errorMessage);
     }
   };
 
   // ── Manual Check-In (walk-in, directly active) ─────────────────
-  const handleManualCheckIn = async () => {
+  const handleManualCheckIn = async (): Promise<void> => {
     if (!manualForm.name.trim() || !manualForm.mobile.trim()) {
       toast.error('Name and mobile are required');
       return;
@@ -174,12 +171,13 @@ export default function AdminDashboard() {
       setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '' });
       setShowManualCheckIn(false);
       fetchAttendance();
-    } catch (err: any) {
-      toast.error(err.message || 'Check-in failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Check-in failed';
+      toast.error(errorMessage);
     }
   };
 
-  const handleForceBook = async () => {
+  const handleForceBook = async (): Promise<void> => {
     if (!forceForm.name.trim() || !forceForm.email.trim()) {
       toast.error('Name and email are required');
       return;
@@ -210,30 +208,31 @@ export default function AdminDashboard() {
       setForceForm({ name: '', email: '', phone: '', date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', seats: 1, reason: '' });
       setShowForceBook(false);
       fetchBookings();
-    } catch (err: any) {
-      toast.error(err.message || 'Force book failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Force book failed';
+      toast.error(errorMessage);
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (): void => {
     setHasNewNotifications(false);
     fetchBookings();
     fetchAttendance();
   };
 
-  const handleExportBookings = () => {
+  const handleExportBookings = (): void => {
     const exportData = bookings.map(booking => formatBookingForExport(booking));
     const filename = `bookings_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     exportToCSV(exportData, filename);
     toast.success('Bookings exported successfully!');
   };
 
-  const handleExportDTI = () => {
+  const handleExportDTI = (): void => {
     if (attendance.length === 0) {
       toast.error('No attendance data to export');
       return;
     }
-    const exportData = attendance.map(a => formatAttendanceForDTIExport(a));
+    const exportData = attendance.map(a => formatAttendanceForDTIExport(a as unknown as Record<string, unknown>));
     const filename = `DTI_SSF_Attendance_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     exportToCSV(exportData, filename);
     toast.success('DTI attendance exported!');
@@ -246,7 +245,7 @@ export default function AdminDashboard() {
 
   const todayBookedSeats = bookings
     .filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd') && ['approved', 'active'].includes(b.status))
-    .reduce((sum: number, b: any) => sum + (b.seats_used || 0), 0);
+    .reduce((sum: number, b: { seats_used: number }) => sum + (b.seats_used || 0), 0);
 
   const floorList = floorView === 'pending' ? pending : floorView === 'active' ? active : checkedOut;
 

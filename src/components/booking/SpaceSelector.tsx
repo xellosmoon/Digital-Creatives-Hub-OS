@@ -18,7 +18,7 @@ interface SpaceSelectorProps {
   onSelect: (space: Space) => void;
 }
 
-export default function SpaceSelector({ onSelect }: SpaceSelectorProps) {
+export default function SpaceSelector({ onSelect }: SpaceSelectorProps): JSX.Element {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [filteredSpaces, setFilteredSpaces] = useState<Space[]>([]);
   const [spaceTypes, setSpaceTypes] = useState<string[]>([]);
@@ -37,7 +37,7 @@ export default function SpaceSelector({ onSelect }: SpaceSelectorProps) {
     }
   }, [selectedType, spaces]);
 
-  const fetchSpaces = async () => {
+  const fetchSpaces = async (): Promise<void> => {
     setLoading(true);
     try {
       const { data, error } = await supabase

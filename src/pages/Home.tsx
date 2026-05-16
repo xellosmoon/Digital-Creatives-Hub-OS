@@ -4,82 +4,165 @@ import {
   Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, 
   Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, 
   Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb, 
-  Layers, Laptop, Globe, HeartHandshake, Moon, Presentation, Armchair
+  Layers, Presentation, Armchair
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import type { HubZone } from '../types/hub';
 
-export default function Home() {
-  const [spaces, setSpaces] = useState<any[]>([]);
-  const [equipment, setEquipment] = useState<any[]>([]);
-  const [stats, setStats] = useState({ totalSpaces: 0, totalBookings: 0, happyUsers: 0 });
+interface Equipment {
+  id: string;
+  name: string;
+  category?: string;
+  totalItems: number;
+  availableItems: number;
+}
 
-  const EQUIP_ICONS: Record<string, React.ElementType> = {
-    interactive_display: Monitor, drawing_tablet: PenTool, computer: Cpu,
-    action_camera: Video, camera: Camera, smartphone: Smartphone,
-    drone: Navigation, webcam: Webcam,
-  };
+interface Stats {
+  totalSpaces: number;
+  totalBookings: number;
+  happyUsers: number;
+}
+
+interface Asset {
+  id: string;
+  name: string;
+}
+
+interface Item {
+  id: string;
+  asset_id: string;
+  status: string;
+}
+
+const EQUIP_ICONS: Record<string, React.ElementType> = {
+  interactive_display: Monitor,
+  drawing_tablet: PenTool,
+  computer: Cpu,
+  action_camera: Video,
+  camera: Camera,
+  smartphone: Smartphone,
+  drone: Navigation,
+  webcam: Webcam,
+};
+
+function OfferCard({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }): JSX.Element {
+  return (
+    <div className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#F59E0B]/20 transition-all duration-500">
+      <div className="w-14 h-14 rounded-2xl bg-[#0C2340]/5 flex items-center justify-center mb-6 group-hover:bg-[#F59E0B]/10 transition-colors">
+        <Icon className="w-7 h-7 text-[#0C2340] group-hover:text-[#F59E0B] transition-colors" />
+      </div>
+      <h3 className="text-xl font-bold text-[#0C2340] mb-3">{title}</h3>
+      <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
+    </div>
+  );
+}
+
+export default function Home(): JSX.Element {
+  const [zones, setZones] = useState<HubZone[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [stats, setStats] = useState<Stats>({ totalSpaces: 0, totalBookings: 0, happyUsers: 0 });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSpaces();
-    fetchStats();
-    fetchEquipment();
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      await Promise.all([fetchZones(), fetchStats(), fetchEquipment()]);
+      setLoading(false);
+    };
+    loadData();
   }, []);
 
-  const fetchSpaces = async () => {
-    const { data } = await supabase
-      .from('spaces')
-      .select('*')
-      .eq('is_active', true)
-      .limit(3);
-    setSpaces(data || []);
+  const fetchZones = async (): Promise<void> => {
+    try {
+      const { data, error } = await supabase
+        .from('hub_zones')
+        .select('*')
+        .eq('is_bookable', true)
+        .order('name');
+      if (error) throw error;
+      setZones(data || []);
+    } catch (err) {
+      console.error('Error fetching zones:', err);
+      setError('Failed to load zones');
+    }
   };
 
-  const fetchEquipment = async () => {
+  const fetchEquipment = async (): Promise<void> => {
     try {
-      const { data: assets } = await supabase
+      const { data: assets, error: assetsError } = await supabase
         .from('assets')
         .select('*')
         .eq('is_active', true)
         .order('name');
+      if (assetsError) throw assetsError;
       if (!assets) { setEquipment([]); return; }
-      const { data: items } = await supabase.from('items').select('id, asset_id, status');
+      const { data: items, error: itemsError } = await supabase.from('items').select('id, asset_id, status');
+      if (itemsError) throw itemsError;
       const itemList = items || [];
-      const enriched = assets.map((a: any) => {
-        const assetItems = itemList.filter((i: any) => i.asset_id === a.id);
+      const enriched = assets.map((a: Asset) => {
+        const assetItems = itemList.filter((i: Item) => i.asset_id === a.id);
         return {
           ...a,
           totalItems: assetItems.length,
-          availableItems: assetItems.filter((i: any) => i.status === 'available').length,
+          availableItems: assetItems.filter((i: Item) => i.status === 'available').length,
         };
       });
       setEquipment(enriched);
-    } catch { setEquipment([]); }
+    } catch (err) {
+      console.error('Error fetching equipment:', err);
+      setError('Failed to load equipment');
+    }
   };
 
-  const fetchStats = async () => {
-    const { count: spacesCount } = await supabase
-      .from('spaces')
-      .select('*', { count: 'exact', head: true });
+  const fetchStats = async (): Promise<void> => {
+    try {
+      const { count: spacesCount, error: spacesError } = await supabase
+        .from('spaces')
+        .select('*', { count: 'exact', head: true });
+      if (spacesError) throw spacesError;
 
-    const { count: bookingsCount } = await supabase
-      .from('bookings')
-      .select('*', { count: 'exact', head: true });
+      const { count: bookingsCount, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true });
+      if (bookingsError) throw bookingsError;
 
-    setStats({
-      totalSpaces: spacesCount || 0,
-      totalBookings: bookingsCount || 0,
-      happyUsers: Math.floor((bookingsCount || 0) * 0.95) // Simulated happy users
-    });
+      setStats({
+        totalSpaces: spacesCount || 0,
+        totalBookings: bookingsCount || 0,
+        happyUsers: Math.floor((bookingsCount || 0) * 0.95)
+      });
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+      setError('Failed to load statistics');
+    }
   };
 
-  function OfferCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
+
+  if (loading) {
     return (
-      <div className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#F59E0B]/20 transition-all duration-500">
-        <div className="w-14 h-14 rounded-2xl bg-[#0C2340]/5 flex items-center justify-center mb-6 group-hover:bg-[#F59E0B]/10 transition-colors">
-          <Icon className="w-7 h-7 text-[#0C2340] group-hover:text-[#F59E0B] transition-colors" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#F59E0B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#0C2340] font-semibold">Loading...</p>
         </div>
-        <h3 className="text-xl font-bold text-[#0C2340] mb-3">{title}</h3>
-        <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5">
+        <div className="text-center p-8">
+          <p className="text-red-600 font-semibold mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-[#0C2340] text-white rounded-lg hover:bg-[#0C2340]/90 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -111,49 +194,58 @@ export default function Home() {
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
               Your 24/7 innovation, collaboration, and co-working space designed to fuel imagination, spark ideas, and build community.
             </p>
-            {/* Check-In Banner */}
-            <div className="mt-10 mb-6">
-              <Link
-                to="/check-in"
-                className="group relative inline-flex items-center justify-center w-full sm:w-auto px-10 py-5 text-xl font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-200/50 transition-all duration-300 hover:scale-105 hover:shadow-emerald-300/60"
-              >
-                <span className="relative z-10 flex items-center">
-                  <ClipboardCheck className="mr-3 w-7 h-7" />
-                  Check In to the Hub
-                  <ArrowRight className="ml-3 w-6 h-6 transition-transform group-hover:translate-x-1" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-            </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/bookings"
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-[#0C2340] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              >
-                <span className="relative z-10 flex items-center">
-                  Book a Space Now
-                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-              <Link
-                to="/propose-event"
-                className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-[#F59E0B] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-              >
-                <span className="relative z-10 flex items-center">
-                  <PartyPopper className="mr-2 w-5 h-5" />
-                  Propose an Event
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F59E0B] to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-              <Link
-                to="/calendar"
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-gray-700 bg-white rounded-2xl shadow-lg border-2 border-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-[#F59E0B]/30"
-              >
-                <Calendar className="mr-2 w-5 h-5" />
-                View Calendar
-              </Link>
+            {/* Three-Track Action Layout */}
+            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {/* Track 1: Immediate Attendance (Primary) */}
+              <div className="flex flex-col items-center text-center">
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Walk-In Check-In</p>
+                <Link
+                  to="/check-in"
+                  className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-200/50 transition-all duration-300 hover:scale-105 hover:shadow-emerald-300/60"
+                >
+                  <span className="relative z-10 flex items-center">
+                    <ClipboardCheck className="mr-2 w-6 h-6" />
+                    Check In to the Hub
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Link>
+                <p className="mt-3 text-sm text-gray-500">For visitors at the entrance</p>
+              </div>
+
+              {/* Track 2: Future Reservations (Secondary) */}
+              <div className="flex flex-col items-center text-center">
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Advanced Booking</p>
+                <Link
+                  to="/bookings"
+                  className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-[#0C2340] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                >
+                  <span className="relative z-10 flex items-center">
+                    Book a Space Now
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Link>
+                <p className="mt-3 text-sm text-gray-500">For members planning ahead</p>
+              </div>
+
+              {/* Track 3: Host an Event (New) */}
+              <div className="flex flex-col items-center text-center">
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Event Hosting</p>
+                <Link
+                  to="/propose-event"
+                  className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl overflow-hidden shadow-2xl shadow-orange-200/50 transition-all duration-300 hover:scale-105 hover:shadow-orange-300/60"
+                >
+                  <span className="relative z-10 flex items-center">
+                    <PartyPopper className="mr-2 w-6 h-6" />
+                    Host an Event with Us
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </Link>
+                <p className="mt-3 text-sm text-gray-500">Bring workshops & meetups</p>
+              </div>
             </div>
           </div>
         </div>
@@ -275,51 +367,29 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Available Spaces Preview */}
-      {spaces.length > 0 && (
+      {/* Available Zones Preview */}
+      {zones.length > 0 && (
         <div className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Featured Spaces</h2>
-              <p className="text-xl text-gray-600">Discover our most popular creative spaces</p>
+              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Hub Zones</h2>
+              <p className="text-xl text-gray-600">Explore our creative quadrants</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {spaces.map((space) => (
-                <div key={space.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
-                  <div className="aspect-w-16 aspect-h-9 bg-gradient-to-br from-primary-100 to-purple-100">
-                    {space.image_url ? (
-                      <img src={space.image_url} alt={space.name} className="w-full h-48 object-cover" />
-                    ) : (
-                      <div className="w-full h-48 flex items-center justify-center">
-                        <Building2 className="w-16 h-16 text-primary-300" />
-                      </div>
-                    )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {zones.map((zone) => (
+                <div key={zone.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
+                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center">
+                    <Building2 className="w-16 h-16 text-primary-300" />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{space.name}</h3>
-                    <p className="text-gray-600 mb-4">{space.type}</p>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{zone.label}</h3>
+                    <p className="text-gray-600 mb-4">{zone.description || zone.name}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-primary-600">${space.hourly_rate}/hr</span>
-                      <Link
-                        to="/bookings"
-                        className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
-                      >
-                        Book Now
-                        <ArrowRight className="ml-1 w-4 h-4" />
-                      </Link>
+                      <span className="text-2xl font-bold text-primary-600">{zone.seats} seats</span>
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="text-center mt-12">
-              <Link
-                to="/bookings"
-                className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-primary-600 bg-primary-50 rounded-full hover:bg-primary-100 transition-colors"
-              >
-                View All Spaces
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
             </div>
           </div>
         </div>
@@ -342,8 +412,8 @@ export default function Home() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {equipment.slice(0, 8).map((item: any) => {
-                const Icon = EQUIP_ICONS[item.category] ?? Package;
+              {equipment.slice(0, 8).map((item: Equipment) => {
+                const Icon = item.category && EQUIP_ICONS[item.category] ? EQUIP_ICONS[item.category] : Package;
                 const allOut = item.availableItems === 0;
                 return (
                   <div key={item.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">

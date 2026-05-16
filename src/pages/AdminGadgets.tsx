@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Package, AlertTriangle, Wrench, Clock, ClipboardList,
+  Package, Wrench, Clock,
   UserPlus, RefreshCw, CheckCircle, Activity, FileText,
   Plus, Pencil, Trash2, Settings2, Layers,
 } from 'lucide-react';
@@ -19,7 +19,7 @@ import type { Borrowing, Item, Asset, PricingTier } from '../types/gadgets';
 
 type TabKey = 'assets' | 'items' | 'queue' | 'active' | 'logs' | 'maintenance';
 
-export default function AdminGadgets() {
+export default function AdminGadgets(): JSX.Element {
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -77,7 +77,6 @@ export default function AdminGadgets() {
 
   // ── Derived counts ──
   const pendingCount = borrowings.filter((b) => b.status === 'pending').length;
-  const activeCount = borrowings.filter((b) => b.status === 'active' || b.status === 'approved').length;
   const overdueCount = borrowings.filter(
     (b) => b.status === 'active' && isPast(new Date(b.end_time))
   ).length;
@@ -94,7 +93,7 @@ export default function AdminGadgets() {
   );
   const flaggedItems = items.filter((i) => i.status === 'maintenance' || i.status === 'broken');
 
-  const handleDeleteAsset = async (assetId: string) => {
+  const handleDeleteAsset = async (assetId: string): Promise<void> => {
     setDeletingAssetId(assetId);
     try {
       // Check if any items are currently borrowed
@@ -108,8 +107,9 @@ export default function AdminGadgets() {
       toast.success('Asset deleted');
       setConfirmDeleteAssetId(null);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || 'Delete failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Delete failed';
+      toast.error(errorMessage);
     } finally {
       setDeletingAssetId(null);
     }
@@ -310,7 +310,7 @@ export default function AdminGadgets() {
             </div>
           ) : tab === 'items' ? (
             <AdminItemStatusTable
-              items={items as any}
+              items={items}
               activeBorrowings={activeBorrowings}
               onRefresh={fetchData}
             />
@@ -321,15 +321,15 @@ export default function AdminGadgets() {
                 <p className="font-medium">All clear — no pending requests.</p>
               </div>
             ) : (
-              <AdminBorrowingTable borrowings={pendingBorrowings as any} onRefresh={fetchData} />
+              <AdminBorrowingTable borrowings={pendingBorrowings} onRefresh={fetchData} />
             )
           ) : tab === 'active' ? (
-            <AdminBorrowingTable borrowings={activeBorrowings as any} onRefresh={fetchData} />
+            <AdminBorrowingTable borrowings={activeBorrowings} onRefresh={fetchData} />
           ) : tab === 'logs' ? (
-            <BorrowingLogsTable borrowings={borrowings as any} />
+            <BorrowingLogsTable borrowings={borrowings} />
           ) : tab === 'maintenance' ? (
             <AdminItemStatusTable
-              items={flaggedItems as any}
+              items={flaggedItems}
               activeBorrowings={[]}
               onRefresh={fetchData}
             />
@@ -368,7 +368,7 @@ export default function AdminGadgets() {
   );
 }
 
-function KPI({ label, value, color, isText }: { label: string; value: number | string; color: string; isText?: boolean }) {
+function KPI({ label, value, color, isText }: { label: string; value: number | string; color: string; isText?: boolean }): JSX.Element {
   return (
     <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>

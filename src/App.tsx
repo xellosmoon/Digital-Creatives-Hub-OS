@@ -33,7 +33,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const queryClient = new QueryClient();
 
-function App() {
+function App(): JSX.Element {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,104 +65,122 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Layout session={session}>
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/bookings" element={<Bookings />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/booking-lookup" element={<BookingLookup />} />
-              <Route path="/gadgets" element={<Gadgets />} />
-              <Route path="/propose-event" element={<ProposeEvent />} />
-              <Route path="/check-in" element={<CheckIn />} />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>}>
+          <Routes>
+            <Route path="/check-in" element={<CheckIn />} />
+            <Route path="/" element={<Layout session={session}><Home /></Layout>} />
+            <Route path="/login" element={<Layout session={session}><Login /></Layout>} />
+            <Route path="/register" element={<Layout session={session}><Register /></Layout>} />
+            <Route path="/forgot-password" element={<Layout session={session}><ForgotPassword /></Layout>} />
+            <Route path="/bookings" element={<Layout session={session}><Bookings /></Layout>} />
+            <Route path="/calendar" element={<Layout session={session}><Calendar /></Layout>} />
+            <Route path="/booking-lookup" element={<Layout session={session}><BookingLookup /></Layout>} />
+            <Route path="/gadgets" element={<Layout session={session}><Gadgets /></Layout>} />
+            <Route path="/propose-event" element={<Layout session={session}><ProposeEvent /></Layout>} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/dashboard"
-                element={
+            {/* Protected Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session}>
                     <Dashboard />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session}>
                     <Settings session={session!} />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/my-borrows"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/my-borrows"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session}>
                     <MyBorrows />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/test-dashboard"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/test-dashboard"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session}>
                     <TestDashboard />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <AdminDashboard />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/spaces"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/spaces"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <SpaceManagement />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/events"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/events"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <EventManagement />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/gadgets"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/gadgets"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <AdminGadgets />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/seats"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/seats"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <SeatManagement />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/analytics"
-                element={
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <Analytics />
                   </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </Layout>
+                </Layout>
+              }
+            />
+          </Routes>
+        </Suspense>
       </Router>
       <Toaster position="top-right" />
     </QueryClientProvider>

@@ -10,7 +10,7 @@ interface SettingsProps {
   session: Session;
 }
 
-export default function Settings({ session }: SettingsProps) {
+export default function Settings({ session }: SettingsProps): JSX.Element {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
 
@@ -43,7 +43,7 @@ export default function Settings({ session }: SettingsProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'profile' | 'notifications' | 'security')}
                 className={`
                   group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
                   ${activeTab === tab.id

@@ -15,7 +15,7 @@ interface QuickBookingModalProps {
  * Quick-booking modal synced with the new hub capacity model.
  * Shows available seats for the selected date and lists rental packages.
  */
-export default function QuickBookingModal({ date, onClose }: QuickBookingModalProps) {
+export default function QuickBookingModal({ date, onClose }: QuickBookingModalProps): JSX.Element {
   const navigate = useNavigate();
   const [packages, setPackages] = useState<RentalPackage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,9 +25,10 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
-  const fetchData = async () => {
+  const fetchData = async (): Promise<void> => {
     setLoading(true);
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
@@ -56,7 +57,7 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
     }
   };
 
-  const handleQuickBook = () => {
+  const handleQuickBook = (): void => {
     if (!selectedPackage) {
       toast.error('Please select a package');
       return;
@@ -74,7 +75,7 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
   };
 
   // Format pricing label
-  const priceLabel = (pkg: RentalPackage) => {
+  const priceLabel = (pkg: RentalPackage): string => {
     if (pkg.hourly_rate && pkg.daily_rate) return `₱${pkg.hourly_rate}/hr or ₱${pkg.daily_rate}/day`;
     if (pkg.hourly_rate) return `₱${pkg.hourly_rate}/hr`;
     if (pkg.daily_rate) return `₱${pkg.daily_rate}/day`;

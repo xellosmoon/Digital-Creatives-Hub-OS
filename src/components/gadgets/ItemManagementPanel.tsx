@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, X, Save, Tag, Hash } from 'lucide-react';
+import { Plus, Trash2, X, Tag, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import type { Asset, Item } from '../../types/gadgets';
@@ -16,7 +16,7 @@ export default function ItemManagementPanel({
   items,
   onClose,
   onRefresh,
-}: ItemManagementPanelProps) {
+}: ItemManagementPanelProps): JSX.Element {
   const [newTag, setNewTag] = useState('');
   const [newSerial, setNewSerial] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -26,7 +26,7 @@ export default function ItemManagementPanel({
 
   const assetItems = items.filter((i) => i.asset_id === asset.id);
 
-  const handleAddUnit = async () => {
+  const handleAddUnit = async (): Promise<void> => {
     if (!newTag.trim()) {
       toast.error('Asset tag is required.');
       return;
@@ -55,14 +55,15 @@ export default function ItemManagementPanel({
       setNewSerial('');
       setNewNotes('');
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add unit');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add unit';
+      toast.error(errorMessage);
     } finally {
       setAdding(false);
     }
   };
 
-  const handleDeleteUnit = async (itemId: string) => {
+  const handleDeleteUnit = async (itemId: string): Promise<void> => {
     const item = assetItems.find((i) => i.id === itemId);
     if (item?.status === 'borrowed') {
       toast.error('Cannot delete a borrowed unit. Return it first.');
@@ -83,8 +84,9 @@ export default function ItemManagementPanel({
       toast.success('Unit deleted');
       setConfirmDeleteId(null);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Delete failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Delete failed';
+      toast.error(errorMessage);
     } finally {
       setDeletingId(null);
     }

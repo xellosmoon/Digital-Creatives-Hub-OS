@@ -22,7 +22,7 @@ export default function GuestBookingForm({
   endTime,
   onSuccess,
   onCancel
-}: GuestBookingFormProps) {
+}: GuestBookingFormProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [showRecurring, setShowRecurring] = useState(false);
   const [formData, setFormData] = useState({
@@ -35,7 +35,7 @@ export default function GuestBookingForm({
     isRecurring: false
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     // If recurring is selected, show the recurring modal
@@ -87,8 +87,9 @@ export default function GuestBookingForm({
 
       toast.success('Booking request submitted successfully! You will receive an email confirmation.');
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to submit booking');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit booking';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

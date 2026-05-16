@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Clock, Calendar, Tag, AlertCircle, CheckCircle, Star, Package } from 'lucide-react';
 import type { RentalPackage, PackageRequiredAsset } from '../../types/hub';
-import { BUNDLE_SLUGS } from '../../types/hub';
 import { formatPeso } from '../../lib/pricingEngine';
 
 interface PackageSelectorProps {
@@ -20,7 +19,7 @@ export default function PackageSelector({
   onSelect,
   isVerifiedStudent = false,
   selectedDate,
-}: PackageSelectorProps) {
+}: PackageSelectorProps): JSX.Element {
   const [packages, setPackages] = useState<PackageWithAvailability[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +27,7 @@ export default function PackageSelector({
     fetchPackages();
   }, []);
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (): Promise<void> => {
     setLoading(true);
     try {
       const { data: pkgs, error } = await supabase
@@ -72,7 +71,7 @@ export default function PackageSelector({
     }
   };
 
-  const isWeekend = (dateStr?: string) => {
+  const isWeekend = (dateStr?: string): boolean => {
     if (!dateStr) return false;
     const d = new Date(dateStr);
     return d.getDay() === 0 || d.getDay() === 6;

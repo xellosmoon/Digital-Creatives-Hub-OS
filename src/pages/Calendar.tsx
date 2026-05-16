@@ -1,7 +1,7 @@
 import { Calendar as CalendarIcon, Star, Users, AlertTriangle, Wrench } from 'lucide-react';
 import PublicCalendar from '../components/calendar/PublicCalendar';
 
-export default function Calendar() {
+export default function Calendar(): JSX.Element {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">

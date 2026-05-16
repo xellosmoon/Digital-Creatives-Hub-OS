@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, addDays, startOfDay, addHours, isBefore, isAfter, isSameDay } from 'date-fns';
+import { format, addDays, startOfDay, addHours, isBefore, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -15,23 +15,30 @@ interface TimeSlot {
   available: boolean;
 }
 
-export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initialTime }: TimeSlotPickerProps) {
+interface ExistingBooking {
+  start_time: string;
+  end_time: string;
+}
+
+export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initialTime }: TimeSlotPickerProps): JSX.Element {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedStartTime, setSelectedStartTime] = useState<Date | null>(initialTime || null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
-  const [existingBookings, setExistingBookings] = useState<any[]>([]);
+  const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchExistingBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, spaceId]);
 
   useEffect(() => {
     generateTimeSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, existingBookings]);
 
-  const fetchExistingBookings = async () => {
+  const fetchExistingBookings = async (): Promise<void> => {
     setLoading(true);
     try {
       const startOfSelectedDay = startOfDay(selectedDate);
@@ -54,7 +61,7 @@ export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initial
     }
   };
 
-  const generateTimeSlots = () => {
+  const generateTimeSlots = (): void => {
     const slots: TimeSlot[] = [];
     const startHour = 8; // 8 AM
     const endHour = 20; // 8 PM
@@ -85,7 +92,7 @@ export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initial
     setTimeSlots(slots);
   };
 
-  const handleTimeSelect = (slot: TimeSlot) => {
+  const handleTimeSelect = (slot: TimeSlot): void => {
     if (!slot.available) return;
 
     if (!selectedStartTime) {
@@ -121,14 +128,14 @@ export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initial
     }
   };
 
-  const isSlotSelected = (slot: TimeSlot) => {
+  const isSlotSelected = (slot: TimeSlot): boolean => {
     if (!selectedStartTime) return false;
     if (!selectedEndTime) return slot.time.getTime() === selectedStartTime.getTime();
     
     return slot.time >= selectedStartTime && slot.time < selectedEndTime;
   };
 
-  const navigateDate = (direction: 'prev' | 'next') => {
+  const navigateDate = (direction: 'prev' | 'next'): void => {
     const newDate = direction === 'next' 
       ? addDays(selectedDate, 1)
       : addDays(selectedDate, -1);

@@ -14,7 +14,7 @@ interface Preferences {
   reminder_hours: number;
 }
 
-export default function NotificationPreferences({ userId }: NotificationPreferencesProps) {
+export default function NotificationPreferences({ userId }: NotificationPreferencesProps): JSX.Element {
   const [preferences, setPreferences] = useState<Preferences>({
     email_notifications: true,
     sms_notifications: false,
@@ -26,9 +26,10 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
 
   useEffect(() => {
     fetchPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const fetchPreferences = async () => {
+  const fetchPreferences = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('notification_preferences')
@@ -54,7 +55,7 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
     }
   };
 
-  const savePreferences = async () => {
+  const savePreferences = async (): Promise<void> => {
     setSaving(true);
     try {
       const { error } = await supabase

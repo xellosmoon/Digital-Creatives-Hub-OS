@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import {
   CheckCircle,
-  XCircle,
   Wrench,
   AlertOctagon,
   Archive,
@@ -12,11 +10,11 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import type { Item, ItemStatus, Borrowing, Asset } from '../../types/gadgets';
+import type { Item, ItemStatus, Borrowing } from '../../types/gadgets';
 
 interface AdminItemStatusTableProps {
   items: (Item & { asset?: { name: string; slug: string; requires_notice?: string | null } })[];
-  activeBorrowings: Borrowing[];
+  activeBorrowings: (Borrowing & { destination_location?: string | null; usage_type?: string })[];
   onRefresh: () => void;
 }
 
@@ -28,21 +26,22 @@ const STATUS_BADGE: Record<ItemStatus, { icon: React.ElementType; cls: string; l
   retired:     { icon: Archive,      cls: 'bg-gray-50 text-gray-500 border-gray-200',       label: 'Retired' },
 };
 
-export default function AdminItemStatusTable({ items, activeBorrowings, onRefresh }: AdminItemStatusTableProps) {
+export default function AdminItemStatusTable({ items, activeBorrowings, onRefresh }: AdminItemStatusTableProps): JSX.Element {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<ItemStatus | 'all'>('all');
 
-  const setItemStatus = async (itemId: string, status: ItemStatus, notes?: string) => {
+  const setItemStatus = async (itemId: string, status: ItemStatus, notes?: string): Promise<void> => {
     setUpdatingId(itemId);
     try {
-      const payload: Record<string, any> = { status };
+      const payload: Record<string, string | boolean> = { status };
       if (notes !== undefined) payload.condition_notes = notes;
       const { error } = await supabase.from('items').update(payload).eq('id', itemId);
       if (error) throw error;
       toast.success(`Item set to ${status}`);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Update failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Update failed';
+      toast.error(errorMessage);
     } finally {
       setUpdatingId(null);
     }
@@ -119,7 +118,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                 const activeBorrow = borrowingByItem.get(item.id);
                 const isUpdating = updatingId === item.id;
                 const assetName = item.asset?.name ?? 'Unknown';
-                const notice = (item.asset as any)?.requires_notice;
+                const notice = item.asset?.requires_notice;
 
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
@@ -146,16 +145,16 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                         </span>
                         {activeBorrow && activeBorrow.destination_location && (
                           <span className={`inline-flex items-center gap-1 text-xs ${
-                            (activeBorrow as any).usage_type === 'inside'
+                            activeBorrow.usage_type === 'inside'
                               ? 'text-blue-600'
                               : 'text-purple-600'
                           }`}>
-                            {(activeBorrow as any).usage_type === 'inside' ? (
+                            {activeBorrow.usage_type === 'inside' ? (
                               <Building2 className="h-3 w-3" />
                             ) : (
                               <ExternalLink className="h-3 w-3" />
                             )}
-                            {(activeBorrow as any).usage_type === 'inside' ? 'Inside' : 'Outside'}
+                            {activeBorrow.usage_type === 'inside' ? 'Inside' : 'Outside'}
                           </span>
                         )}
                       </div>

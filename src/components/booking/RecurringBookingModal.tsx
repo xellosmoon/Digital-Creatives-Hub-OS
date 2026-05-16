@@ -36,14 +36,14 @@ export default function RecurringBookingModal({
   guestName,
   guestEmail,
   guestPhone
-}: RecurringBookingModalProps) {
+}: RecurringBookingModalProps): JSX.Element {
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('weekly');
   const [occurrences, setOccurrences] = useState(4);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<Date[]>([]);
 
   // Generate preview dates
-  const generateDates = () => {
+  const generateDates = (): void => {
     const dates: Date[] = [date];
     let currentDate = date;
 
@@ -68,19 +68,20 @@ export default function RecurringBookingModal({
 
   useEffect(() => {
     generateDates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurrenceType, occurrences]);
 
-  const handleRecurrenceChange = (type: RecurrenceType) => {
+  const handleRecurrenceChange = (type: RecurrenceType): void => {
     setRecurrenceType(type);
     generateDates();
   };
 
-  const handleOccurrencesChange = (value: number) => {
+  const handleOccurrencesChange = (value: number): void => {
     setOccurrences(value);
     generateDates();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();

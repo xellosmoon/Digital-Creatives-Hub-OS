@@ -14,7 +14,7 @@ interface HubLiveStatusData {
   zones: HubZone[];
 }
 
-export default function HubLiveStatus() {
+export default function HubLiveStatus(): JSX.Element {
   const [status, setStatus] = useState<HubLiveStatusData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +24,7 @@ export default function HubLiveStatus() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (): Promise<void> => {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -77,7 +77,7 @@ export default function HubLiveStatus() {
     );
   }
 
-  if (!status) return null;
+  if (!status) return <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">Loading...</div>;
 
   const pct = Math.round((status.available / Math.max(1, status.totalSeats + status.adjustment)) * 100);
   const isFullHub = status.workshopQ2 && status.workshopQ4;

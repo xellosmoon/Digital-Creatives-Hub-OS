@@ -12,7 +12,7 @@ interface EventChipProps {
  * Clicking the chip opens the Event Details modal; we stop propagation
  * so the parent cell's "open quick booking" handler does NOT fire.
  */
-export default function EventChip({ event, onClick }: EventChipProps) {
+export default function EventChip({ event, onClick }: EventChipProps): JSX.Element {
   return (
     <button
       type="button"

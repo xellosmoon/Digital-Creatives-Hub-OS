@@ -4,90 +4,155 @@ import { format, addDays } from 'date-fns';
 import {
   Sparkles, Calendar, Clock, User, Mail, Phone, FileText,
   Users, Image, Link as LinkIcon, Building2, CheckCircle,
-  ArrowLeft, Send, PartyPopper, Info,
+  ArrowLeft, Send, PartyPopper, Info, Check, Music, Film,
+  Palette, Monitor, PenTool, BookOpen, Megaphone, Landmark,
+  Theater, X, Grid3X3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { PCIDA_DOMAINS } from '../types/hub';
 
-type Step = 'details' | 'logistics' | 'review';
+type Step = 'organizer' | 'logistics' | 'domains' | 'review';
 const STEP_META: { key: Step; label: string }[] = [
-  { key: 'details', label: 'Event Info' },
-  { key: 'logistics', label: 'Logistics' },
+  { key: 'organizer', label: 'Organizer' },
+  { key: 'logistics', label: 'Event Details' },
+  { key: 'domains', label: 'Creative Domains' },
   { key: 'review', label: 'Review' },
 ];
 
-export default function ProposeEvent() {
-  const [step, setStep] = useState<Step>('details');
+const DOMAIN_ICONS: Record<string, React.ElementType> = {
+  'Audio & Music': Music,
+  'Film & Animation': Film,
+  'Visual Arts': Palette,
+  'Digital Interactive Media': Monitor,
+  'Design': PenTool,
+  'Publishing': BookOpen,
+  'Advertising': Megaphone,
+  'Cultural & Heritage': Landmark,
+  'Performing Arts': Theater,
+  'Other': Sparkles,
+};
+
+export default function ProposeEvent(): JSX.Element {
+  const [step, setStep] = useState<Step>('organizer');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
 
   const [form, setForm] = useState({
+    // Section A: Organizer Details
+    fullName: '',
+    email: '',
+    phone: '',
+    organization: '',
+    role: '',
+    // Section B: Event Logistics
     title: '',
     description: '',
-    posterUrl: '',
-    registrationLink: '',
-    organizer: '',
-    contactEmail: '',
-    contactPhone: '',
-    proposerName: '',
-    proposerEmail: '',
-    proposerPhone: '',
-    startDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-    startTime: '14:00',
-    endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-    endTime: '17:00',
-    expectedAttendees: '',
-    notes: '',
+    expectedGuests: '',
+    // Event Dates/Times
+    eventDates: [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), startTime: '14:00', endTime: '17:00' }],
   });
 
   const stepIdx = STEP_META.findIndex(s => s.key === step);
-  const update = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
+  const update = (patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch }));
+
+  const toggleDomain = (domain: string): void => {
+    setSelectedDomains(prev =>
+      prev.includes(domain)
+        ? prev.filter(d => d !== domain)
+        : [...prev, domain]
+    );
+  };
+
+  const addEventDate = (): void => {
+    update({
+      eventDates: [
+        ...form.eventDates,
+        { date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), startTime: '14:00', endTime: '17:00' }
+      ]
+    });
+  };
+
+  const removeEventDate = (index: number): void => {
+    update({
+      eventDates: form.eventDates.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateEventDate = (index: number, field: 'date' | 'startTime' | 'endTime', value: string): void => {
+    const updatedDates = [...form.eventDates];
+    updatedDates[index] = { ...updatedDates[index], [field]: value };
+    update({ eventDates: updatedDates });
+  };
 
   const canProceed = (): boolean => {
     switch (step) {
-      case 'details':
-        return !!form.title.trim() && !!form.proposerName.trim() && !!form.proposerEmail.trim();
+      case 'organizer':
+        return !!form.fullName.trim() && !!form.email.trim() && !!form.phone.trim();
       case 'logistics':
-        return !!form.startDate && !!form.startTime && !!form.endDate && !!form.endTime;
+        const guestCount = parseInt(form.expectedGuests);
+        return !!form.title.trim() && !!form.description.trim() && !!form.expectedGuests.trim() && !isNaN(guestCount) && guestCount > 0;
+      case 'domains':
+        return selectedDomains.length > 0;
       default:
         return true;
     }
   };
 
-  const next = () => { if (stepIdx < STEP_META.length - 1) setStep(STEP_META[stepIdx + 1].key); };
-  const prev = () => { if (stepIdx > 0) setStep(STEP_META[stepIdx - 1].key); };
+  const next = (): void => { if (stepIdx < STEP_META.length - 1) setStep(STEP_META[stepIdx + 1].key); };
+  const prev = (): void => { if (stepIdx > 0) setStep(STEP_META[stepIdx - 1].key); };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     setSubmitting(true);
     try {
-      const startISO = new Date(`${form.startDate}T${form.startTime}:00`).toISOString();
-      const endISO = new Date(`${form.endDate}T${form.endTime}:00`).toISOString();
-
-      const { error } = await supabase.from('events').insert({
+      console.log('Submitting proposal:', {
+        organizer_name: form.fullName,
+        organizer_email: form.email,
+        organizer_phone: form.phone,
+        organization: form.organization || null,
+        role: form.role || null,
         title: form.title,
-        description: form.description || null,
-        poster_url: form.posterUrl || null,
-        registration_link: form.registrationLink || null,
-        organizer: form.organizer || form.proposerName,
-        contact_email: form.contactEmail || form.proposerEmail,
-        contact_phone: form.contactPhone || form.proposerPhone || null,
-        start_time: startISO,
-        end_time: endISO,
-        status: 'proposed',
-        proposer_name: form.proposerName,
-        proposer_email: form.proposerEmail,
-        proposer_phone: form.proposerPhone || null,
-        proposal_notes: form.notes || null,
-        expected_attendees: form.expectedAttendees ? parseInt(form.expectedAttendees) : null,
+        description: form.description,
+        expected_guests: parseInt(form.expectedGuests) || null,
+        event_dates: form.eventDates,
+        creative_domains: selectedDomains,
+        status: 'pending_review',
       });
+
+      const { data, error } = await supabase.from('hub_events').insert({
+        // Organizer details
+        organizer_name: form.fullName,
+        organizer_email: form.email,
+        organizer_phone: form.phone,
+        organization: form.organization || null,
+        role: form.role || null,
+        // Event details
+        title: form.title,
+        description: form.description,
+        expected_guests: parseInt(form.expectedGuests) || null,
+        // Event dates/times - convert to proper format
+        event_dates: form.eventDates.map(eventDate => ({
+          date: eventDate.date,
+          start_time: eventDate.startTime,
+          end_time: eventDate.endTime,
+        })),
+        // PCIDA domains
+        creative_domains: selectedDomains,
+        // Status
+        status: 'pending_review',
+      }).select();
+
+      console.log('Insert result:', { data, error });
 
       if (error) throw error;
 
       setSubmitted(true);
       toast.success('Event proposal submitted!');
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || 'Failed to submit proposal');
+    } catch (err: unknown) {
+      console.error('Error submitting proposal:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit proposal';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +168,7 @@ export default function ProposeEvent() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Proposal Submitted!</h2>
           <p className="text-gray-600 mb-6">
-            Our team will review your event proposal and get back to you at <span className="font-semibold">{form.proposerEmail}</span>.
+            Our team will review your event proposal and get back to you at <span className="font-semibold">{form.email}</span>.
             This usually takes 1–2 business days.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -113,13 +178,6 @@ export default function ProposeEvent() {
             >
               Back to Home
             </Link>
-            <Link
-              to="/calendar"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-300"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              View Calendar
-            </Link>
           </div>
         </div>
       </div>
@@ -128,10 +186,17 @@ export default function ProposeEvent() {
 
   // ── Main form ──
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50/30">
+    <div className="min-h-screen bg-stone-50 relative overflow-hidden">
+      {/* Dynamic Brand Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#0C2340] blur-3xl opacity-20 rounded-full" />
+        <div className="absolute top-1/4 -right-32 w-96 h-96 bg-amber-500 blur-3xl opacity-20 rounded-full" />
+        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-orange-500 blur-3xl opacity-10 rounded-full" />
+      </div>
+
       {/* Hero */}
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6">
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-3xl shadow-lg shadow-orange-500/30 text-white px-6 sm:px-8 py-8 sm:py-10">
           <div className="flex items-center gap-3 mb-2">
             <PartyPopper className="h-6 w-6 opacity-80" />
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Propose an Event</h1>
@@ -143,13 +208,15 @@ export default function ProposeEvent() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 pb-16">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 pb-16">
         {/* Step indicator */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-amber-100/50 border border-white/60 px-4 sm:px-6 py-4 mb-8">
+        <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/40 px-4 sm:px-6 py-4 mb-8">
           <div className="flex items-center justify-between">
             {STEP_META.map((s, i) => {
               const done = i < stepIdx;
               const active = i === stepIdx;
+              const stepIcons = [User, Calendar, Grid3X3, CheckCircle];
+              const StepIcon = stepIcons[i];
               return (
                 <div key={s.key} className="flex items-center flex-1">
                   {i > 0 && (
@@ -158,11 +225,11 @@ export default function ProposeEvent() {
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className={`
                       h-8 w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300
-                      ${done ? 'bg-amber-500 text-white shadow-md' : active ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-500' : 'bg-gray-100 text-gray-400'}
+                      ${done ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30' : active ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-500/50' : 'bg-white/50 text-slate-400'}
                     `}>
-                      {done ? <CheckCircle className="h-4 w-4" /> : i + 1}
+                      {done ? <CheckCircle className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                     </span>
-                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-amber-700' : done ? 'text-amber-500' : 'text-gray-400'}`}>
+                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-amber-700' : done ? 'text-amber-500' : 'text-slate-400'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -173,12 +240,91 @@ export default function ProposeEvent() {
         </div>
 
         {/* Content card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-amber-100/30 border border-white/60 p-5 sm:p-8 transition-all duration-300">
+        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/40 p-5 sm:p-8 transition-all duration-300">
 
-          {/* ═══ STEP: DETAILS ═══ */}
-          {step === 'details' && (
+          {/* ═══ STEP: ORGANIZER ═══ */}
+          {step === 'organizer' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Event Details</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Organizer Details</h2>
+              <p className="text-sm text-gray-500 mb-6">Tell us about yourself or your organization</p>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <User className="h-4 w-4 text-amber-500" /> Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.fullName}
+                    onChange={e => update({ fullName: e.target.value })}
+                    placeholder="Juan Dela Cruz"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                      <Mail className="h-4 w-4 text-amber-500" /> Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={e => update({ email: e.target.value })}
+                      placeholder="juan@example.com"
+                      className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                      <Phone className="h-4 w-4 text-amber-500" /> Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={form.phone}
+                      onChange={e => update({ phone: e.target.value })}
+                      placeholder="+63 917 123 4567"
+                      className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <Building2 className="h-4 w-4 text-amber-500" /> School / Business / Organization
+                  </label>
+                  <input
+                    type="text"
+                    value={form.organization}
+                    onChange={e => update({ organization: e.target.value })}
+                    placeholder="Your organization name"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <User className="h-4 w-4 text-amber-500" /> Designation / Role
+                  </label>
+                  <input
+                    type="text"
+                    value={form.role}
+                    onChange={e => update({ role: e.target.value })}
+                    placeholder="e.g. Student, Teacher, Manager"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ STEP: LOGISTICS ═══ */}
+          {step === 'logistics' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Event Logistics</h2>
               <p className="text-sm text-gray-500 mb-6">Tell us about the event you'd like to host</p>
 
               <div className="space-y-5">
@@ -192,198 +338,148 @@ export default function ProposeEvent() {
                     value={form.title}
                     onChange={e => update({ title: e.target.value })}
                     placeholder="e.g. Vibe Coding Workshop, Film Screening Night"
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
                   />
                 </div>
 
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                    <FileText className="h-4 w-4 text-amber-500" /> Description
+                    <FileText className="h-4 w-4 text-amber-500" /> Comprehensive Explanation / Description *
                   </label>
                   <textarea
-                    rows={4}
+                    rows={6}
                     value={form.description}
                     onChange={e => update({ description: e.target.value })}
-                    placeholder="What's the event about? What will attendees experience?"
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300 resize-none"
+                    placeholder="What's the event about? What will attendees experience? What are the goals?"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Building2 className="h-4 w-4 text-amber-500" /> Organizer / Group
-                    </label>
-                    <input
-                      type="text"
-                      value={form.organizer}
-                      onChange={e => update({ organizer: e.target.value })}
-                      placeholder="Your org or group name"
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Users className="h-4 w-4 text-amber-500" /> Expected Attendees
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={form.expectedAttendees}
-                      onChange={e => update({ expectedAttendees: e.target.value })}
-                      placeholder="e.g. 20"
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                    />
-                  </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <Users className="h-4 w-4 text-amber-500" /> Expected Number of Guests / Attendees *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={form.expectedGuests}
+                    onChange={e => update({ expectedGuests: e.target.value })}
+                    placeholder="e.g. 20"
+                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                  />
                 </div>
 
-                <div className="border-t border-gray-100 pt-5">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Your Contact Info</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-1">
-                        <User className="h-3.5 w-3.5 text-amber-500" /> Your Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={form.proposerName}
-                        onChange={e => update({ proposerName: e.target.value })}
-                        placeholder="Juan Dela Cruz"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-1">
-                        <Mail className="h-3.5 w-3.5 text-amber-500" /> Your Email *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={form.proposerEmail}
-                        onChange={e => update({ proposerEmail: e.target.value })}
-                        placeholder="juan@example.com"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-1">
-                        <Phone className="h-3.5 w-3.5 text-amber-500" /> Phone (optional)
-                      </label>
-                      <input
-                        type="tel"
-                        value={form.proposerPhone}
-                        onChange={e => update({ proposerPhone: e.target.value })}
-                        placeholder="+63 917 123 4567"
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                      />
-                    </div>
+                <div className="border-t border-gray-200 pt-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <Calendar className="h-4 w-4 text-amber-500" /> Event Dates & Times *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addEventDate}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all"
+                    >
+                      + Add Date
+                    </button>
                   </div>
+
+                  {form.eventDates.map((eventDate, index) => (
+                    <div key={index} className="bg-gray-50 rounded-xl p-4 mb-3 relative">
+                      {form.eventDates.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEventDate(index)}
+                          className="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-all"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 mb-1 block">Date *</label>
+                          <input
+                            type="date"
+                            value={eventDate.date}
+                            onChange={e => updateEventDate(index, 'date', e.target.value)}
+                            min={format(addDays(new Date(), 3), 'yyyy-MM-dd')}
+                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 mb-1 block">Start Time *</label>
+                          <input
+                            type="time"
+                            value={eventDate.startTime}
+                            onChange={e => updateEventDate(index, 'startTime', e.target.value)}
+                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-600 mb-1 block">End Time *</label>
+                          <input
+                            type="time"
+                            value={eventDate.endTime}
+                            onChange={e => updateEventDate(index, 'endTime', e.target.value)}
+                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* ═══ STEP: LOGISTICS ═══ */}
-          {step === 'logistics' && (
+          {/* ═══ STEP: DOMAINS ═══ */}
+          {step === 'domains' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Date, Time & Extras</h2>
-              <p className="text-sm text-gray-500 mb-6">When should the event happen?</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">PCIDA Domain Alignment</h2>
+              <p className="text-sm text-gray-500 mb-6">Which creative domains does this event support? (Select all that apply)</p>
 
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Calendar className="h-4 w-4 text-amber-500" /> Start Date *
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {PCIDA_DOMAINS.map((domain) => {
+                  const Icon = DOMAIN_ICONS[domain];
+                  const isSelected = selectedDomains.includes(domain);
+                  return (
+                    <label
+                      key={domain}
+                      className={`group relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                        isSelected
+                          ? 'border-amber-500 bg-amber-50/80 shadow-md shadow-amber-100/50'
+                          : 'border-gray-200 bg-gray-50/50 hover:border-amber-300 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={isSelected}
+                        onChange={() => toggleDomain(domain)}
+                      />
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          isSelected ? 'border-amber-500 bg-amber-500' : 'border-gray-300 bg-white group-hover:border-amber-400'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {Icon && <Icon className="h-4 w-4 text-amber-500" />}
+                            <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                              {domain}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </label>
-                    <input
-                      type="date"
-                      value={form.startDate}
-                      onChange={e => {
-                        update({ startDate: e.target.value });
-                        if (e.target.value > form.endDate) update({ startDate: e.target.value, endDate: e.target.value });
-                      }}
-                      min={format(addDays(new Date(), 3), 'yyyy-MM-dd')}
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Clock className="h-4 w-4 text-amber-500" /> Start Time *
-                    </label>
-                    <input
-                      type="time"
-                      value={form.startTime}
-                      onChange={e => update({ startTime: e.target.value })}
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Calendar className="h-4 w-4 text-amber-500" /> End Date *
-                    </label>
-                    <input
-                      type="date"
-                      value={form.endDate}
-                      onChange={e => update({ endDate: e.target.value })}
-                      min={form.startDate}
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                      <Clock className="h-4 w-4 text-amber-500" /> End Time *
-                    </label>
-                    <input
-                      type="time"
-                      value={form.endTime}
-                      onChange={e => update({ endTime: e.target.value })}
-                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                    />
-                  </div>
-                </div>
+                  );
+                })}
+              </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                    <Image className="h-4 w-4 text-amber-500" /> Event Poster URL (optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={form.posterUrl}
-                    onChange={e => update({ posterUrl: e.target.value })}
-                    placeholder="https://example.com/poster.jpg"
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                  />
-                  {form.posterUrl && (
-                    <img src={form.posterUrl} alt="Preview" className="mt-2 rounded-xl max-h-40 object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
-                  )}
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                    <LinkIcon className="h-4 w-4 text-amber-500" /> Registration Link (optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={form.registrationLink}
-                    onChange={e => update({ registrationLink: e.target.value })}
-                    placeholder="Google Form, Eventbrite, Facebook event, etc."
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300"
-                  />
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                    <FileText className="h-4 w-4 text-amber-500" /> Additional Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.notes}
-                    onChange={e => update({ notes: e.target.value })}
-                    placeholder="Any special requirements? AV equipment, seating arrangement, catering needs..."
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 placeholder:text-gray-300 resize-none"
-                  />
-                </div>
+              <div className="mt-4 p-3 rounded-xl bg-amber-50/50 border border-amber-100 text-xs text-amber-700">
+                <p className="font-medium mb-1">Selected: {selectedDomains.length} domain{selectedDomains.length !== 1 ? 's' : ''}</p>
+                <p className="text-amber-600">Select at least one creative domain that best describes your event.</p>
               </div>
             </div>
           )}
@@ -395,52 +491,51 @@ export default function ProposeEvent() {
               <p className="text-sm text-gray-500 mb-6">Double-check everything before submitting</p>
 
               <div className="space-y-4">
+                {/* Organizer info */}
+                <div className="rounded-2xl bg-gray-50/80 p-4">
+                  <h3 className="font-bold text-gray-900 text-sm mb-2">Organizer Details</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.fullName}</span></div>
+                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.email}</span></div>
+                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.phone}</span></div>
+                    {form.organization && <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.organization}</span></div>}
+                    {form.role && <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.role}</span></div>}
+                  </div>
+                </div>
+
                 {/* Event info */}
                 <div className="rounded-2xl bg-gray-50/80 p-4">
                   <h3 className="font-bold text-gray-900 text-lg mb-1">{form.title}</h3>
                   {form.description && <p className="text-sm text-gray-600 mb-2">{form.description}</p>}
-                  {form.organizer && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Building2 className="h-4 w-4" /> {form.organizer}
-                    </div>
-                  )}
-                  {form.expectedAttendees && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                      <Users className="h-4 w-4" /> ~{form.expectedAttendees} attendees
-                    </div>
-                  )}
-                </div>
-
-                {/* Date & Time */}
-                <div className="rounded-2xl bg-gray-50/80 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-amber-500" />
-                    <span className="font-medium text-gray-900">
-                      {format(new Date(form.startDate + 'T00:00'), 'EEE, MMM d, yyyy')}
-                    </span>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Users className="h-4 w-4" /> ~{form.expectedGuests} attendees
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-amber-500" />
-                    <span className="font-medium text-gray-900">
-                      {form.startTime} – {form.endTime}
-                    </span>
+                  {/* Event Dates */}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">Event Dates:</p>
+                    {form.eventDates.map((eventDate, index) => (
+                      <div key={index} className="text-xs text-gray-700 mb-1">
+                        {format(new Date(eventDate.date + 'T00:00'), 'EEE, MMM d, yyyy')} • {eventDate.startTime} - {eventDate.endTime}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Contact */}
-                <div className="rounded-2xl bg-gray-50/80 p-4 space-y-1.5 text-sm">
-                  <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.proposerName}</span></div>
-                  <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.proposerEmail}</span></div>
-                  {form.proposerPhone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.proposerPhone}</span></div>}
-                </div>
-
-                {/* Notes */}
-                {form.notes && (
-                  <div className="rounded-2xl bg-gray-50/80 p-4 text-sm">
-                    <p className="text-gray-500 font-medium mb-1">Notes:</p>
-                    <p className="text-gray-700">{form.notes}</p>
+                {/* PCIDA Domains */}
+                <div className="rounded-2xl bg-gray-50/80 p-4">
+                  <h3 className="font-bold text-gray-900 text-sm mb-2">Creative Domains</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDomains.map((domain) => {
+                      const Icon = DOMAIN_ICONS[domain];
+                      return (
+                        <span key={domain} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                          {Icon && <Icon className="h-3 w-3" />}
+                          {domain}
+                        </span>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
                 {/* Info box */}
                 <div className="rounded-2xl bg-amber-50/80 border border-amber-100 p-4 flex items-start gap-3 text-xs text-amber-700">

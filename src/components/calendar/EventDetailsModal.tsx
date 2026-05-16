@@ -21,11 +21,11 @@ interface EventDetailsModalProps {
  * registration link, organizer, description, and contact information.
  * Opened when the user clicks an event chip inside the calendar grid.
  */
-export default function EventDetailsModal({ event, onClose, onBookSpace }: EventDetailsModalProps) {
+export default function EventDetailsModal({ event, onClose, onBookSpace }: EventDetailsModalProps): JSX.Element {
   const [imageError, setImageError] = useState(false);
 
   // ── Social sharing helpers ──────────────────────────────────────
-  const handleShare = async () => {
+  const handleShare = async (): Promise<void> => {
     const shareUrl = window.location.href;
     const shareText = `${event.title} at Creative Coworking - ${format(new Date(event.start_time), 'MMM d, yyyy')}`;
 
@@ -41,7 +41,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
     }
   };
 
-  const handleFacebookShare = () => {
+  const handleFacebookShare = (): void => {
     const shareUrl = encodeURIComponent(window.location.href);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, '_blank');
   };

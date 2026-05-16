@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, Edit, Trash2, Star, ExternalLink, Eye } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2, Star, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
@@ -15,12 +15,12 @@ interface AdminEventCardProps {
  * Card rendered in the admin events list.
  * Shows a summary of the event with edit / delete / preview actions.
  */
-export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps) {
+export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps): JSX.Element {
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // ── Delete handler ──────────────────────────────────────────────
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<void> => {
     if (!window.confirm(`Delete "${event.title}"? This cannot be undone.`)) return;
 
     setDeleting(true);
@@ -29,8 +29,9 @@ export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps)
       if (error) throw error;
       toast.success('Event deleted');
       onUpdate();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete event');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete event';
+      toast.error(errorMessage);
     } finally {
       setDeleting(false);
     }

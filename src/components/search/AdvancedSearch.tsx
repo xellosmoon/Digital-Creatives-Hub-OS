@@ -18,7 +18,7 @@ interface AdvancedSearchProps {
   availableAmenities: string[];
 }
 
-export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenities }: AdvancedSearchProps) {
+export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenities }: AdvancedSearchProps): JSX.Element {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
@@ -30,11 +30,11 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
     amenities: []
   });
 
-  const handleSearch = () => {
+  const handleSearch = (): void => {
     onSearch(filters);
   };
 
-  const resetFilters = () => {
+  const resetFilters = (): void => {
     setFilters({
       query: '',
       spaceType: '',
@@ -55,7 +55,7 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
     });
   };
 
-  const toggleAmenity = (amenity: string) => {
+  const toggleAmenity = (amenity: string): void => {
     setFilters(prev => ({
       ...prev,
       amenities: prev.amenities.includes(amenity)

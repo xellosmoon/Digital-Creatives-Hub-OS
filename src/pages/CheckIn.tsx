@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Phone, ArrowRight, ArrowLeft, CheckCircle,
   Music, Film, Palette, Gamepad2, PenTool, BookOpen,
-  Megaphone, Landmark, Drama, Shield, Clock,
+  Megaphone, Landmark, Drama, Clock,
   Sparkles, UserCheck, ShieldCheck, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,15 +22,16 @@ const DOMAIN_META: Record<PCIDADomain, { icon: React.ComponentType<{ className?:
   'Advertising': { icon: Megaphone, gradient: 'from-fuchsia-500 to-pink-600' },
   'Cultural & Heritage': { icon: Landmark, gradient: 'from-yellow-500 to-amber-600' },
   'Performing Arts': { icon: Drama, gradient: 'from-red-500 to-rose-600' },
+  'Other': { icon: Sparkles, gradient: 'from-gray-500 to-slate-600' },
 };
 
 type Step = 'privacy' | 'mobile' | 'identity' | 'professional' | 'domain';
 
 // ══════════════════════════════════════════════════════════════════
-export default function CheckIn() {
+export default function CheckIn(): JSX.Element {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('privacy');
   const [submitting, setSubmitting] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(null); // ID of submitted attendance
   const [isReturning, setIsReturning] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
@@ -41,10 +43,10 @@ export default function CheckIn() {
     sector: '',
     organization: '',
     designation: '',
-    domain: '' as string,
+    domains: [] as string[],
   });
 
-  const update = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
+  const update = useCallback((patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch })), []);
 
   // ── Check returning user when mobile is entered ─────────────────
   const checkReturning = useCallback(async (mobile: string) => {
@@ -61,7 +63,7 @@ export default function CheckIn() {
           sector: user.sector || '',
           organization: user.organization || '',
           designation: user.designation || '',
-          domain: user.creative_domain || '',
+          domains: user.creative_domain ? [user.creative_domain] : [],
         });
       } else {
         setIsReturning(false);
@@ -69,10 +71,10 @@ export default function CheckIn() {
     } catch {
       // silently fail
     }
-  }, []);
+  }, [update]);
 
   // ── Number Pad Logic ────────────────────────────────────────────
-  const appendDigit = (d: string) => {
+  const appendDigit = (d: string): void => {
     if (form.mobile.length < 11) {
       const newMobile = form.mobile + d;
       update({ mobile: newMobile });
@@ -81,12 +83,12 @@ export default function CheckIn() {
       }
     }
   };
-  const deleteDigit = () => update({ mobile: form.mobile.slice(0, -1) });
+  const deleteDigit = (): void => update({ mobile: form.mobile.slice(0, -1) });
 
   // ── Navigation ─────────────────────────────────────────────────
   const STEPS: Step[] = ['privacy', 'mobile', 'identity', 'professional', 'domain'];
 
-  const goNext = () => {
+  const goNext = (): void => {
     const idx = STEPS.indexOf(step);
     // Returning users: skip from mobile straight to domain (last step before submit)
     if (step === 'mobile' && isReturning) {
@@ -96,7 +98,7 @@ export default function CheckIn() {
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
   };
 
-  const goPrev = () => {
+  const goPrev = (): void => {
     const idx = STEPS.indexOf(step);
     if (step === 'domain' && isReturning) {
       setStep('mobile');
@@ -112,12 +114,12 @@ export default function CheckIn() {
       case 'mobile': return form.mobile.length >= 10;
       case 'identity': return !!form.name.trim();
       case 'professional': return true; // all optional
-      case 'domain': return !!form.domain;
+      case 'domain': return form.domains.length > 0;
     }
   };
 
   // ── Submit (last step = domain, then goes to pending) ──────────
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!canProceed()) return;
     setSubmitting(true);
     try {
@@ -129,7 +131,7 @@ export default function CheckIn() {
         sector: form.sector || null,
         organization: form.organization || null,
         designation: form.designation || null,
-        creative_domain: form.domain,
+        creative_domain: form.domains.join(', '),
         status: 'pending_entrance',
         privacy_consented: true,
         consent_timestamp: new Date().toISOString(),
@@ -137,62 +139,17 @@ export default function CheckIn() {
       }).select('id').single();
 
       if (error) throw error;
-      setPendingId(data.id);
-      toast.success('Please proceed to the front desk!');
-    } catch (err: any) {
-      toast.error(err.message || 'Check-in failed');
+      toast.success('Check-in successful! Please proceed to the front desk.');
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Check-in failed';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
-
-  // ── Poll for Secretariat confirmation ──────────────────────────
-  useEffect(() => {
-    if (!pendingId) return;
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await supabase
-          .from('hub_attendance')
-          .select('status')
-          .eq('id', pendingId)
-          .single();
-        if (data?.status === 'active') {
-          clearInterval(interval);
-          toast.success('Welcome to the Hub!');
-          // Show confirmed for 4s then reset
-          setTimeout(() => {
-            setPendingId(null);
-            setStep('privacy');
-            setPrivacyConsent(false);
-            setForm({ mobile: '', name: '', gender: '', email: '', sector: '', organization: '', designation: '', domain: '' });
-            setIsReturning(false);
-          }, 4000);
-        }
-      } catch { /* ignore */ }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [pendingId]);
-
-  // ── Pending Screen — awaiting Secretariat confirmation ─────────
-  if (pendingId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 p-4">
-        <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] shadow-2xl shadow-black/20 border border-white/20 p-10 sm:p-16 text-center max-w-md w-full">
-          <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/30 animate-pulse">
-            <Clock className="h-10 w-10 text-white" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">Almost There!</h1>
-          <p className="text-white/60 text-sm leading-relaxed mb-6">
-            Please approach the <span className="text-amber-300 font-semibold">Secretariat desk</span> for entrance confirmation.
-          </p>
-          <div className="flex items-center justify-center gap-2 text-white/40 text-xs">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Waiting for confirmation...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ══════════════════════════════════════════════════════════════════
   // RENDER
@@ -417,14 +374,19 @@ export default function CheckIn() {
           {step === 'domain' && (
             <div className="grid grid-cols-3 gap-2">
               {PCIDA_DOMAINS.map(d => {
-                const meta = DOMAIN_META[d];
+                const meta = DOMAIN_META[d] || { icon: Sparkles, gradient: 'from-gray-500 to-slate-600' };
                 const Icon = meta.icon;
-                const selected = form.domain === d;
+                const selected = form.domains.includes(d);
                 return (
                   <button
                     key={d}
                     type="button"
-                    onClick={() => update({ domain: d })}
+                    onClick={() => {
+                      const newDomains = selected 
+                        ? form.domains.filter(domain => domain !== d)
+                        : [...form.domains, d];
+                      update({ domains: newDomains });
+                    }}
                     className={`
                       flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl transition-all duration-200
                       ${selected
@@ -481,7 +443,7 @@ export default function CheckIn() {
 
         {/* Branding footer */}
         <p className="text-center text-white/30 text-[10px] mt-4">
-          Digital Creatives Innovation Hub — DTI Region XI
+          Digital Creatives Innovation Hub — DTI Region 10
         </p>
       </div>
     </div>

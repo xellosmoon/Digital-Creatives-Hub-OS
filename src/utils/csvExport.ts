@@ -1,4 +1,4 @@
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   if (data.length === 0) {
     return;
   }
@@ -41,73 +41,81 @@ export function exportToCSV(data: any[], filename: string) {
   document.body.removeChild(link);
 }
 
-export function formatBookingForExport(booking: any) {
+export function formatBookingForExport(booking: Record<string, unknown>): Record<string, string> {
   return {
-    'Reference': booking.booking_reference || booking.id,
-    'Package': booking.package?.name || 'N/A',
-    'Guest Name': booking.guest_name || 'N/A',
-    'Guest Email': booking.guest_email || 'N/A',
-    'Guest Phone': booking.guest_phone || 'N/A',
-    'Date': booking.booking_date || 'N/A',
-    'Start Time': booking.start_time ? new Date(booking.start_time).toLocaleTimeString() : 'N/A',
-    'End Time': booking.end_time ? new Date(booking.end_time).toLocaleTimeString() : 'N/A',
-    'Seats': booking.seats_used || 1,
-    'Status': booking.status,
-    'Purpose': booking.purpose || 'N/A',
+    'Reference': String(booking.booking_reference || booking.id || ''),
+    'Package': String((booking.package as Record<string, unknown>)?.name || 'N/A'),
+    'Guest Name': String(booking.guest_name || 'N/A'),
+    'Guest Email': String(booking.guest_email || 'N/A'),
+    'Guest Phone': String(booking.guest_phone || 'N/A'),
+    'Date': String(booking.booking_date || 'N/A'),
+    'Start Time': booking.start_time ? new Date(String(booking.start_time)).toLocaleTimeString() : 'N/A',
+    'End Time': booking.end_time ? new Date(String(booking.end_time)).toLocaleTimeString() : 'N/A',
+    'Seats': String(booking.seats_used || 1),
+    'Status': String(booking.status || ''),
+    'Purpose': String(booking.purpose || 'N/A'),
     'Total Price': booking.total_price ? `₱${booking.total_price}` : 'N/A',
-    'Created At': new Date(booking.created_at).toLocaleString(),
+    'Created At': booking.created_at ? new Date(String(booking.created_at)).toLocaleString() : 'N/A',
   };
 }
 
-export function formatAttendanceForDTIExport(attendance: any) {
+export function formatAttendanceForDTIExport(attendance: Record<string, unknown>): Record<string, string> {
   return {
-    'Full Name': attendance.full_name || 'N/A',
-    'Creative Domain (PCIDA)': attendance.creative_domain || 'N/A',
-    'Organization': attendance.organization || 'N/A',
-    'Designation': attendance.designation || 'N/A',
-    'Sector': attendance.sector || 'N/A',
-    'Gender': attendance.gender || 'N/A',
-    'Mobile': attendance.mobile_number || 'N/A',
-    'Email': attendance.email || 'N/A',
-    'Status': attendance.status || 'N/A',
-    'Time In': attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleTimeString() : 'N/A',
-    'Confirmed At': attendance.confirmed_at ? new Date(attendance.confirmed_at).toLocaleTimeString() : '',
-    'Time Out': attendance.check_out_time ? new Date(attendance.check_out_time).toLocaleTimeString() : '',
+    'Full Name': String(attendance.full_name || 'N/A'),
+    'Creative Domain (PCIDA)': String(attendance.creative_domain || 'N/A'),
+    'Organization': String(attendance.organization || 'N/A'),
+    'Designation': String(attendance.designation || 'N/A'),
+    'Sector': String(attendance.sector || 'N/A'),
+    'Gender': String(attendance.gender || 'N/A'),
+    'Mobile': String(attendance.mobile_number || 'N/A'),
+    'Email': String(attendance.email || 'N/A'),
+    'Status': String(attendance.status || 'N/A'),
+    'Time In': attendance.check_in_time ? new Date(String(attendance.check_in_time)).toLocaleTimeString() : 'N/A',
+    'Confirmed At': attendance.confirmed_at ? new Date(String(attendance.confirmed_at)).toLocaleTimeString() : '',
+    'Time Out': attendance.check_out_time ? new Date(String(attendance.check_out_time)).toLocaleTimeString() : '',
     'Walk-in': attendance.is_walk_in ? 'Yes' : 'No',
-    'Date': attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleDateString() : 'N/A',
+    'Date': attendance.check_in_time ? new Date(String(attendance.check_in_time)).toLocaleDateString() : 'N/A',
   };
 }
 
-export function formatAnalyticsForExport(analytics: any) {
-  const exportData: any[] = [];
+export function formatAnalyticsForExport(analytics: Record<string, unknown>): Record<string, string>[] {
+  const exportData: Record<string, string>[] = [];
   
   // Summary data
   exportData.push({
     'Metric': 'Total Bookings',
-    'Value': analytics.totalBookings
+    'Value': String(analytics.totalBookings || 0)
   });
   exportData.push({
     'Metric': 'Total Revenue',
-    'Value': `₱${analytics.totalRevenue.toFixed(2)}`
+    'Value': `₱${Number(analytics.totalRevenue || 0).toFixed(2)}`
   });
   exportData.push({
     'Metric': 'Average Booking Duration',
-    'Value': `${analytics.averageBookingDuration.toFixed(1)} hours`
+    'Value': `${Number(analytics.averageBookingDuration || 0).toFixed(1)} hours`
   });
-  exportData.push({
-    'Metric': 'Approval Rate',
-    'Value': `${((analytics.bookingsByStatus.approved / analytics.totalBookings) * 100).toFixed(0)}%`
-  });
+  
+  const bookingsByStatus = analytics.bookingsByStatus as Record<string, unknown> || {};
+  const totalBookings = Number(analytics.totalBookings || 0);
+  const approvedCount = Number(bookingsByStatus.approved || 0);
+  
+  if (totalBookings > 0) {
+    exportData.push({
+      'Metric': 'Approval Rate',
+      'Value': `${((approvedCount / totalBookings) * 100).toFixed(0)}%`
+    });
+  }
   
   // Add a separator
   exportData.push({ 'Metric': '', 'Value': '' });
   exportData.push({ 'Metric': 'Space Utilization', 'Value': '' });
   
   // Space utilization
-  Object.entries(analytics.spaceUtilization).forEach(([space, count]) => {
+  const spaceUtilization = analytics.spaceUtilization as Record<string, unknown> || {};
+  Object.entries(spaceUtilization).forEach(([space, count]) => {
     exportData.push({
       'Metric': space,
-      'Value': count
+      'Value': String(count || 0)
     });
   });
   
@@ -116,7 +124,8 @@ export function formatAnalyticsForExport(analytics: any) {
   exportData.push({ 'Metric': 'Top Spaces by Revenue', 'Value': '' });
   
   // Popular spaces
-  analytics.popularSpaces.forEach((space: any) => {
+  const popularSpaces = analytics.popularSpaces as Array<{ name: string; revenue: number; bookings: number }> || [];
+  popularSpaces.forEach((space) => {
     exportData.push({
       'Metric': space.name,
       'Value': `₱${space.revenue.toFixed(2)} (${space.bookings} bookings)`

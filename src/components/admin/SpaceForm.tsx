@@ -4,12 +4,23 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface SpaceFormProps {
-  space?: any;
+  space?: {
+    id: string;
+    name: string;
+    type: string;
+    capacity: number;
+    hourly_rate: number;
+    location?: string;
+    description?: string;
+    amenities?: string[];
+    privacy_level?: string;
+    is_active?: boolean;
+  };
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps) {
+export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -41,7 +52,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
     }
   }, [space]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
@@ -74,14 +85,15 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
       }
 
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save space');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save space';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const addAmenity = () => {
+  const addAmenity = (): void => {
     if (amenityInput.trim() && !formData.amenities.includes(amenityInput.trim())) {
       setFormData({
         ...formData,
@@ -91,7 +103,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
     }
   };
 
-  const removeAmenity = (amenity: string) => {
+  const removeAmenity = (amenity: string): void => {
     setFormData({
       ...formData,
       amenities: formData.amenities.filter(a => a !== amenity)

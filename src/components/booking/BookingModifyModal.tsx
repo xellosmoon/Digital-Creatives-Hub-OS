@@ -5,14 +5,23 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface BookingModifyModalProps {
-  booking: any;
+  booking: {
+    id: string;
+    space_id: string;
+    start_time: string;
+    end_time: string;
+    attendees: number;
+    purpose: string;
+    space: { name: string; hourly_rate: number };
+    booking_reference: string;
+  };
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function BookingModifyModal({ booking, onClose, onSuccess }: BookingModifyModalProps) {
+export default function BookingModifyModal({ booking, onClose, onSuccess }: BookingModifyModalProps): JSX.Element {
   const [loading, setLoading] = useState(false);
-  const [spaces, setSpaces] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<{ id: string; name: string; hourly_rate: number }[]>([]);
   const [formData, setFormData] = useState({
     spaceId: booking.space_id,
     date: format(new Date(booking.start_time), 'yyyy-MM-dd'),
@@ -26,7 +35,7 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
     fetchSpaces();
   }, []);
 
-  const fetchSpaces = async () => {
+  const fetchSpaces = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('spaces')
@@ -41,7 +50,7 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
     }
   };
 
-  const checkAvailability = async () => {
+  const checkAvailability = async (): Promise<boolean> => {
     const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
     const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
 
@@ -57,7 +66,7 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
     return data?.length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
@@ -100,8 +109,9 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
 
       toast.success('Booking modified successfully');
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to modify booking');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to modify booking';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

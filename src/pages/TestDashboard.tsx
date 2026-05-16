@@ -1,10 +1,31 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function TestDashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [spaces, setSpaces] = useState<any[]>([]);
+interface User {
+  id: string;
+  email?: string;
+  role?: string;
+}
+
+interface Booking {
+  id: string;
+  user_id: string;
+  space_id: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface Space {
+  id: string;
+  name: string;
+  type: string;
+  hourly_rate: number;
+}
+
+export default function TestDashboard(): JSX.Element {
+  const [user, setUser] = useState<User | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [spaces, setSpaces] = useState<Space[]>([]);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +33,7 @@ export default function TestDashboard() {
     testConnection();
   }, []);
 
-  const testConnection = async () => {
+  const testConnection = async (): Promise<void> => {
     try {
       // Test 1: Check auth user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -54,8 +75,9 @@ export default function TestDashboard() {
       setSpaces(spacesData || []);
 
       setError('');
-    } catch (err: any) {
-      setError(`Unexpected error: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+      setError(`Unexpected error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

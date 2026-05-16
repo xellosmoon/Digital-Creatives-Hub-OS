@@ -2,32 +2,57 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, X, Crown } from 'lucide-react';
 
-export default function Login() {
+export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
 
-      toast.success('Logged in successfully!');
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Error logging in');
+      // Check user tier after successful auth
+      if (authData.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('tier')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          // If profile doesn't exist or error, allow login (fallback)
+          toast.success('Logged in successfully!');
+          navigate('/dashboard');
+          return;
+        }
+
+        // Deny access for WALK_IN tier
+        if (profile.tier === 'WALK_IN') {
+          await supabase.auth.signOut();
+          setShowPremiumModal(true);
+          return;
+        }
+
+        toast.success('Logged in successfully!');
+        navigate('/dashboard');
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error logging in';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -133,6 +158,59 @@ export default function Login() {
           </div>
         </form>
       </div>
+
+      {/* Premium Access Modal */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-3 rounded-full">
+                  <Crown className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Premium Access Required</h3>
+              </div>
+              <button
+                onClick={() => setShowPremiumModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <p className="text-amber-900 font-semibold text-sm mb-2">
+                Accounts are exclusive to DCIH Members
+              </p>
+              <p className="text-amber-800 text-xs leading-relaxed">
+                Full account access with login, dashboard, and booking history is reserved for paid subscribers. Walk-in users can continue to book spaces as guests without creating an account.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowPremiumModal(false);
+                  navigate('/bookings');
+                }}
+                className="w-full py-3 px-4 bg-gradient-to-r from-[#0C2340] to-blue-600 text-white font-semibold rounded-xl hover:from-[#0C2340]/90 hover:to-blue-600/90 transition-all"
+              >
+                Continue as Guest
+              </button>
+              <button
+                onClick={() => setShowPremiumModal(false)}
+                className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-500 mt-4">
+              Talk to the Secretariat to upgrade your tier and unlock full member benefits.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Phone } from 'lucide-react';
 
-export default function Register() {
+export default function Register(): JSX.Element {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,7 +14,7 @@ export default function Register() {
     phone: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
@@ -36,6 +36,8 @@ export default function Register() {
             full_name: formData.fullName,
             phone: formData.phone,
             role: 'user',
+            tier: 'SUBSCRIBER',
+            phone_number: formData.phone,
           });
 
         if (profileError) throw profileError;
@@ -43,8 +45,9 @@ export default function Register() {
         toast.success('Account created successfully! Please check your email to verify your account.');
         navigate('/login');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Error creating account');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error creating account';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -55,7 +58,7 @@ export default function Register() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            Member Registration
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
@@ -66,6 +69,14 @@ export default function Register() {
               sign in to existing account
             </Link>
           </p>
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-center text-sm text-amber-800 font-semibold">
+              ⚠️ Accounts are exclusive to DCIH Members
+            </p>
+            <p className="text-center text-xs text-amber-700 mt-1">
+              Talk to the Secretariat to upgrade your tier and create a full account.
+            </p>
+          </div>
           <p className="mt-4 text-center text-sm text-gray-600">
             Creating an account gives you access to booking history, faster checkout, and exclusive member benefits.
           </p>

@@ -9,7 +9,7 @@ interface Stats {
   rejectedBookings: number;
 }
 
-export default function AdminStats() {
+export default function AdminStats(): JSX.Element {
   const [stats, setStats] = useState<Stats>({
     totalBookings: 0,
     pendingBookings: 0,
@@ -22,7 +22,7 @@ export default function AdminStats() {
     fetchStats();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = async (): Promise<void> => {
     try {
       const { data: bookings, error } = await supabase
         .from('hub_bookings')

@@ -16,9 +16,9 @@ interface AnalyticsData {
   peakHours: { hour: number; bookings: number }[];
 }
 
-export default function Analytics() {
+export default function Analytics(): JSX.Element {
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
+  const [dateRange] = useState({
     start: startOfMonth(subMonths(new Date(), 2)),
     end: endOfMonth(new Date())
   });
@@ -35,9 +35,10 @@ export default function Analytics() {
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (): Promise<void> => {
     setLoading(true);
     try {
       // Fetch bookings with space data
@@ -70,7 +71,7 @@ export default function Analytics() {
     }
   };
 
-  const processAnalytics = (bookings: any[], spaces: any[]): AnalyticsData => {
+  const processAnalytics = (bookings: { status: string; end_time: string; start_time: string; created_at: string; space: { hourly_rate: number; name: string }; space_id: string }[], spaces: { id: string; name: string }[]): AnalyticsData => {
     const approvedBookings = bookings.filter(b => b.status === 'approved');
     
     // Total bookings and revenue
@@ -153,8 +154,8 @@ export default function Analytics() {
     };
   };
 
-  const handleExportToCSV = () => {
-    const exportData = formatAnalyticsForExport(analytics);
+  const handleExportToCSV = (): void => {
+    const exportData = formatAnalyticsForExport(analytics as unknown as Record<string, unknown>);
     const filename = `analytics_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     exportToCSV(exportData, filename);
     toast.success('Analytics exported successfully!');

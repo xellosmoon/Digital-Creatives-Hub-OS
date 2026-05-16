@@ -1,17 +1,15 @@
 import { format } from 'date-fns';
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  RotateCcw,
-  Download,
-} from 'lucide-react';
+import { Download } from 'lucide-react';
 import { formatPeso } from '../../lib/pricingEngine';
-import type { Borrowing, Item, BorrowingStatus } from '../../types/gadgets';
+import type { Borrowing, BorrowingStatus } from '../../types/gadgets';
 
 interface BorrowingLogsTableProps {
-  borrowings: (Borrowing & { item?: { asset_tag: string | null }; asset?: { name: string } })[];
+  borrowings: (Borrowing & { 
+    item?: { asset_tag: string | null }; 
+    asset?: { name: string };
+    usage_type?: string;
+    destination_location?: string | null;
+  })[];
 }
 
 const STATUS_BADGE: Record<BorrowingStatus, { cls: string; label: string }> = {
@@ -23,19 +21,19 @@ const STATUS_BADGE: Record<BorrowingStatus, { cls: string; label: string }> = {
   cancelled: { cls: 'bg-gray-50 text-gray-400',     label: 'Cancelled' },
 };
 
-export default function BorrowingLogsTable({ borrowings }: BorrowingLogsTableProps) {
+export default function BorrowingLogsTable({ borrowings }: BorrowingLogsTableProps): JSX.Element {
   const totalCollected = borrowings
     .filter((b) => b.status === 'returned' || b.status === 'active')
     .reduce((sum, b) => sum + (b.total_price ?? 0), 0);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (): void => {
     const headers = ['Reference', 'Asset', 'Tag', 'Usage Type', 'Destination', 'Start', 'End', 'Returned', 'Duration (hrs)', 'Fee', 'Status', 'Purpose', 'Notes'];
     const rows = borrowings.map((b) => [
       b.borrowing_reference,
       b.asset?.name ?? '',
       b.item?.asset_tag ?? '',
-      (b as any).usage_type || b.location || '',
-      (b as any).destination_location || '',
+      b.usage_type !== undefined ? b.usage_type : b.location || '',
+      b.destination_location || '',
       format(new Date(b.start_time), 'yyyy-MM-dd HH:mm'),
       format(new Date(b.end_time), 'yyyy-MM-dd HH:mm'),
       b.actual_return_time ? format(new Date(b.actual_return_time), 'yyyy-MM-dd HH:mm') : '',
@@ -109,15 +107,15 @@ export default function BorrowingLogsTable({ borrowings }: BorrowingLogsTablePro
                     <td className="px-4 py-3 text-xs text-gray-500">{b.item?.asset_tag ?? '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
-                        {(b as any).destination_location && (
+                        {b.destination_location && (
                           <span className="text-xs font-medium text-gray-900">
-                            {(b as any).destination_location}
+                            {b.destination_location}
                           </span>
                         )}
                         <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full ${
-                          ((b as any).usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                          (b.usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                         }`}>
-                          {((b as any).usage_type || b.location) === 'inside' ? 'Inside' : 'Outside'}
+                          {(b.usage_type || b.location) === 'inside' ? 'Inside' : 'Outside'}
                         </span>
                       </div>
                     </td>

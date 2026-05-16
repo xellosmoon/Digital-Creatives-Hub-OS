@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 // Simple email service for now - in production, integrate with SendGrid, AWS SES, etc.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const sendEmail = async (to: string, subject: string, body: string) => {
   console.log('Sending email:', { to, subject });
   
@@ -20,6 +21,7 @@ const sendEmail = async (to: string, subject: string, body: string) => {
   return { success: true };
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const notifyAdminsOfNewBooking = async (bookingId: string) => {
   try {
     // Get admin emails
@@ -57,6 +59,7 @@ export const notifyAdminsOfNewBooking = async (bookingId: string) => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const notifyGuestOfBookingUpdate = async (bookingId: string, approved: boolean) => {
   try {
     const { data: booking } = await supabase

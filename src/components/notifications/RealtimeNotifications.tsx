@@ -13,7 +13,7 @@ interface Notification {
   read_at: string | null;
 }
 
-export default function RealtimeNotifications({ userEmail }: { userEmail: string }) {
+export default function RealtimeNotifications({ userEmail }: { userEmail: string }): JSX.Element {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,9 +38,10 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
     return () => {
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -58,7 +59,7 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notificationId: string): Promise<void> => {
     try {
       await supabase
         .from('notifications')
@@ -74,7 +75,7 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
     }
   };
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = async (): Promise<void> => {
     try {
       await supabase
         .from('notifications')

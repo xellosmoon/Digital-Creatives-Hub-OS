@@ -28,7 +28,7 @@ export const RecurringBookingForm: React.FC<RecurringBookingFormProps> = ({
     { value: 6, label: 'Sat' },
   ];
 
-  const handleRecurringChange = (checked: boolean) => {
+  const handleRecurringChange = (checked: boolean): void => {
     setIsRecurring(checked);
     if (!checked) {
       onRecurrenceChange(null);
@@ -37,7 +37,7 @@ export const RecurringBookingForm: React.FC<RecurringBookingFormProps> = ({
     }
   };
 
-  const updateRecurrence = () => {
+  const updateRecurrence = (): void => {
     if (!isRecurring) {
       onRecurrenceChange(null);
       return;
@@ -69,9 +69,10 @@ export const RecurringBookingForm: React.FC<RecurringBookingFormProps> = ({
     if (isRecurring) {
       updateRecurrence();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pattern, interval, endType, endDate, occurrences, selectedDays, dayOfMonth]);
 
-  const toggleDay = (day: number) => {
+  const toggleDay = (day: number): void => {
     setSelectedDays(prev =>
       prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
     );

@@ -1,18 +1,19 @@
 import { useState } from 'react';
+import { Booking } from '../types';
 import { Search, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import BookingCard from '../components/booking/BookingCard';
 import toast from 'react-hot-toast';
 
-export default function BookingLookup() {
+export default function BookingLookup(): JSX.Element {
   const [lookupMethod, setLookupMethod] = useState<'reference' | 'email'>('reference');
   const [reference, setReference] = useState('');
   const [email, setEmail] = useState('');
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<(Booking & { space?: { name: string; location?: string; hourly_rate: number } })[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
     setSearched(true);
@@ -73,7 +74,7 @@ export default function BookingLookup() {
                   className="form-radio text-primary-600"
                   value="reference"
                   checked={lookupMethod === 'reference'}
-                  onChange={(e) => setLookupMethod(e.target.value as any)}
+                  onChange={(e) => setLookupMethod(e.target.value as 'reference' | 'email')}
                 />
                 <span className="ml-2">Booking Reference</span>
               </label>
@@ -83,7 +84,7 @@ export default function BookingLookup() {
                   className="form-radio text-primary-600"
                   value="email"
                   checked={lookupMethod === 'email'}
-                  onChange={(e) => setLookupMethod(e.target.value as any)}
+                  onChange={(e) => setLookupMethod(e.target.value as 'reference' | 'email')}
                 />
                 <span className="ml-2">Email Address</span>
               </label>
@@ -168,7 +169,7 @@ export default function BookingLookup() {
                 <BookingCard
                   key={booking.id}
                   booking={booking}
-                  onUpdate={() => handleSearch({ preventDefault: () => {} } as any)}
+                  onUpdate={() => handleSearch({ preventDefault: () => {} } as React.FormEvent)}
                   isGuest={true}
                 />
               ))}

@@ -4,30 +4,54 @@ import { Link } from 'react-router-dom';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import BookingCard from '../components/booking/BookingCard';
 import toast from 'react-hot-toast';
+import type { Booking } from '../types';
 
-export default function Dashboard() {
-  const [bookings, setBookings] = useState<any[]>([]);
+interface User {
+  id: string;
+  email?: string;
+}
+
+export default function Dashboard(): JSX.Element {
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<{ full_name?: string; phone?: string; email?: string } | null>(null);
 
   useEffect(() => {
     loadUserAndBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  const loadUserAndBookings = async () => {
+  const loadUserAndBookings = async (): Promise<void> => {
     try {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         setUser(currentUser);
         await fetchBookings(currentUser.id);
+        await fetchProfile(currentUser.id);
       }
     } catch (error) {
       console.error('Error loading user:', error);
     }
   };
 
-  const fetchBookings = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<void> => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, phone, email, tier')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchBookings = async (userId: string): Promise<void> => {
     setLoading(true);
     try {
       // Get user's email
@@ -156,7 +180,7 @@ export default function Dashboard() {
                 <Filter className="h-4 w-4 text-gray-400" />
                 <select
                   value={filter}
-                  onChange={(e) => setFilter(e.target.value as any)}
+                  onChange={(e) => setFilter(e.target.value as 'upcoming' | 'past' | 'all')}
                   className="text-sm border-gray-300 rounded-md"
                 >
                   <option value="upcoming">Upcoming</option>
@@ -167,6 +191,13 @@ export default function Dashboard() {
             </div>
             <Link
               to="/bookings"
+              state={{
+                prefillProfile: profile ? {
+                  name: profile.full_name || '',
+                  email: profile.email || '',
+                  phone: profile.phone || ''
+                } : null
+              }}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -194,6 +225,13 @@ export default function Dashboard() {
               <div className="mt-6">
                 <Link
                   to="/bookings"
+                  state={{
+                    prefillProfile: profile ? {
+                      name: profile.full_name || '',
+                      email: profile.email || '',
+                      phone: profile.phone || ''
+                    } : null
+                  }}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -206,8 +244,8 @@ export default function Dashboard() {
               {bookings.map((booking) => (
                 <BookingCard
                   key={booking.id}
-                  booking={booking}
-                  onUpdate={() => fetchBookings(user?.id)}
+                  booking={booking as Booking & { space?: { name: string; location?: string; hourly_rate: number } }}
+                  onUpdate={() => user?.id && fetchBookings(user.id)}
                 />
               ))}
             </div>

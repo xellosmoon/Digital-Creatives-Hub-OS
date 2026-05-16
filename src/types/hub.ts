@@ -89,6 +89,8 @@ export interface HubBooking {
   booking_reference: string;
   created_at: string;
   updated_at: string;
+  admin_contacted: boolean;
+  admin_contacted_at: string | null;
   /** Joined */
   package?: RentalPackage;
 }
@@ -170,6 +172,7 @@ export const PCIDA_DOMAINS = [
   'Advertising',
   'Cultural & Heritage',
   'Performing Arts',
+  'Other',
 ] as const;
 
 export type PCIDADomain = (typeof PCIDA_DOMAINS)[number];

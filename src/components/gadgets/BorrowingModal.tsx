@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import { format } from 'date-fns';
 import { X, MapPin, AlertTriangle, Clock, DollarSign, Building2, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
@@ -32,7 +31,7 @@ export default function BorrowingModal({
   availableItems,
   onClose,
   onSuccess,
-}: BorrowingModalProps) {
+}: BorrowingModalProps): JSX.Element {
   const canChooseLocation = asset.location_mode === 'both';
   const defaultLocation: BorrowLocation =
     asset.location_mode === 'inside_only' ? 'inside' : 'outside';
@@ -90,9 +89,10 @@ export default function BorrowingModal({
       const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
       setEndTime(local.toISOString().slice(0, 16));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startTime]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!startTime || !endTime) {
       toast.error('Please select start and end times.');
       return;
@@ -143,8 +143,9 @@ export default function BorrowingModal({
 
       toast.success('Borrowing request submitted!');
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit borrowing request.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit borrowing request.';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

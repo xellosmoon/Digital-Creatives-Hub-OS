@@ -4,14 +4,16 @@ import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Calendar, Clock,
   User, Mail, Phone, FileText, Users, Info,
-  AlertTriangle, Package, Star, Tag, Laptop,
+  Package, Star, Laptop, X,
   Coffee, Palette, Film, Camera, CheckCircle, AlertCircle,
-  Zap, Shield, Monitor, Sparkles, BookOpen,
+  Zap, Shield, Monitor, Sparkles, BookOpen, Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { calculatePackagePrice, formatPeso } from '../lib/hubPricingEngine';
+import { calculateTotalRate, formatPeso as formatPesoGadgets } from '../lib/pricingEngine';
 import type { RentalPackage, HubPriceEstimate, PackageRequiredAsset } from '../types/hub';
+import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 import { BUNDLE_SLUGS } from '../types/hub';
 
 // ── Time slot definitions ──────────────────────────────────────────
@@ -42,11 +44,12 @@ const PKG_GRAD: Record<string, string> = {
 };
 
 // ── Step metadata ──────────────────────────────────────────────────
-type Step = 'package' | 'datetime' | 'details' | 'confirm';
+type Step = 'package' | 'datetime' | 'details' | 'equipment' | 'confirm';
 const STEP_META: { key: Step; label: string }[] = [
   { key: 'package', label: 'Package' },
   { key: 'datetime', label: 'Date & Time' },
   { key: 'details', label: 'Your Info' },
+  { key: 'equipment', label: 'Equipment' },
   { key: 'confirm', label: 'Confirm' },
 ];
 
@@ -57,9 +60,9 @@ interface PkgExtra extends RentalPackage {
 }
 
 // ════════════════════════════════════════════════════════════════════
-export default function Bookings() {
+export default function Bookings(): JSX.Element {
   const location = useLocation();
-  const preselected = (location.state as any) ?? {};
+  const preselected = (location.state as { preselectedPackage?: string; preselectedDate?: string; preselectedTime?: string; prefillProfile?: { name: string; email: string; phone: string } }) ?? {};
 
   // ── State ─────────────────────────────────────────────────────────
   const [step, setStep] = useState<Step>('package');
@@ -69,6 +72,11 @@ export default function Bookings() {
   const [pkg, setPkg] = useState<PkgExtra | null>(null);
   const [availSeats, setAvailSeats] = useState<number | null>(null);
   const [estimate, setEstimate] = useState<HubPriceEstimate | null>(null);
+  const [assets, setAssets] = useState<AssetAvailability[]>([]);
+  const [allPricing, setAllPricing] = useState<PricingTier[]>([]);
+  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<Asset[]>([]);
+  const [equipmentTotal, setEquipmentTotal] = useState(0);
 
   const [form, setForm] = useState({
     date: preselected.preselectedDate
@@ -76,9 +84,9 @@ export default function Bookings() {
       : format(new Date(), 'yyyy-MM-dd'),
     start: preselected.preselectedTime || '09:00',
     end: '17:00',
-    name: '',
-    email: '',
-    phone: '',
+    name: preselected.prefillProfile?.name || '',
+    email: preselected.prefillProfile?.email || '',
+    phone: preselected.prefillProfile?.phone || '',
     purpose: '',
   });
 
@@ -122,6 +130,47 @@ export default function Bookings() {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Fetch equipment ────────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const [assetsRes, itemsRes, pricingRes] = await Promise.all([
+          supabase.from('assets').select('*').eq('is_active', true).order('name'),
+          supabase.from('items').select('*'),
+          supabase.from('pricing_config').select('*'),
+        ]);
+
+        if (assetsRes.error) throw assetsRes.error;
+        if (itemsRes.error) throw itemsRes.error;
+        if (pricingRes.error) throw pricingRes.error;
+
+        const assetList = (assetsRes.data ?? []) as Asset[];
+        const itemList = (itemsRes.data ?? []) as Item[];
+        const pricingList = (pricingRes.data ?? []) as PricingTier[];
+
+        setAllItems(itemList);
+        setAllPricing(pricingList);
+
+        const avail: AssetAvailability[] = assetList.map((asset) => {
+          const items = itemList.filter((i) => i.asset_id === asset.id);
+          return {
+            asset,
+            totalItems: items.length,
+            availableItems: items.filter((i) => i.status === 'available').length,
+            borrowedItems: items.filter((i) => i.status === 'borrowed').length,
+            maintenanceItems: items.filter((i) => i.status === 'maintenance').length,
+            brokenItems: items.filter((i) => i.status === 'broken').length,
+          };
+        });
+
+        setAssets(avail.filter((a) => a.availableItems > 0));
+      } catch (err) {
+        console.error('Failed to load equipment', err);
+      }
+    })();
   }, []);
 
   // ── Fetch available seats when date changes ───────────────────────
@@ -139,22 +188,36 @@ export default function Bookings() {
     const s = `${form.date}T${form.start}:00`;
     const e = `${form.date}T${form.end}:00`;
     setEstimate(calculatePackagePrice(pkg, s, e));
-  }, [pkg, form.date, form.start, form.end]);
+
+    // Calculate equipment total
+    let equipmentTotal = 0;
+    selectedEquipment.forEach((asset) => {
+      const assetPricing = allPricing.filter((p) => p.asset_id === asset.id);
+      if (assetPricing.length > 0) {
+        const priceEstimate = calculateTotalRate(assetPricing, asset, 'inside', s, e);
+        if (priceEstimate) {
+          equipmentTotal += priceEstimate.totalPrice;
+        }
+      }
+    });
+    setEquipmentTotal(equipmentTotal);
+  }, [pkg, form.date, form.start, form.end, selectedEquipment, allPricing]);
 
   // ── Helpers ───────────────────────────────────────────────────────
-  const update = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
+  const update = (patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch }));
 
   const canProceed = (): boolean => {
     switch (step) {
       case 'package': return !!pkg;
       case 'datetime': return !!form.date && !!form.start && !!form.end;
       case 'details': return !!form.name.trim() && !!form.email.trim();
+      case 'equipment': return true;
       default: return true;
     }
   };
 
-  const next = () => { if (stepIdx < STEP_META.length - 1) setStep(STEP_META[stepIdx + 1].key); };
-  const prev = () => { if (stepIdx > 0) setStep(STEP_META[stepIdx - 1].key); };
+  const next = (): void => { if (stepIdx < STEP_META.length - 1) setStep(STEP_META[stepIdx + 1].key); };
+  const prev = (): void => { if (stepIdx > 0) setStep(STEP_META[stepIdx - 1].key); };
 
   const disabledReason = (p: PkgExtra): string | null => {
     if (p.requires_student_flag) return 'Requires verified student status';
@@ -162,7 +225,17 @@ export default function Bookings() {
     return null;
   };
 
-  const handleSubmit = async () => {
+  const handleAddEquipment = (asset: Asset): void => {
+    if (!selectedEquipment.find((e) => e.id === asset.id)) {
+      setSelectedEquipment([...selectedEquipment, asset]);
+    }
+  };
+
+  const handleRemoveEquipment = (assetId: string): void => {
+    setSelectedEquipment(selectedEquipment.filter((e) => e.id !== assetId));
+  };
+
+  const handleSubmit = async (): Promise<void> => {
     if (!pkg || !estimate) return;
     if (availSeats !== null && availSeats <= 0) {
       toast.error('Fully Booked for this date. Your request will be queued for admin review.');
@@ -176,7 +249,8 @@ export default function Bookings() {
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id ?? null;
 
-      const { error } = await supabase.from('hub_bookings').insert({
+      // Create hub booking
+      const { data: booking, error: bookingError } = await supabase.from('hub_bookings').insert({
         user_id: userId,
         package_id: pkg.id,
         guest_name: form.name,
@@ -186,19 +260,53 @@ export default function Bookings() {
         start_time: startISO,
         end_time: endISO,
         seats_used: pkg.seats_consumed,
-        total_price: estimate.totalPrice,
+        total_price: estimate.totalPrice + equipmentTotal,
         status: 'pending',
         purpose: form.purpose || null,
         notes: null,
-      });
-      if (error) throw error;
+      }).select().single();
+
+      if (bookingError) throw bookingError;
+
+      // Create borrowings for selected equipment
+      if (selectedEquipment.length > 0 && booking) {
+        for (const asset of selectedEquipment) {
+          const assetPricing = allPricing.filter((p) => p.asset_id === asset.id);
+          const priceEstimate = calculateTotalRate(assetPricing, asset, 'inside', startISO, endISO);
+          
+          // Find available item for this asset
+          const availableItem = allItems.find(
+            (i) => i.asset_id === asset.id && i.status === 'available'
+          );
+
+          if (availableItem && priceEstimate) {
+            await supabase.from('borrowings').insert({
+              user_id: userId,
+              item_id: availableItem.id,
+              asset_id: asset.id,
+              booking_id: booking.id,
+              location: 'inside',
+              start_time: startISO,
+              end_time: endISO,
+              duration_hours: priceEstimate.durationHours,
+              matched_tier_hours: priceEstimate.matchedTier.duration_hours,
+              total_price: priceEstimate.totalPrice,
+              status: 'pending',
+              purpose: form.purpose || null,
+            });
+          }
+        }
+      }
 
       toast.success('Booking submitted! We\u2019ll notify you once approved.');
       setPkg(null);
+      setSelectedEquipment([]);
+      setEquipmentTotal(0);
       setStep('package');
       setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purpose: '' });
-    } catch (err: any) {
-      toast.error(err.message || 'Booking failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Booking failed';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -581,6 +689,61 @@ export default function Bookings() {
                 </div>
               )}
 
+              {/* ═══ STEP: EQUIPMENT ═══ */}
+              {step === 'equipment' && !isBundle && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Add Equipment</h2>
+                  <p className="text-sm text-gray-500 mb-6">Optional: Add equipment to your booking</p>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                        <Package className="h-4 w-4 text-[#0C2340]" /> Select Equipment
+                      </label>
+                      <select
+                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
+                        onChange={(e) => {
+                          const asset = assets.find((a) => a.asset.id === e.target.value);
+                          if (asset) handleAddEquipment(asset.asset);
+                        }}
+                        value=""
+                      >
+                        <option value="">Select equipment to add...</option>
+                        {assets.map((avail) => (
+                          <option key={avail.asset.id} value={avail.asset.id}>
+                            {avail.asset.name} ({avail.availableItems} available)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedEquipment.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Selected Equipment:</p>
+                        {selectedEquipment.map((asset) => (
+                          <div key={asset.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{asset.name}</p>
+                              <p className="text-xs text-gray-500">Inside Hub usage</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveEquipment(asset.id)}
+                              className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="text-right text-sm font-medium text-gray-700">
+                          Equipment Total: {formatPesoGadgets(equipmentTotal)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ═══ STEP: CONFIRM ═══ */}
               {step === 'confirm' && pkg && estimate && (
                 <div>
@@ -623,6 +786,28 @@ export default function Bookings() {
                       <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.email}</span></div>
                       {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.phone}</span></div>}
                       {form.purpose && <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-500 italic">{form.purpose}</span></div>}
+
+                    {/* Equipment summary */}
+                    {selectedEquipment.length > 0 && (
+                      <div className="rounded-2xl bg-gray-50/80 p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Package className="h-4 w-4 text-[#0C2340]" />
+                          <p className="font-semibold text-gray-900 text-sm">Equipment Reserved</p>
+                        </div>
+                        <div className="space-y-2">
+                          {selectedEquipment.map((asset) => (
+                            <div key={asset.id} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-700">{asset.name}</span>
+                              <span className="text-gray-500">Inside Hub</span>
+                            </div>
+                          ))}
+                          <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-medium">
+                            <span className="text-gray-700">Equipment Total</span>
+                            <span className="text-[#0C2340]">{formatPesoGadgets(equipmentTotal)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     </div>
 
                     {/* Disclaimer */}
@@ -699,6 +884,22 @@ export default function Bookings() {
                     </div>
 
                     {/* Line items */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Package Price</span>
+                        <span className="font-semibold text-gray-900">{formatPeso(estimate?.totalPrice ?? 0)}</span>
+                      </div>
+                      {equipmentTotal > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Equipment</span>
+                          <span className="font-semibold text-gray-900">{formatPesoGadgets(equipmentTotal)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-gray-100 pt-3 flex justify-between">
+                        <span className="font-bold text-gray-900">Total</span>
+                        <span className="font-extrabold text-[#0C2340] text-lg">{formatPeso((estimate?.totalPrice ?? 0) + equipmentTotal)}</span>
+                      </div>
+                    </div>
                     <div className="border-t border-dashed border-gray-200 pt-3 space-y-2 text-sm">
                       <div className="flex justify-between text-gray-500">
                         <span>Date</span>

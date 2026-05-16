@@ -14,8 +14,23 @@ import {
 } from 'lucide-react';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import { formatPeso } from '../lib/pricingEngine';
-import type { Borrowing, BorrowingStatus } from '../types/gadgets';
+import type { BorrowingStatus } from '../types/gadgets';
 import toast from 'react-hot-toast';
+
+interface BorrowingWithAsset {
+  id: string;
+  asset?: { name: string; slug: string; category: string };
+  item?: { asset_tag: string | null };
+  destination_location?: string | null;
+  usage_type?: string | null;
+  location?: string | null;
+  status: BorrowingStatus;
+  borrowing_reference: string;
+  end_time: string;
+  start_time?: string;
+  total_price?: number | null;
+  purpose?: string | null;
+}
 
 const STATUS_CONFIG: Record<BorrowingStatus, { icon: React.ElementType; cls: string; label: string }> = {
   pending: { icon: Clock, cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', label: 'Pending Approval' },
@@ -26,8 +41,8 @@ const STATUS_CONFIG: Record<BorrowingStatus, { icon: React.ElementType; cls: str
   cancelled: { icon: XCircle, cls: 'bg-gray-50 text-gray-400 border-gray-200', label: 'Cancelled' },
 };
 
-export default function MyBorrows() {
-  const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
+export default function MyBorrows(): JSX.Element {
+  const [borrowings, setBorrowings] = useState<BorrowingWithAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'past' | 'all'>('active');
 
@@ -51,8 +66,8 @@ export default function MyBorrows() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setBorrowings((data ?? []) as Borrowing[]);
-    } catch (err: any) {
+      setBorrowings((data ?? []) as BorrowingWithAsset[]);
+    } catch (err: unknown) {
       console.error(err);
       toast.error('Failed to load borrowings');
     } finally {
@@ -64,14 +79,15 @@ export default function MyBorrows() {
     fetchBorrowings();
   }, [fetchBorrowings]);
 
-  const handleCancel = async (id: string) => {
+  const handleCancel = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase.from('borrowings').update({ status: 'cancelled' }).eq('id', id);
       if (error) throw error;
       toast.success('Borrowing cancelled');
       fetchBorrowings();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to cancel';
+      toast.error(errorMessage);
     }
   };
 
@@ -162,8 +178,8 @@ export default function MyBorrows() {
               b.status === 'active' && isPast(new Date(b.end_time)) ? 'overdue' : b.status;
             const cfg = STATUS_CONFIG[displayStatus];
             const StatusIcon = cfg.icon;
-            const assetName = (b.asset as any)?.name ?? 'Unknown';
-            const tag = (b.item as any)?.asset_tag ?? '';
+            const assetName = b.asset?.name ?? 'Unknown';
+            const tag = b.item?.asset_tag ?? '';
 
             return (
               <div
@@ -183,24 +199,24 @@ export default function MyBorrows() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                       <span className="font-mono text-xs">{b.borrowing_reference}</span>
                       {tag && <span className="text-xs">Tag: {tag}</span>}
-                      {(b as any).destination_location && (
+                      {b.destination_location && (
                         <span className="text-xs font-medium text-gray-700">
-                          {(b as any).destination_location}
+                          {b.destination_location}
                         </span>
                       )}
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${((b as any).usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${(b.usage_type || b.location) === 'inside' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                         }`}>
                         <MapPin className="h-3 w-3" />
-                        {((b as any).usage_type || b.location) === 'inside' ? 'Inside DCIH' : 'Outside'}
+                        {(b.usage_type || b.location) === 'inside' ? 'Inside DCIH' : 'Outside'}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-gray-600">
                       <span>
                         <Clock className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-                        {format(new Date(b.start_time), 'MMM d, h:mm a')} → {format(new Date(b.end_time), 'MMM d, h:mm a')}
+                        {b.start_time ? format(new Date(b.start_time), 'MMM d, h:mm a') : 'N/A'} → {format(new Date(b.end_time), 'MMM d, h:mm a')}
                       </span>
-                      <span className="font-semibold text-gray-900">{formatPeso(b.total_price)}</span>
+                      <span className="font-semibold text-gray-900">{formatPeso(b.total_price ?? 0)}</span>
                     </div>
 
                     {b.purpose && (

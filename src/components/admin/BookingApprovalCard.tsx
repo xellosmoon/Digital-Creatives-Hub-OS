@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users } from 'lucide-react';
+import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -20,6 +20,8 @@ interface HubBookingRow {
   notes: string | null;
   is_workshop: boolean;
   created_at: string;
+  admin_contacted: boolean;
+  admin_contacted_at: string | null;
   package?: {
     id: string;
     slug: string;
@@ -37,12 +39,12 @@ interface BookingApprovalCardProps {
   onUpdate: () => void;
 }
 
-export default function BookingApprovalCard({ booking, onUpdate }: BookingApprovalCardProps) {
+export default function BookingApprovalCard({ booking, onUpdate }: BookingApprovalCardProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
 
-  const formatDate = (dateString: string | null | undefined, formatStr: string) => {
+  const formatDate = (dateString: string | null | undefined, formatStr: string): string => {
     if (!dateString) return 'No date';
     try {
       const date = new Date(dateString);
@@ -53,7 +55,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  const handleApproval = async (approved: boolean) => {
+  const handleApproval = async (approved: boolean): Promise<void> => {
     setLoading(true);
     try {
       const { error } = await supabase
@@ -67,14 +69,15 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       if (error) throw error;
       toast.success(`Booking ${approved ? 'approved' : 'rejected'} successfully`);
       onUpdate();
-    } catch (error: any) {
-      toast.error(error.message || 'Error updating booking');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error updating booking';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOverrideApprove = async () => {
+  const handleOverrideApprove = async (): Promise<void> => {
     setLoading(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -93,14 +96,38 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       toast.success('Booking approved with admin override!');
       setShowOverride(false);
       onUpdate();
-    } catch (error: any) {
-      toast.error(error.message || 'Override failed');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Override failed';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const statusColor = (s: string) => {
+  const handleToggleContacted = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('hub_bookings')
+        .update({
+          admin_contacted: !booking.admin_contacted,
+          admin_contacted_at: !booking.admin_contacted ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', booking.id);
+
+      if (error) throw error;
+      toast.success(booking.admin_contacted ? 'Marked as not contacted' : 'Marked as contacted');
+      onUpdate();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error updating contact status';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusColor = (s: string): string => {
     switch (s) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'approved': case 'active': return 'bg-green-100 text-green-800';
@@ -124,6 +151,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             {booking.is_workshop && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
                 Workshop
+              </span>
+            )}
+            {booking.admin_contacted && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                <PhoneCall className="h-3 w-3 mr-1" />
+                Contacted
               </span>
             )}
           </div>
@@ -215,6 +248,18 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             </button>
           </div>
           <button
+            onClick={handleToggleContacted}
+            disabled={loading}
+            className={`w-full inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md transition-colors ${
+              booking.admin_contacted
+                ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                : 'border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
+            }`}
+          >
+            <PhoneCall className="h-4 w-4 mr-2" />
+            {booking.admin_contacted ? 'Mark as Not Contacted' : 'Mark as Contacted'}
+          </button>
+          <button
             onClick={() => setShowOverride(!showOverride)}
             className="w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-orange-300 text-sm font-semibold rounded-md text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors"
           >
@@ -238,6 +283,24 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Actions for non-pending bookings */}
+      {booking.status !== 'pending' && (
+        <div className="space-y-3 mt-4">
+          <button
+            onClick={handleToggleContacted}
+            disabled={loading}
+            className={`w-full inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md transition-colors ${
+              booking.admin_contacted
+                ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                : 'border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
+            }`}
+          >
+            <PhoneCall className="h-4 w-4 mr-2" />
+            {booking.admin_contacted ? 'Mark as Not Contacted' : 'Mark as Contacted'}
+          </button>
         </div>
       )}
 

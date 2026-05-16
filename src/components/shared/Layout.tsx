@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
 
@@ -11,7 +11,7 @@ interface LayoutProps {
   session: Session | null;
 }
 
-export default function Layout({ children, session }: LayoutProps) {
+export default function Layout({ children, session }: LayoutProps): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -21,11 +21,12 @@ export default function Layout({ children, session }: LayoutProps) {
 
   useEffect(() => {
     checkAdminStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent): void => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setUserDropdownOpen(false);
       }
@@ -40,7 +41,7 @@ export default function Layout({ children, session }: LayoutProps) {
     setUserDropdownOpen(false);
   }, [location.pathname]);
 
-  const checkAdminStatus = async () => {
+  const checkAdminStatus = async (): Promise<void> => {
     if (!session?.user) {
       setIsAdmin(false);
       return;
@@ -59,7 +60,7 @@ export default function Layout({ children, session }: LayoutProps) {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     setUserDropdownOpen(false);
     setMobileMenuOpen(false);
     const { error } = await supabase.auth.signOut();
@@ -71,22 +72,22 @@ export default function Layout({ children, session }: LayoutProps) {
     }
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string): boolean => location.pathname === path;
 
-  const navLinkClass = (path: string) =>
+  const navLinkClass = (path: string): string =>
     `inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors ${isActive(path)
       ? 'text-primary-600 border-b-2 border-primary-500'
       : 'text-gray-600 hover:text-primary-600'
     }`;
 
-  const mobileNavLinkClass = (path: string) =>
+  const mobileNavLinkClass = (path: string): string =>
     `flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(path)
       ? 'bg-primary-50 text-primary-700'
       : 'text-gray-700 hover:bg-gray-100'
     }`;
 
   // Get user initials for avatar
-  const getUserInitials = () => {
+  const getUserInitials = (): string => {
     const email = session?.user?.email || '';
     return email.charAt(0).toUpperCase();
   };
@@ -119,6 +120,10 @@ export default function Layout({ children, session }: LayoutProps) {
                   <Calendar className="w-4 h-4 mr-1.5" />
                   Calendar
                 </Link>
+                <Link to="/propose-event" className={navLinkClass('/propose-event')}>
+                  <PartyPopper className="w-4 h-4 mr-1.5" />
+                  Propose Event
+                </Link>
                 <Link to="/gadgets" className={navLinkClass('/gadgets')}>
                   <Package className="w-4 h-4 mr-1.5" />
                   Gadgets
@@ -128,19 +133,6 @@ export default function Layout({ children, session }: LayoutProps) {
                     <Search className="w-4 h-4 mr-1.5" />
                     Find Booking
                   </Link>
-                )}
-                {session && (
-                  <>
-                    <Link to="/dashboard" className={navLinkClass('/dashboard')}>
-                      <User className="w-4 h-4 mr-1.5" />
-                      Dashboard
-                    </Link>
-                    <Link to="/my-borrows" className={navLinkClass('/my-borrows')}>
-                      <ClipboardList className="w-4 h-4 mr-1.5" />
-                      Borrows
-                    </Link>
-                    {/* Admin links moved to user dropdown */}
-                  </>
                 )}
               </div>
             </div>
@@ -209,18 +201,26 @@ export default function Layout({ children, session }: LayoutProps) {
                         <div className="py-1">
                           <Link
                             to="/dashboard"
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <User className="w-4 h-4 mr-3 text-gray-400" />
-                            My Dashboard
+                            <User className="w-4 h-4 text-gray-400" />
+                            User Dashboard
+                          </Link>
+                          <Link
+                            to="/my-borrows"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                            onClick={() => setUserDropdownOpen(false)}
+                          >
+                            <ClipboardList className="w-4 h-4 text-gray-400" />
+                            My Borrows
                           </Link>
                           <Link
                             to="/settings"
-                            className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <Settings className="w-4 h-4 mr-3 text-gray-400" />
+                            <Settings className="w-4 h-4 text-gray-400" />
                             Settings
                           </Link>
                           {isAdmin && (
@@ -230,26 +230,26 @@ export default function Layout({ children, session }: LayoutProps) {
                               </div>
                               <Link
                                 to="/admin"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Shield className="w-4 h-4 mr-3 text-violet-400" />
+                                <Shield className="w-4 h-4 text-violet-400" />
                                 Admin Dashboard
                               </Link>
                               <Link
                                 to="/admin/gadgets"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Package className="w-4 h-4 mr-3 text-gray-400" />
+                                <Package className="w-4 h-4 text-gray-400" />
                                 Gadget Mgmt
                               </Link>
                               <Link
                                 to="/admin/seats"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Armchair className="w-4 h-4 mr-3 text-gray-400" />
+                                <Armchair className="w-4 h-4 text-gray-400" />
                                 Seat Mgmt
                               </Link>
                             </>
@@ -322,6 +322,10 @@ export default function Layout({ children, session }: LayoutProps) {
                 <Calendar className="w-4 h-4 mr-3" />
                 Calendar
               </Link>
+              <Link to="/propose-event" className={mobileNavLinkClass('/propose-event')}>
+                <PartyPopper className="w-4 h-4 mr-3" />
+                Propose Event
+              </Link>
               <Link to="/gadgets" className={mobileNavLinkClass('/gadgets')}>
                 <Package className="w-4 h-4 mr-3" />
                 Gadgets
@@ -332,70 +336,39 @@ export default function Layout({ children, session }: LayoutProps) {
                   Find Booking
                 </Link>
               )}
-              {session && (
-                <>
-                  <Link to="/dashboard" className={mobileNavLinkClass('/dashboard')}>
-                    <User className="w-4 h-4 mr-3" />
-                    Dashboard
-                  </Link>
-                  <Link to="/my-borrows" className={mobileNavLinkClass('/my-borrows')}>
-                    <ClipboardList className="w-4 h-4 mr-3" />
-                    My Borrows
-                  </Link>
-                  {isAdmin && (
-                    <div className="pt-2 pb-1 border-t border-gray-100 mt-2">
-                      <span className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Administration
-                      </span>
-                      <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className={mobileNavLinkClass('/admin')}>
-                        <Shield className="w-4 h-4 mr-3" />
-                        Admin Dashboard
-                      </Link>
-                      <Link to="/admin/gadgets" onClick={() => setMobileMenuOpen(false)} className={mobileNavLinkClass('/admin/gadgets')}>
-                        <Package className="w-4 h-4 mr-3" />
-                        Gadget Management
-                      </Link>
-                      <Link to="/admin/seats" onClick={() => setMobileMenuOpen(false)} className={mobileNavLinkClass('/admin/seats')}>
-                        <Armchair className="w-4 h-4 mr-3" />
-                        Seat Management
-                      </Link>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Mobile auth buttons */}
-              {!session && (
-                <div className="pt-3 border-t border-gray-100 space-y-2">
-                  <Link
-                    to="/login"
-                    className="flex items-center justify-center w-full px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="flex items-center justify-center w-full px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
-              )}
-
-              {/* Mobile logout */}
-              {session && (
-                <div className="pt-3 border-t border-gray-100">
-                  <button
-                    id="mobile-logout-button"
-                    onClick={handleLogout}
-                    className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Sign Out
-                  </button>
-                </div>
-              )}
             </div>
+
+            {/* Mobile auth buttons */}
+            {!session && (
+              <div className="px-4 pt-3 border-t border-gray-100 space-y-2">
+                <Link
+                  to="/login"
+                  className="flex items-center justify-center w-full px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center justify-center w-full px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+
+            {/* Mobile logout */}
+            {session && (
+              <div className="px-4 pt-3 border-t border-gray-100">
+                <button
+                  id="mobile-logout-button"
+                  onClick={handleLogout}
+                  className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-3" />
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         )}
       </nav>

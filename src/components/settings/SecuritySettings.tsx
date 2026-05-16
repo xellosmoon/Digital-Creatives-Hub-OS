@@ -3,14 +3,14 @@ import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { Shield, Lock, Loader2, Save } from 'lucide-react';
 
-export default function SecuritySettings() {
+export default function SecuritySettings(): JSX.Element {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     if (formData.password.length < 6) {
@@ -34,9 +34,10 @@ export default function SecuritySettings() {
 
       toast.success('Password updated successfully');
       setFormData({ password: '', confirmPassword: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating password:', error);
-      toast.error(error.message || 'Error updating password');
+      const errorMessage = error instanceof Error ? error.message : 'Error updating password';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

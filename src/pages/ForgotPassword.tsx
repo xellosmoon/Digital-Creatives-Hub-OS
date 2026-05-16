@@ -4,12 +4,12 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 
-export default function ForgotPassword() {
+export default function ForgotPassword(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
 
@@ -22,9 +22,10 @@ export default function ForgotPassword() {
 
       setSubmitted(true);
       toast.success('Password reset instructions sent to your email');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resetting password:', error);
-      toast.error(error.message || 'Error sending reset email');
+      const errorMessage = error instanceof Error ? error.message : 'Error sending reset email';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

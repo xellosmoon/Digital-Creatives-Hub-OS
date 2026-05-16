@@ -15,7 +15,7 @@ const ALL_CATEGORIES: AssetCategory[] = [
   'action_camera', 'camera', 'smartphone', 'drone', 'webcam',
 ];
 
-export default function GadgetGrid({ assets, loading, onBorrow }: InventoryGridProps) {
+export default function GadgetGrid({ assets, loading, onBorrow }: InventoryGridProps): JSX.Element {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<AssetCategory | 'all'>('all');
 

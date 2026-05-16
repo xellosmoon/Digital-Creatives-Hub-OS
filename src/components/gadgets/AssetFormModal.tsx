@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Package, Image, MapPin, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
-import type { Asset, AssetCategory, LocationMode, PricingTier } from '../../types/gadgets';
+import type { Asset, AssetCategory, LocationMode } from '../../types/gadgets';
 import { CATEGORY_LABELS } from '../../types/gadgets';
 
 interface AssetFormModalProps {
@@ -26,7 +26,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
-export default function AssetFormModal({ asset, onClose, onSuccess }: AssetFormModalProps) {
+export default function AssetFormModal({ asset, onClose, onSuccess }: AssetFormModalProps): JSX.Element {
   const isEdit = !!asset;
 
   const [name, setName] = useState(asset?.name ?? '');
@@ -46,7 +46,7 @@ export default function AssetFormModal({ asset, onClose, onSuccess }: AssetFormM
     }
   }, [name, isEdit]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!name.trim()) {
       toast.error('Name is required.');
       return;
@@ -83,8 +83,9 @@ export default function AssetFormModal({ asset, onClose, onSuccess }: AssetFormM
       }
 
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Save failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Save failed';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

@@ -7,7 +7,7 @@ interface ProfileSettingsProps {
   userId: string;
 }
 
-export default function ProfileSettings({ userId }: ProfileSettingsProps) {
+export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,9 +17,10 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps) {
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -35,15 +36,16 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps) {
           phone: data.phone || '',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load profile';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
 
@@ -60,9 +62,10 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps) {
       if (error) throw error;
 
       toast.success('Profile updated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || 'Error updating profile');
+      const errorMessage = error instanceof Error ? error.message : 'Error updating profile';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

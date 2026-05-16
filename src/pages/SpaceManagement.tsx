@@ -19,7 +19,7 @@ interface Space {
   created_at: string;
 }
 
-export default function SpaceManagement() {
+export default function SpaceManagement(): JSX.Element {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -30,7 +30,7 @@ export default function SpaceManagement() {
     fetchSpaces();
   }, []);
 
-  const fetchSpaces = async () => {
+  const fetchSpaces = async (): Promise<void> => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -48,7 +48,7 @@ export default function SpaceManagement() {
     }
   };
 
-  const toggleSpaceStatus = async (space: Space) => {
+  const toggleSpaceStatus = async (space: Space): Promise<void> => {
     try {
       const { error } = await supabase
         .from('spaces')
@@ -65,7 +65,7 @@ export default function SpaceManagement() {
     }
   };
 
-  const deleteSpace = async (spaceId: string) => {
+  const deleteSpace = async (spaceId: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this space? This action cannot be undone.')) {
       return;
     }

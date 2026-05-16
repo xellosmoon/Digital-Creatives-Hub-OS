@@ -5,7 +5,7 @@ import GadgetGrid from '../components/gadgets/GadgetGrid';
 import BorrowingModal from '../components/gadgets/BorrowingModal';
 import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 
-export default function Gadgets() {
+export default function Gadgets(): JSX.Element {
   const [assets, setAssets] = useState<AssetAvailability[]>([]);
   const [allPricing, setAllPricing] = useState<PricingTier[]>([]);
   const [allItems, setAllItems] = useState<Item[]>([]);
@@ -59,13 +59,13 @@ export default function Gadgets() {
     fetchData();
   }, [fetchData]);
 
-  const handleBorrow = (assetId: string) => {
+  const handleBorrow = (assetId: string): void => {
     const a = assets.find((x) => x.asset.id === assetId);
     if (a) setSelectedAsset(a.asset);
   };
 
-  const handleModalClose = () => setSelectedAsset(null);
-  const handleBorrowSuccess = () => {
+  const handleModalClose = (): void => setSelectedAsset(null);
+  const handleBorrowSuccess = (): void => {
     setSelectedAsset(null);
     fetchData();
   };
@@ -152,7 +152,7 @@ function SummaryCard({
   label: string;
   value: number;
   color: string;
-}) {
+}): JSX.Element {
   return (
     <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>

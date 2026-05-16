@@ -23,7 +23,7 @@ interface BookingCardProps {
   isGuest?: boolean;
 }
 
-export default function BookingCard({ booking, onUpdate, isGuest = false }: BookingCardProps) {
+export default function BookingCard({ booking, onUpdate, isGuest = false }: BookingCardProps): JSX.Element {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -31,7 +31,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
   // Handle both 'space' and 'spaces' property names
   const spaceData = booking.space || booking.spaces || { name: 'Unknown Space', location: '', hourly_rate: 0 };
 
-  const getStatusIcon = () => {
+  const getStatusIcon = (): JSX.Element => {
     switch (booking.status) {
       case 'approved':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -44,7 +44,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
     }
   };
 
-  const getStatusText = () => {
+  const getStatusText = (): string => {
     switch (booking.status) {
       case 'approved':
         return 'Approved';
@@ -57,7 +57,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
     }
   };
 
-  const canCancel = () => {
+  const canCancel = (): boolean => {
     if (booking.status !== 'approved') return false;
     const now = new Date();
     const bookingStart = new Date(booking.start_time);
@@ -65,7 +65,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
     return hoursUntilBooking > 24; // 24 hour cancellation policy
   };
 
-  const handleCancel = async () => {
+  const handleCancel = async (): Promise<void> => {
     setCancelling(true);
     try {
       const { error } = await supabase
@@ -81,14 +81,15 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
       toast.success('Booking cancelled successfully');
       setShowCancelModal(false);
       onUpdate();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to cancel booking');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel booking';
+      toast.error(errorMessage);
     } finally {
       setCancelling(false);
     }
   };
 
-  const totalCost = () => {
+  const totalCost = (): number => {
     const hours = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
     return hours * spaceData.hourly_rate;
   };

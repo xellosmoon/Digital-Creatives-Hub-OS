@@ -30,7 +30,7 @@ interface DaySummary {
   workshopBookings: CalendarHubBooking[];
 }
 
-export default function PublicCalendar() {
+export default function PublicCalendar(): JSX.Element {
   // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
@@ -59,9 +59,10 @@ export default function PublicCalendar() {
       .subscribe();
 
     return () => { sub.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
-  const fetchHubData = async () => {
+  const fetchHubData = async (): Promise<void> => {
     setBookingsLoading(true);
     try {
       const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -107,13 +108,13 @@ export default function PublicCalendar() {
   };
 
   // ── Day-level helpers ────────────────────────────────────────────
-  const getDaysInMonth = () => {
+  const getDaysInMonth = (): Date[] => {
     const start = startOfWeek(startOfMonth(currentDate));
     const end = endOfWeek(endOfMonth(currentDate));
     return eachDayOfInterval({ start, end });
   };
 
-  const getEventsForDay = (date: Date) =>
+  const getEventsForDay = (date: Date): CalendarEvent[] =>
     events.filter(ev => isSameDay(new Date(ev.start_time), date));
 
   /** Build an aggregated summary for a single day. */
@@ -143,20 +144,20 @@ export default function PublicCalendar() {
   };
 
   // ── Month navigation ─────────────────────────────────────────────
-  const navigateMonth = (direction: 'prev' | 'next') => {
+  const navigateMonth = (direction: 'prev' | 'next'): void => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
     setCurrentDate(newDate);
   };
 
   // ── Event chip click → open Event Details modal ──────────────────
-  const handleEventClick = (ev: CalendarEvent) => {
+  const handleEventClick = (ev: CalendarEvent): void => {
     setSelectedEvent(ev);
     setShowEventModal(true);
   };
 
   // ── Occupancy bar color helper ───────────────────────────────────
-  const occBarColor = (pct: number, isFullBlock: boolean) => {
+  const occBarColor = (pct: number, isFullBlock: boolean): string => {
     if (isFullBlock) return 'bg-red-400';
     if (pct >= 90) return 'bg-red-400';
     if (pct >= 60) return 'bg-orange-400';

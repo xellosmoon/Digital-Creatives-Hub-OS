@@ -8,7 +8,7 @@ import type { CalendarEvent } from '../types';
  * dedicated `events` table.  It also sets up a real-time subscription so
  * the calendar updates automatically when events are created or modified.
  */
-export function useEvents(currentDate: Date) {
+export function useEvents(currentDate: Date): { events: CalendarEvent[]; loading: boolean; refetch: () => Promise<void> } {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +32,7 @@ export function useEvents(currentDate: Date) {
   }, [currentDate]);
 
   /** Fetch published events within the visible month window. */
-  async function fetchEvents() {
+  async function fetchEvents(): Promise<void> {
     setLoading(true);
     try {
       const monthStart = startOfMonth(currentDate).toISOString();
@@ -40,7 +40,7 @@ export function useEvents(currentDate: Date) {
 
       const { data, error } = await supabase
         .from('events')
-        .select('*, space:spaces(id, name, type)')
+        .select('*')
         .eq('status', 'published')
         .gte('start_time', monthStart)
         .lte('start_time', monthEnd)

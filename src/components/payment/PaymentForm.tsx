@@ -9,7 +9,7 @@ interface PaymentFormProps {
   onCancel: () => void;
 }
 
-export default function PaymentForm({ amount, bookingId, onSuccess, onCancel }: PaymentFormProps) {
+export default function PaymentForm({ amount, bookingId: _bookingId, onSuccess, onCancel }: PaymentFormProps): JSX.Element {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
   const [cardDetails, setCardDetails] = useState({
@@ -19,7 +19,7 @@ export default function PaymentForm({ amount, bookingId, onSuccess, onCancel }: 
     cvv: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setProcessing(true);
 

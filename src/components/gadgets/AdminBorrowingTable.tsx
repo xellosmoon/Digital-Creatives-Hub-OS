@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   RotateCcw,
   Wrench,
-  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
@@ -15,7 +14,12 @@ import { formatPeso } from '../../lib/pricingEngine';
 import type { Borrowing, Item, BorrowingStatus } from '../../types/gadgets';
 
 interface AdminBorrowingTableProps {
-  borrowings: (Borrowing & { item?: Item; asset?: { name: string } })[];
+  borrowings: (Borrowing & { 
+    item?: Item; 
+    asset?: { name: string };
+    destination_location?: string | null;
+    usage_type?: string;
+  })[];
   onRefresh: () => void;
 }
 
@@ -31,13 +35,13 @@ const STATUS_CONFIG: Record<
   cancelled: { icon: XCircle, color: 'text-gray-400 bg-gray-50', label: 'Cancelled' },
 };
 
-export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorrowingTableProps) {
+export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorrowingTableProps): JSX.Element {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const updateStatus = async (id: string, status: BorrowingStatus) => {
+  const updateStatus = async (id: string, status: BorrowingStatus): Promise<void> => {
     setUpdatingId(id);
     try {
-      const payload: Record<string, any> = { status };
+      const payload: Record<string, string | boolean> = { status };
       if (status === 'returned') {
         payload.actual_return_time = new Date().toISOString();
       }
@@ -45,21 +49,23 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
       if (error) throw error;
       toast.success(`Borrowing ${status}`);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Update failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Update failed';
+      toast.error(errorMessage);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const updateItemStatus = async (itemId: string, status: string) => {
+  const updateItemStatus = async (itemId: string, status: string): Promise<void> => {
     try {
       const { error } = await supabase.from('items').update({ status }).eq('id', itemId);
       if (error) throw error;
       toast.success(`Item set to ${status}`);
       onRefresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Update failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Update failed';
+      toast.error(errorMessage);
     }
   };
 
@@ -103,19 +109,19 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-0.5">
-                    {(b as any).destination_location ? (
+                    {b.destination_location ? (
                       <span className="text-xs font-medium text-gray-900">
-                        {(b as any).destination_location}
+                        {b.destination_location}
                       </span>
                     ) : null}
                     <span
                       className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
-                        ((b as any).usage_type || b.location) === 'inside'
+                        (b.usage_type || b.location) === 'inside'
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-purple-100 text-purple-700'
                       }`}
                     >
-                      {((b as any).usage_type || b.location) === 'inside' ? 'Inside Hub' : 'Outside Hub'}
+                      {(b.usage_type || b.location) === 'inside' ? 'Inside Hub' : 'Outside Hub'}
                     </span>
                   </div>
                 </td>

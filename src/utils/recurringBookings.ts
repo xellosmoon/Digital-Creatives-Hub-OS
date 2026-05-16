@@ -1,5 +1,5 @@
 import { RecurrenceConfig } from '../types/recurring';
-import { addDays, addWeeks, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
+import { addDays, addWeeks, addMonths, isBefore } from 'date-fns';
 
 export function generateRecurringDates(
   startDate: Date,
