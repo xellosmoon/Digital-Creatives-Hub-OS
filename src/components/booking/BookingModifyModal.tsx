@@ -12,7 +12,7 @@ interface BookingModifyModalProps {
     end_time: string;
     attendees: number | null;
     purpose: string | null;
-    space: { name: string; hourly_rate: number };
+    space?: { name: string; hourly_rate: number };
     booking_reference: string;
   };
   onClose: () => void;
@@ -137,7 +137,7 @@ export default function BookingModifyModal({ booking, onClose, onSuccess }: Book
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Current Booking</h3>
             <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Space:</strong> {booking.space.name}</p>
+              <p><strong>Space:</strong> {booking.space?.name || 'Unknown'}</p>
               <p><strong>Date:</strong> {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')}</p>
               <p><strong>Time:</strong> {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}</p>
               <p><strong>Reference:</strong> {booking.booking_reference}</p>
