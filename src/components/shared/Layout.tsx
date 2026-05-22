@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
 
@@ -127,6 +127,10 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Link to="/gadgets" className={navLinkClass('/gadgets')}>
                   <Package className="w-4 h-4 mr-1.5" />
                   Gadgets
+                </Link>
+                <Link to="/about" className={navLinkClass('/about')}>
+                  <Info className="w-4 h-4 mr-1.5" />
+                  About
                 </Link>
                 {!session && (
                   <Link to="/booking-lookup" className={navLinkClass('/booking-lookup')}>
@@ -279,12 +283,13 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                   >
                     Login
                   </Link>
-                  <Link
+                  {/* Sign Up button hidden */}
+                  {/* <Link
                     to="/register"
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors shadow-sm"
                   >
                     Sign Up
-                  </Link>
+                  </Link> */}
                 </div>
               )}
 
@@ -330,6 +335,10 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Package className="w-4 h-4 mr-3" />
                 Gadgets
               </Link>
+              <Link to="/about" className={mobileNavLinkClass('/about')}>
+                <Info className="w-4 h-4 mr-3" />
+                About
+              </Link>
               {!session && (
                 <Link to="/booking-lookup" className={mobileNavLinkClass('/booking-lookup')}>
                   <Search className="w-4 h-4 mr-3" />
@@ -347,12 +356,13 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 >
                   Login
                 </Link>
-                <Link
+                {/* Sign Up button hidden */}
+                {/* <Link
                   to="/register"
                   className="flex items-center justify-center w-full px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors"
                 >
                   Sign Up
-                </Link>
+                </Link> */}
               </div>
             )}
 

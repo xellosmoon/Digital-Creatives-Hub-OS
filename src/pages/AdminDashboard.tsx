@@ -38,8 +38,9 @@ export default function AdminDashboard(): JSX.Element {
 
   // Manual check-in form
   const [manualForm, setManualForm] = useState({
-    mobile: '', name: '', domain: PCIDA_DOMAINS[0] as string, organization: '',
+    mobile: '', name: '', domain: PCIDA_DOMAINS[0] as string, organization: '', purpose: '', eventId: '',
   });
+  const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string }>>([]);
 
   // Force book form
   const [forceForm, setForceForm] = useState({
@@ -50,6 +51,7 @@ export default function AdminDashboard(): JSX.Element {
   useEffect(() => {
     fetchBookings();
     fetchAttendance();
+    fetchTodayEvents();
 
     // Real-time subscriptions
     const subscription = supabase
@@ -87,6 +89,22 @@ export default function AdminDashboard(): JSX.Element {
       toast.error('Failed to fetch bookings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTodayEvents = async (): Promise<void> => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('events')
+        .select('id, title, start_time')
+        .eq('status', 'approved')
+        .gte('start_time', `${today}T00:00:00`)
+        .lte('start_time', `${today}T23:59:59`)
+        .order('start_time', { ascending: true });
+      if (data) setTodayEvents(data);
+    } catch (error) {
+      console.error('Error fetching today events:', error);
     }
   };
 
@@ -158,6 +176,8 @@ export default function AdminDashboard(): JSX.Element {
         full_name: manualForm.name,
         creative_domain: manualForm.domain,
         organization: manualForm.organization || null,
+        purpose: manualForm.purpose || null,
+        event_id: manualForm.eventId || null,
         status: 'active',
         confirmed_at: new Date().toISOString(),
         confirmed_by: session?.session?.user?.id || null,
@@ -168,7 +188,7 @@ export default function AdminDashboard(): JSX.Element {
       });
       if (error) throw error;
       toast.success(`${manualForm.name} checked in!`);
-      setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '' });
+      setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '', purpose: '', eventId: '' });
       setShowManualCheckIn(false);
       fetchAttendance();
     } catch (err: unknown) {
@@ -273,7 +293,7 @@ export default function AdminDashboard(): JSX.Element {
       </div>
 
       {/* Management Navigation Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
         <Link to="/admin/spaces" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
           <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors mb-3">
             <Building2 className="h-6 w-6 text-blue-600" />
@@ -303,6 +323,12 @@ export default function AdminDashboard(): JSX.Element {
             <BarChart3 className="h-6 w-6 text-rose-600" />
           </div>
           <span className="text-sm font-bold text-gray-700">Analytics</span>
+        </Link>
+        <Link to="/admin/team" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-indigo-50 rounded-xl group-hover:bg-indigo-100 transition-colors mb-3">
+            <Users className="h-6 w-6 text-indigo-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Team</span>
         </Link>
       </div>
 
@@ -591,6 +617,33 @@ export default function AdminDashboard(): JSX.Element {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Organization</label>
                 <input type="text" value={manualForm.organization} onChange={e => setManualForm(p => ({ ...p, organization: e.target.value }))} placeholder="Optional" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Purpose of Visit</label>
+                <select value={manualForm.purpose} onChange={e => setManualForm(p => ({ ...p, purpose: e.target.value }))} className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                  <option value="">Select purpose...</option>
+                  <option value="Explore the space">Explore the space</option>
+                  <option value="Coworking or productivity">Coworking or productivity</option>
+                  <option value="Conduct a meeting or session">Conduct a meeting or session</option>
+                  <option value="Use available equipment or services">Use available equipment or services</option>
+                  <option value="Content creation or digital work">Content creation or digital work</option>
+                  <option value="Research or academic purposes">Research or academic purposes</option>
+                  <option value="Propose Collaboration">Propose Collaboration</option>
+                  <option value="Attend an event in the hub">Attend an event in the hub</option>
+                  <option value="Virtual Office Inquiry">Virtual Office Inquiry</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Event Attendance (Optional)</label>
+                <select value={manualForm.eventId} onChange={e => setManualForm(p => ({ ...p, eventId: e.target.value }))} className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                  <option value="">None / General Coworking</option>
+                  {todayEvents.map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.title} - {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button onClick={handleManualCheckIn} className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all">
                 <UserPlus className="h-4 w-4 inline mr-2" />

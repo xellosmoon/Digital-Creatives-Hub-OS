@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Package, Wrench, Clock,
   UserPlus, RefreshCw, CheckCircle, Activity, FileText,
-  Plus, Pencil, Trash2, Settings2, Layers,
+  Plus, Pencil, Trash2, Settings2, Layers, ArrowLeft, Download, Trash,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { isPast } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -32,6 +33,10 @@ export default function AdminGadgets(): JSX.Element {
   const [managingUnitsAsset, setManagingUnitsAsset] = useState<Asset | null>(null);
   const [confirmDeleteAssetId, setConfirmDeleteAssetId] = useState<string | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStartDate, setDeleteStartDate] = useState('');
+  const [deleteEndDate, setDeleteEndDate] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -115,6 +120,78 @@ export default function AdminGadgets(): JSX.Element {
     }
   };
 
+  const handleExportBorrowings = (): void => {
+    const csvData = borrowings.map(b => ({
+      'Reference': b.borrowing_reference,
+      'Asset': b.asset?.name ?? '',
+      'Item Tag': b.item?.asset_tag ?? '',
+      'Location': b.usage_type === 'inside' ? 'Inside Hub' : 'Outside Hub',
+      'Destination': b.destination_location ?? '',
+      'Start Time': new Date(b.start_time).toLocaleString(),
+      'End Time': new Date(b.end_time).toLocaleString(),
+      'Duration (hours)': b.duration_hours,
+      'Price': b.total_price,
+      'Status': b.status,
+      'Purpose': b.purpose ?? '',
+      'Notes': b.notes ?? '',
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(h => `"${row[h as keyof typeof row] ?? ''}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `borrowings_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success('Borrowings exported successfully');
+  };
+
+  const handleDeleteBorrowings = async (deleteAll: boolean): Promise<void> => {
+    if (!deleteAll && (!deleteStartDate || !deleteEndDate)) {
+      toast.error('Please select start and end dates');
+      return;
+    }
+
+    const confirmMsg = deleteAll 
+      ? 'Delete ALL borrowings? This cannot be undone!'
+      : `Delete borrowings from ${deleteStartDate} to ${deleteEndDate}? This cannot be undone!`;
+    
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeleting(true);
+    try {
+      let query = supabase.from('borrowings').delete();
+      
+      if (!deleteAll) {
+        query = query
+          .gte('created_at', new Date(deleteStartDate).toISOString())
+          .lte('created_at', new Date(deleteEndDate + 'T23:59:59').toISOString());
+      } else {
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      toast.success(deleteAll ? 'All borrowings deleted' : 'Borrowings deleted');
+      setShowDeleteModal(false);
+      setDeleteStartDate('');
+      setDeleteEndDate('');
+      fetchData();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Delete failed';
+      toast.error(errorMessage);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const TABS: { key: TabKey; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'assets', label: 'Gadget Models', icon: Layers },
     { key: 'items', label: 'All Units', icon: Package },
@@ -130,6 +207,9 @@ export default function AdminGadgets(): JSX.Element {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            <Link to="/admin" className="text-gray-400 hover:text-gray-600">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
             <div className="h-10 w-10 rounded-lg bg-primary-100 flex items-center justify-center">
               <Package className="h-5 w-5 text-primary-600" />
             </div>
@@ -145,6 +225,20 @@ export default function AdminGadgets(): JSX.Element {
             >
               <UserPlus className="h-4 w-4" />
               Manual Borrow
+            </button>
+            <button
+              onClick={handleExportBorrowings}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <Trash className="h-4 w-4" />
+              Clear Data
             </button>
             <button
               onClick={fetchData}
@@ -363,6 +457,71 @@ export default function AdminGadgets(): JSX.Element {
           onClose={() => setManagingUnitsAsset(null)}
           onRefresh={fetchData}
         />
+      )}
+
+      {/* Delete Borrowings Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Borrowing Data</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose how to delete borrowing records. This action cannot be undone!
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Delete by Date Range
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={deleteStartDate}
+                    onChange={(e) => setDeleteStartDate(e.target.value)}
+                    className="rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  />
+                  <input
+                    type="date"
+                    value={deleteEndDate}
+                    onChange={(e) => setDeleteEndDate(e.target.value)}
+                    className="rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  />
+                </div>
+                <button
+                  onClick={() => handleDeleteBorrowings(false)}
+                  disabled={deleting || !deleteStartDate || !deleteEndDate}
+                  className="mt-2 w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  {deleting ? 'Deleting...' : 'Delete by Date Range'}
+                </button>
+              </div>
+
+              <div className="border-t pt-4">
+                <button
+                  onClick={() => handleDeleteBorrowings(true)}
+                  disabled={deleting}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  {deleting ? 'Deleting...' : 'Delete ALL Borrowings'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteStartDate('');
+                  setDeleteEndDate('');
+                }}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

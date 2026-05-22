@@ -25,7 +25,7 @@ const DOMAIN_META: Record<PCIDADomain, { icon: React.ComponentType<{ className?:
   'Other': { icon: Sparkles, gradient: 'from-gray-500 to-slate-600' },
 };
 
-type Step = 'privacy' | 'mobile' | 'identity' | 'professional' | 'domain';
+type Step = 'privacy' | 'mobile' | 'identity' | 'professional' | 'purpose' | 'domain' | 'event' | 'agreement';
 
 // ══════════════════════════════════════════════════════════════════
 export default function CheckIn(): JSX.Element {
@@ -43,8 +43,20 @@ export default function CheckIn(): JSX.Element {
     sector: '',
     organization: '',
     designation: '',
+    purpose: '',
     domains: [] as string[],
+    eventId: '' as string,
   });
+
+  const [agreementChecks, setAgreementChecks] = useState({
+    isRequest: false,
+    waitConfirmation: false,
+    replyEmail: false,
+    noReplyCancel: false,
+    noShowAffects: false,
+  });
+  const [agreementNotes, setAgreementNotes] = useState('');
+  const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string }>>([]);
 
   const update = useCallback((patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch })), []);
 
@@ -85,14 +97,30 @@ export default function CheckIn(): JSX.Element {
   };
   const deleteDigit = (): void => update({ mobile: form.mobile.slice(0, -1) });
 
+  // ── Fetch today's approved events ─────────────────────────────
+  useEffect(() => {
+    const fetchTodayEvents = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('events')
+        .select('id, title, start_time')
+        .eq('status', 'approved')
+        .gte('start_time', `${today}T00:00:00`)
+        .lte('start_time', `${today}T23:59:59`)
+        .order('start_time', { ascending: true });
+      if (data) setTodayEvents(data);
+    };
+    fetchTodayEvents();
+  }, []);
+
   // ── Navigation ─────────────────────────────────────────────────
-  const STEPS: Step[] = ['privacy', 'mobile', 'identity', 'professional', 'domain'];
+  const STEPS: Step[] = ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event', 'agreement'];
 
   const goNext = (): void => {
     const idx = STEPS.indexOf(step);
-    // Returning users: skip from mobile straight to domain (last step before submit)
+    // Returning users: skip from mobile straight to purpose
     if (step === 'mobile' && isReturning) {
-      setStep('domain');
+      setStep('purpose');
       return;
     }
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
@@ -100,7 +128,7 @@ export default function CheckIn(): JSX.Element {
 
   const goPrev = (): void => {
     const idx = STEPS.indexOf(step);
-    if (step === 'domain' && isReturning) {
+    if (step === 'purpose' && isReturning) {
       setStep('mobile');
       return;
     }
@@ -114,7 +142,11 @@ export default function CheckIn(): JSX.Element {
       case 'mobile': return form.mobile.length >= 10;
       case 'identity': return !!form.name.trim();
       case 'professional': return true; // all optional
+      case 'purpose': return !!form.purpose;
       case 'domain': return form.domains.length > 0;
+      case 'event': return true; // optional - can skip event selection
+      case 'agreement': return Object.values(agreementChecks).every(v => v);
+      default: return false;
     }
   };
 
@@ -131,11 +163,14 @@ export default function CheckIn(): JSX.Element {
         sector: form.sector || null,
         organization: form.organization || null,
         designation: form.designation || null,
+        purpose: form.purpose || null,
         creative_domain: form.domains.join(', '),
+        event_id: form.eventId || null,
         status: 'pending_entrance',
         privacy_consented: true,
         consent_timestamp: new Date().toISOString(),
         is_walk_in: false,
+        notes: agreementNotes || null,
       }).select('id').single();
 
       if (error) throw error;
@@ -170,14 +205,20 @@ export default function CheckIn(): JSX.Element {
               {step === 'mobile' && 'Enter Your Mobile Number'}
               {step === 'identity' && 'Who Are You?'}
               {step === 'professional' && 'Your Work'}
+              {step === 'purpose' && 'Purpose of Visit'}
               {step === 'domain' && 'Creative Domain'}
+              {step === 'event' && 'Event Attendance'}
+              {step === 'agreement' && 'Booking Agreement'}
             </h1>
             <p className="text-sm text-white/50 mt-1">
               {step === 'privacy' && 'Please read before proceeding'}
               {step === 'mobile' && (isReturning ? 'Welcome back! Tap Continue to skip ahead.' : 'Use the keypad below')}
               {step === 'identity' && 'Tell us your name'}
               {step === 'professional' && 'Optional — helps us serve you better'}
+              {step === 'purpose' && 'What brings you to the hub today?'}
               {step === 'domain' && 'Select your PCIDA sector (RA 11904)'}
+              {step === 'event' && 'Optional — select if attending an event'}
+              {step === 'agreement' && 'Please read and confirm to proceed'}
             </p>
           </div>
 
@@ -370,6 +411,30 @@ export default function CheckIn(): JSX.Element {
             </div>
           )}
 
+          {/* ═══ STEP: PURPOSE ═══ */}
+          {step === 'purpose' && (
+            <div>
+              <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3 block">Purpose of Visit *</label>
+              <select
+                value={form.purpose}
+                onChange={e => update({ purpose: e.target.value })}
+                className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all appearance-none"
+              >
+                <option value="" className="bg-gray-900">Select purpose...</option>
+                <option value="Explore the space" className="bg-gray-900">Explore the space</option>
+                <option value="Coworking or productivity" className="bg-gray-900">Coworking or productivity</option>
+                <option value="Conduct a meeting or session" className="bg-gray-900">Conduct a meeting or session</option>
+                <option value="Use available equipment or services" className="bg-gray-900">Use available equipment or services</option>
+                <option value="Content creation or digital work" className="bg-gray-900">Content creation or digital work</option>
+                <option value="Research or academic purposes" className="bg-gray-900">Research or academic purposes</option>
+                <option value="Propose Collaboration" className="bg-gray-900">Propose Collaboration</option>
+                <option value="Attend an event in the hub" className="bg-gray-900">Attend an event in the hub</option>
+                <option value="Virtual Office Inquiry" className="bg-gray-900">Virtual Office Inquiry</option>
+                <option value="Other" className="bg-gray-900">Other</option>
+              </select>
+            </div>
+          )}
+
           {/* ═══ STEP: DOMAIN (3x3 Grid) ═══ */}
           {step === 'domain' && (
             <div className="grid grid-cols-3 gap-2">
@@ -402,6 +467,108 @@ export default function CheckIn(): JSX.Element {
             </div>
           )}
 
+          {/* ═══ STEP: EVENT ═══ */}
+          {step === 'event' && (
+            <div className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <p className="text-xs text-white/60 mb-4">Are you attending a specific event today? Select from the list below or skip to continue.</p>
+                
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => update({ eventId: '' })}
+                    className={`w-full text-left p-3 rounded-xl transition-all ${
+                      !form.eventId
+                        ? 'bg-emerald-500/20 border-2 border-emerald-500 text-white'
+                        : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="font-semibold text-sm">None / General Coworking</div>
+                    <div className="text-xs text-white/50 mt-0.5">Not attending a specific event</div>
+                  </button>
+
+                  {todayEvents.length > 0 ? (
+                    todayEvents.map(event => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => update({ eventId: event.id })}
+                        className={`w-full text-left p-3 rounded-xl transition-all ${
+                          form.eventId === event.id
+                            ? 'bg-emerald-500/20 border-2 border-emerald-500 text-white'
+                            : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-semibold text-sm">{event.title}</div>
+                        <div className="text-xs text-white/50 mt-0.5">
+                          {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-white/40 text-sm">
+                      No events scheduled for today
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ STEP: AGREEMENT ═══ */}
+          {step === 'agreement' && (
+            <div className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                  <span className="text-sm font-bold text-white">Booking Acknowledgment & Agreement</span>
+                </div>
+                <p className="text-xs text-white/60 mb-4">Please read and confirm the following to proceed with your booking request</p>
+                
+                <div className="space-y-3">
+                  {[
+                    { key: 'isRequest', text: 'I understand that submitting this form is a booking request only and does not guarantee approval.' },
+                    { key: 'waitConfirmation', text: 'I understand that I must wait for a confirmation email from the Digital Creatives Hub before my visit.' },
+                    { key: 'replyEmail', text: 'I agree to reply to the confirmation email to confirm my attendance.' },
+                    { key: 'noReplyCancel', text: 'I understand that failure to reply to the confirmation email may result in automatic cancellation of my booking.' },
+                    { key: 'noShowAffects', text: 'I understand that no-show visits may affect future booking approvals.' },
+                  ].map(({ key, text }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setAgreementChecks(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                      className={`w-full flex items-start gap-3 p-3 rounded-xl transition-all duration-200 text-left ${
+                        agreementChecks[key as keyof typeof agreementChecks]
+                          ? 'bg-emerald-500/20 border-2 border-emerald-400/50'
+                          : 'bg-white/5 border-2 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                        agreementChecks[key as keyof typeof agreementChecks] ? 'bg-emerald-500 text-white' : 'bg-white/10'
+                      }`}>
+                        {agreementChecks[key as keyof typeof agreementChecks] && <CheckCircle className="h-3.5 w-3.5" />}
+                      </div>
+                      <span className={`text-xs ${agreementChecks[key as keyof typeof agreementChecks] ? 'text-emerald-200' : 'text-white/70'}`}>
+                        {text}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Additional Notes (Optional)</label>
+                <textarea
+                  value={agreementNotes}
+                  onChange={e => setAgreementNotes(e.target.value)}
+                  placeholder="Any special requests or notes..."
+                  rows={3}
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
+            </div>
+          )}
+
           {/* ── Navigation ── */}
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
             {step !== 'privacy' ? (
@@ -414,7 +581,7 @@ export default function CheckIn(): JSX.Element {
               </button>
             ) : <div />}
 
-            {step === 'domain' ? (
+            {step === 'agreement' ? (
               <button
                 type="button"
                 onClick={handleSubmit}

@@ -7,6 +7,23 @@ import { formatPeso } from './pricingEngine';
 
 export { formatPeso };
 
+// ── Pricing Toggle (Open House Mode) ─────────────────────────
+// Set to true to disable all pricing (free/open house mode)
+export const PRICING_ENABLED = false;
+
+// ── Helper to check if pricing is disabled ─────────────────────
+export function isPricingDisabled(): boolean {
+  return !PRICING_ENABLED;
+}
+
+// ── Format price with strikethrough for promo/free mode ─────────
+export function formatPriceWithStrike(originalPrice: number, displayPrice: number = 0): string {
+  if (isPricingDisabled()) {
+    return `<span class="line-through text-gray-400">${formatPeso(originalPrice)}</span> <span class="text-emerald-600 font-bold">FREE</span>`;
+  }
+  return formatPeso(displayPrice);
+}
+
 /**
  * Compute hours between two ISO timestamps.
  */
@@ -33,6 +50,17 @@ export function calculatePackagePrice(
 
   let totalPrice = 0;
   let breakdown = '';
+
+  // If pricing is disabled (open house mode), set everything to free
+  if (!PRICING_ENABLED) {
+    return {
+      packageSlug: pkg.slug,
+      billingMode: pkg.billing_mode,
+      hours,
+      totalPrice: 0,
+      breakdown: 'Free (Open House)',
+    };
+  }
 
   switch (pkg.billing_mode) {
     case 'hourly': {

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { HubZone } from '../types/hub';
+import EventCards from '../components/home/EventCards';
 
 interface Equipment {
   id: string;
@@ -180,7 +181,16 @@ export default function Home(): JSX.Element {
 
       {/* Hero Section */}
       <div className="relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+        {/* Creative As One Logo Background */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none overflow-hidden">
+          <img 
+            src="/creative-as-one-logo.png" 
+            alt="Creative As One Iligan" 
+            className="w-full max-w-4xl h-auto object-contain"
+          />
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative z-10">
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
@@ -222,12 +232,12 @@ export default function Home(): JSX.Element {
                   className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-[#0C2340] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                 >
                   <span className="relative z-10 flex items-center">
-                    Book a Space Now
+                    Book a Space
                     <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
-                <p className="mt-3 text-sm text-gray-500">For members planning ahead</p>
+                <p className="mt-3 text-sm text-gray-500">Individual or group bookings</p>
               </div>
 
               {/* Track 3: Host an Event (New) */}
@@ -270,6 +280,9 @@ export default function Home(): JSX.Element {
           </div>
         </div>
       </div>
+
+      {/* Events Section */}
+      <EventCards />
 
       {/* Stats Section */}
       <div className="relative py-16 bg-white">
@@ -491,33 +504,6 @@ export default function Home(): JSX.Element {
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="relative py-24">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-[#F59E0B]"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Join Our Creative Community Today
-          </h2>
-          <p className="text-xl text-primary-100 mb-10 max-w-2xl mx-auto">
-            Start booking amazing spaces and connect with fellow creatives
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/bookings"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary-600 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-xl"
-            >
-              <CheckCircle className="mr-2 w-5 h-5" />
-              Start Booking Now
-            </Link>
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors border-2 border-white/50"
-            >
-              Create Free Account
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

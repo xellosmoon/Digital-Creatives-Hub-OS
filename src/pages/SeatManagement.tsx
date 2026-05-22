@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings, AlertTriangle, Save, RefreshCw, Armchair, Monitor, Palette, UserCheck } from 'lucide-react';
+import { Settings, AlertTriangle, Save, RefreshCw, Armchair, Monitor, Palette, UserCheck, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -137,8 +138,13 @@ export default function SeatManagement(): JSX.Element {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Seat Management</h1>
-          <p className="mt-2 text-gray-600">Manage hub capacity, workshop blocks, and view active users</p>
+          <div className="flex items-center gap-3 mb-1">
+            <Link to="/admin" className="text-gray-400 hover:text-gray-600">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900">Seat Management</h1>
+          </div>
+          <p className="mt-1 text-gray-600 ml-8">Manage hub capacity, workshop blocks, and view active users</p>
         </div>
         <button
           onClick={fetchAll}

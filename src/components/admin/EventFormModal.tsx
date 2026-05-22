@@ -47,6 +47,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     description: event?.description ?? '',
     poster_url: event?.poster_url ?? '',
     registration_link: event?.registration_link ?? '',
+    facebook_post_url: (event as any)?.facebook_post_url ?? '',
     organizer: event?.organizer ?? '',
     contact_email: event?.contact_email ?? '',
     contact_phone: event?.contact_phone ?? '',
@@ -164,6 +165,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         description: form.description.trim() || null,
         poster_url: form.poster_url.trim() || null,
         registration_link: form.registration_link.trim() || null,
+        facebook_post_url: form.facebook_post_url.trim() || null,
         organizer: form.organizer.trim() || null,
         contact_email: form.contact_email.trim() || null,
         contact_phone: form.contact_phone.trim() || null,
@@ -412,6 +414,22 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               placeholder="Google Form, Eventbrite, or Facebook event link"
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
+          </div>
+
+          {/* ── Facebook Post URL ─────────────────────────────── */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Link2 className="inline w-4 h-4 mr-1 text-blue-600" />
+              Facebook Post URL
+            </label>
+            <input
+              type="url"
+              value={form.facebook_post_url}
+              onChange={(e) => updateField('facebook_post_url', e.target.value)}
+              placeholder="https://www.facebook.com/yourpage/posts/..."
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Link to the Facebook post for this event</p>
           </div>
 
           {/* ── Toggles row ───────────────────────────────────── */}

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Calendar, Clock,
   User, Mail, Phone, FileText, Users, Info,
   Package, Star, Laptop, X,
   Coffee, Palette, Film, Camera, CheckCircle, AlertCircle,
-  Zap, Shield, Monitor, Sparkles, BookOpen, Plus,
+  Zap, Shield, Monitor, Sparkles, BookOpen, Plus, PartyPopper, Briefcase,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import { calculatePackagePrice, formatPeso } from '../lib/hubPricingEngine';
-import { calculateTotalRate, formatPeso as formatPesoGadgets } from '../lib/pricingEngine';
+import { calculatePackagePrice, formatPeso, isPricingDisabled } from '../lib/hubPricingEngine';
+import { calculateTotalRate, formatPeso as formatPesoGadgets, PRICING_ENABLED as GADGETS_PRICING_ENABLED } from '../lib/pricingEngine';
 import type { RentalPackage, HubPriceEstimate, PackageRequiredAsset } from '../types/hub';
 import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 import { BUNDLE_SLUGS } from '../types/hub';
@@ -44,14 +44,18 @@ const PKG_GRAD: Record<string, string> = {
 };
 
 // ── Step metadata ──────────────────────────────────────────────────
-type Step = 'package' | 'datetime' | 'details' | 'equipment' | 'confirm';
+type Step = 'bookingType' | 'package' | 'datetime' | 'details' | 'equipment' | 'agreement' | 'confirm';
 const STEP_META: { key: Step; label: string }[] = [
+  { key: 'bookingType', label: 'Booking Type' },
   { key: 'package', label: 'Package' },
   { key: 'datetime', label: 'Date & Time' },
   { key: 'details', label: 'Your Info' },
   { key: 'equipment', label: 'Equipment' },
+  { key: 'agreement', label: 'Agreement' },
   { key: 'confirm', label: 'Confirm' },
 ];
+
+type BookingType = 'individual' | 'group' | 'event';
 
 // ── Extended package type ──────────────────────────────────────────
 interface PkgExtra extends RentalPackage {
@@ -62,10 +66,13 @@ interface PkgExtra extends RentalPackage {
 // ════════════════════════════════════════════════════════════════════
 export default function Bookings(): JSX.Element {
   const location = useLocation();
+  const navigate = useNavigate();
   const preselected = (location.state as { preselectedPackage?: string; preselectedDate?: string; preselectedTime?: string; prefillProfile?: { name: string; email: string; phone: string } }) ?? {};
 
   // ── State ─────────────────────────────────────────────────────────
-  const [step, setStep] = useState<Step>('package');
+  const [step, setStep] = useState<Step>('bookingType');
+  const [bookingType, setBookingType] = useState<BookingType | null>(null);
+  const [groupSize, setGroupSize] = useState<number>(1);
   const [packages, setPackages] = useState<PkgExtra[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +96,15 @@ export default function Bookings(): JSX.Element {
     phone: preselected.prefillProfile?.phone || '',
     purpose: '',
   });
+
+  const [agreementChecks, setAgreementChecks] = useState({
+    isRequest: false,
+    waitConfirmation: false,
+    replyEmail: false,
+    noReplyCancel: false,
+    noShowAffects: false,
+  });
+  const [agreementNotes, setAgreementNotes] = useState('');
 
   const isBundle = pkg ? BUNDLE_SLUGS.includes(pkg.slug) : false;
   const isDaily = pkg?.billing_mode === 'daily';
@@ -187,7 +203,17 @@ export default function Bookings(): JSX.Element {
     if (!pkg) { setEstimate(null); return; }
     const s = `${form.date}T${form.start}:00`;
     const e = `${form.date}T${form.end}:00`;
-    setEstimate(calculatePackagePrice(pkg, s, e));
+    const baseEstimate = calculatePackagePrice(pkg, s, e);
+    
+    // Multiply by group size if group booking
+    if (baseEstimate && bookingType === 'group' && groupSize > 1) {
+      setEstimate({
+        ...baseEstimate,
+        totalPrice: baseEstimate.totalPrice * groupSize,
+      });
+    } else {
+      setEstimate(baseEstimate);
+    }
 
     // Calculate equipment total
     let equipmentTotal = 0;
@@ -201,17 +227,23 @@ export default function Bookings(): JSX.Element {
       }
     });
     setEquipmentTotal(equipmentTotal);
-  }, [pkg, form.date, form.start, form.end, selectedEquipment, allPricing]);
+  }, [pkg, form.date, form.start, form.end, selectedEquipment, allPricing, bookingType, groupSize]);
 
   // ── Helpers ───────────────────────────────────────────────────────
   const update = (patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch }));
 
   const canProceed = (): boolean => {
     switch (step) {
+      case 'bookingType': return !!bookingType;
       case 'package': return !!pkg;
       case 'datetime': return !!form.date && !!form.start && !!form.end;
-      case 'details': return !!form.name.trim() && !!form.email.trim();
+      case 'details': 
+        if (bookingType === 'group') {
+          return !!form.name.trim() && !!form.email.trim() && groupSize > 0;
+        }
+        return !!form.name.trim() && !!form.email.trim();
       case 'equipment': return true;
+      case 'agreement': return Object.values(agreementChecks).every(v => v);
       default: return true;
     }
   };
@@ -259,11 +291,13 @@ export default function Bookings(): JSX.Element {
         booking_date: form.date,
         start_time: startISO,
         end_time: endISO,
-        seats_used: pkg.seats_consumed,
+        seats_used: bookingType === 'group' ? pkg.seats_consumed * groupSize : pkg.seats_consumed,
         total_price: estimate.totalPrice + equipmentTotal,
         status: 'pending',
         purpose: form.purpose || null,
-        notes: null,
+        booking_type: bookingType || 'individual',
+        group_size: bookingType === 'group' ? groupSize : null,
+        notes: agreementNotes || null,
       }).select().single();
 
       if (bookingError) throw bookingError;
@@ -376,6 +410,73 @@ export default function Bookings(): JSX.Element {
           <div className="lg:col-span-2">
             <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-100/30 border border-white/60 p-5 sm:p-8 transition-all duration-300">
 
+              {/* ═══ STEP: BOOKING TYPE ═══ */}
+              {step === 'bookingType' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">What are you booking for?</h2>
+                  <p className="text-sm text-gray-500 mb-6">Choose the type of booking that fits your needs</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setBookingType('individual')}
+                      className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
+                        bookingType === 'individual'
+                          ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
+                      }`}
+                    >
+                      <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white mb-3 shadow-sm mx-auto">
+                        <Laptop className="h-6 w-6" />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-base mb-1">Individual Coworking</h3>
+                      <p className="text-xs text-gray-500">For solo work or study</p>
+                      {bookingType === 'individual' && (
+                        <div className="absolute top-4 right-4">
+                          <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                        </div>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBookingType('group')}
+                      className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
+                        bookingType === 'group'
+                          ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
+                      }`}
+                    >
+                      <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white mb-3 shadow-sm mx-auto">
+                        <Users className="h-6 w-6" />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-base mb-1">Group Booking</h3>
+                      <p className="text-xs text-gray-500">For meetings, study groups, team coworking</p>
+                      {bookingType === 'group' && (
+                        <div className="absolute top-4 right-4">
+                          <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                        </div>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBookingType('event');
+                        navigate('/propose-event');
+                      }}
+                      className="relative text-center rounded-2xl border-2 p-6 transition-all duration-300 border-gray-200/80 bg-white hover:border-orange-300 hover:shadow-md hover:scale-[1.01]"
+                    >
+                      <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white mb-3 shadow-sm mx-auto">
+                        <PartyPopper className="h-6 w-6" />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-base mb-1">Public Event</h3>
+                      <p className="text-xs text-gray-500">For workshops, meetups open to public</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* ═══ STEP: PACKAGE ═══ */}
               {step === 'package' && (
                 <div>
@@ -437,7 +538,17 @@ export default function Bookings(): JSX.Element {
                           <div className="mt-3 flex items-baseline gap-2 flex-wrap">
                             {p.hourly_rate != null && (
                               <span className="text-lg font-extrabold text-gray-900">
-                                {formatPeso(p.hourly_rate)}<span className="text-xs font-normal text-gray-400">/hr</span>
+                                {isPricingDisabled() ? (
+                                  <>
+                                    <span className="line-through text-gray-400 text-sm">{formatPeso(p.hourly_rate)}</span>
+                                    <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                                    <span className="text-xs font-normal text-gray-400">/hr</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    {formatPeso(p.hourly_rate)}<span className="text-xs font-normal text-gray-400">/hr</span>
+                                  </>
+                                )}
                               </span>
                             )}
                             {p.daily_rate != null && p.hourly_rate != null && (
@@ -445,7 +556,17 @@ export default function Bookings(): JSX.Element {
                             )}
                             {p.daily_rate != null && (
                               <span className={p.hourly_rate ? 'text-sm text-gray-500' : 'text-lg font-extrabold text-gray-900'}>
-                                {formatPeso(p.daily_rate)}<span className="text-xs font-normal text-gray-400">/day</span>
+                                {isPricingDisabled() ? (
+                                  <>
+                                    <span className="line-through text-gray-400 text-sm">{formatPeso(p.daily_rate)}</span>
+                                    <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                                    <span className="text-xs font-normal text-gray-400">/day</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    {formatPeso(p.daily_rate)}<span className="text-xs font-normal text-gray-400">/day</span>
+                                  </>
+                                )}
                               </span>
                             )}
                           </div>
@@ -673,6 +794,24 @@ export default function Bookings(): JSX.Element {
                         className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                       />
                     </div>
+                    {bookingType === 'group' && (
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                          <Users className="h-4 w-4 text-[#0C2340]" /> Group Size *
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="2"
+                          max="50"
+                          value={groupSize}
+                          onChange={e => setGroupSize(parseInt(e.target.value) || 1)}
+                          placeholder="Number of people"
+                          className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Pricing will be calculated per person (₱{estimate?.totalPrice.toFixed(2)} × {groupSize} = ₱{((estimate?.totalPrice || 0) * groupSize).toFixed(2)})</p>
+                      </div>
+                    )}
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
                         <FileText className="h-4 w-4 text-[#0C2340]" /> What will you be working on?
@@ -736,10 +875,75 @@ export default function Bookings(): JSX.Element {
                           </div>
                         ))}
                         <div className="text-right text-sm font-medium text-gray-700">
-                          Equipment Total: {formatPesoGadgets(equipmentTotal)}
+                          Equipment Total: {!GADGETS_PRICING_ENABLED ? (
+                            <>
+                              <span className="line-through text-gray-400">{formatPesoGadgets(equipmentTotal)}</span>
+                              <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                            </>
+                          ) : (
+                            formatPesoGadgets(equipmentTotal)
+                          )}
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ STEP: AGREEMENT ═══ */}
+              {step === 'agreement' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Booking Agreement</h2>
+                  <p className="text-sm text-gray-500 mb-6">Please read and confirm the following to proceed</p>
+
+                  <div className="bg-violet-50/60 border-2 border-violet-200/60 rounded-2xl p-6 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CheckCircle className="h-5 w-5 text-[#0C2340] flex-shrink-0" />
+                      <span className="text-sm font-bold text-gray-900">Booking Acknowledgment & Agreement</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {[
+                        { key: 'isRequest', text: 'I understand that submitting this form is a booking request only and does not guarantee approval.' },
+                        { key: 'waitConfirmation', text: 'I understand that I must wait for a confirmation email from the Digital Creatives Hub before my visit.' },
+                        { key: 'replyEmail', text: 'I agree to reply to the confirmation email to confirm my attendance.' },
+                        { key: 'noReplyCancel', text: 'I understand that failure to reply to the confirmation email may result in automatic cancellation of my booking.' },
+                        { key: 'noShowAffects', text: 'I understand that no-show visits may affect future booking approvals.' },
+                      ].map(({ key, text }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setAgreementChecks(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                          className={`w-full flex items-start gap-3 p-3 rounded-xl transition-all duration-200 text-left ${
+                            agreementChecks[key as keyof typeof agreementChecks]
+                              ? 'bg-emerald-50 border-2 border-emerald-400/60'
+                              : 'bg-white border-2 border-gray-200 hover:border-violet-300'
+                          }`}
+                        >
+                          <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                            agreementChecks[key as keyof typeof agreementChecks] ? 'bg-emerald-500 text-white' : 'bg-gray-100'
+                          }`}>
+                            {agreementChecks[key as keyof typeof agreementChecks] && <Check className="h-3.5 w-3.5" />}
+                          </div>
+                          <span className={`text-xs ${agreementChecks[key as keyof typeof agreementChecks] ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                            {text}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                      <FileText className="h-4 w-4 text-[#0C2340]" /> Additional Notes (Optional)
+                    </label>
+                    <textarea
+                      value={agreementNotes}
+                      onChange={e => setAgreementNotes(e.target.value)}
+                      placeholder="Any special requests or notes..."
+                      rows={3}
+                      className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300 resize-none"
+                    />
                   </div>
                 </div>
               )}
@@ -776,7 +980,16 @@ export default function Bookings(): JSX.Element {
                       </div>
                       <div className="flex items-center gap-2">
                         <Zap className="h-4 w-4 text-[#0C2340]" />
-                        <span className="font-extrabold text-gray-900">{formatPeso(estimate.totalPrice)}</span>
+                        <span className="font-extrabold text-gray-900">
+                          {isPricingDisabled() ? (
+                            <>
+                              <span className="line-through text-gray-400 text-sm">{formatPeso(estimate.totalPrice)}</span>
+                              <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                            </>
+                          ) : (
+                            formatPeso(estimate.totalPrice)
+                          )}
+                        </span>
                       </div>
                     </div>
 
@@ -803,7 +1016,16 @@ export default function Bookings(): JSX.Element {
                           ))}
                           <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-medium">
                             <span className="text-gray-700">Equipment Total</span>
-                            <span className="text-[#0C2340]">{formatPesoGadgets(equipmentTotal)}</span>
+                            <span className="text-[#0C2340]">
+                              {!GADGETS_PRICING_ENABLED ? (
+                                <>
+                                  <span className="line-through text-gray-400">{formatPesoGadgets(equipmentTotal)}</span>
+                                  <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                                </>
+                              ) : (
+                                formatPesoGadgets(equipmentTotal)
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -887,17 +1109,44 @@ export default function Bookings(): JSX.Element {
                     <div className="space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Package Price</span>
-                        <span className="font-semibold text-gray-900">{formatPeso(estimate?.totalPrice ?? 0)}</span>
+                        <span className="font-semibold text-gray-900">
+                          {isPricingDisabled() ? (
+                            <>
+                              <span className="line-through text-gray-400 text-xs">{formatPeso(estimate?.totalPrice ?? 0)}</span>
+                              <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                            </>
+                          ) : (
+                            formatPeso(estimate?.totalPrice ?? 0)
+                          )}
+                        </span>
                       </div>
                       {equipmentTotal > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Equipment</span>
-                          <span className="font-semibold text-gray-900">{formatPesoGadgets(equipmentTotal)}</span>
+                          <span className="font-semibold text-gray-900">
+                            {!GADGETS_PRICING_ENABLED ? (
+                              <>
+                                <span className="line-through text-gray-400 text-xs">{formatPesoGadgets(equipmentTotal)}</span>
+                                <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                              </>
+                            ) : (
+                              formatPesoGadgets(equipmentTotal)
+                            )}
+                          </span>
                         </div>
                       )}
                       <div className="border-t border-gray-100 pt-3 flex justify-between">
                         <span className="font-bold text-gray-900">Total</span>
-                        <span className="font-extrabold text-[#0C2340] text-lg">{formatPeso((estimate?.totalPrice ?? 0) + equipmentTotal)}</span>
+                        <span className="font-extrabold text-[#0C2340] text-lg">
+                          {isPricingDisabled() && !GADGETS_PRICING_ENABLED ? (
+                            <>
+                              <span className="line-through text-gray-400 text-sm">{formatPeso((estimate?.totalPrice ?? 0) + equipmentTotal)}</span>
+                              <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                            </>
+                          ) : (
+                            formatPeso((estimate?.totalPrice ?? 0) + equipmentTotal)
+                          )}
+                        </span>
                       </div>
                     </div>
                     <div className="border-t border-dashed border-gray-200 pt-3 space-y-2 text-sm">

@@ -26,6 +26,8 @@ const SeatManagement = lazy(() => import('./pages/SeatManagement'));
 const ProposeEvent = lazy(() => import('./pages/ProposeEvent'));
 const CheckIn = lazy(() => import('./pages/CheckIn'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const TeamManagement = lazy(() => import('./pages/TeamManagement'));
 
 // Components
 import Layout from './components/shared/Layout';
@@ -77,6 +79,7 @@ function App(): JSX.Element {
             <Route path="/booking-lookup" element={<Layout session={session}><BookingLookup /></Layout>} />
             <Route path="/gadgets" element={<Layout session={session}><Gadgets /></Layout>} />
             <Route path="/propose-event" element={<Layout session={session}><ProposeEvent /></Layout>} />
+            <Route path="/about" element={<Layout session={session}><AboutUs /></Layout>} />
 
             {/* Protected Routes */}
             <Route
@@ -175,6 +178,16 @@ function App(): JSX.Element {
                 <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <Analytics />
+                  </ProtectedRoute>
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/team"
+              element={
+                <Layout session={session}>
+                  <ProtectedRoute session={session} requireAdmin>
+                    <TeamManagement />
                   </ProtectedRoute>
                 </Layout>
               }

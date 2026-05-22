@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, MapPin, DollarSign, Users, ToggleLeft, ToggleRight, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, DollarSign, Users, ToggleLeft, ToggleRight, Calendar, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import SpaceForm from '../components/admin/SpaceForm';
@@ -92,8 +93,13 @@ export default function SpaceManagement(): JSX.Element {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Space Management</h1>
-            <p className="mt-2 text-gray-600">Manage your spaces, pricing, and availability</p>
+            <div className="flex items-center gap-3 mb-1">
+              <Link to="/admin" className="text-gray-400 hover:text-gray-600">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <h1 className="text-3xl font-bold text-gray-900">Space Management</h1>
+            </div>
+            <p className="mt-1 text-gray-600 ml-8">Manage your spaces, pricing, and availability</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}

@@ -4,6 +4,10 @@
 import { differenceInMinutes } from 'date-fns';
 import type { PricingTier, BorrowLocation, Asset, PriceEstimate } from '../types/gadgets';
 
+// ── Pricing Toggle (Open House Mode) ─────────────────────────
+// Set to true to disable all pricing (free/open house mode)
+export const PRICING_ENABLED = false;
+
 /**
  * Resolve the effective location for a given asset.
  * - "inside_only" assets always charge "inside" rates.
@@ -83,6 +87,15 @@ export function calculateTotalRate(
   if (!tier) return null;
 
   let totalPrice: number;
+
+  // If pricing is disabled (open house mode), set everything to free
+  if (!PRICING_ENABLED) {
+    return {
+      durationHours: rawHours,
+      matchedTier: tier,
+      totalPrice: 0,
+    };
+  }
 
   if (rawHours <= tier.duration_hours) {
     // Duration fits within (or exactly matches) this tier
