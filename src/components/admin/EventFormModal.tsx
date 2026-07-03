@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { X, Calendar, Clock, Image, Link2, User, Mail, Phone, Sparkles } from 'lucide-react';
+import { X, Calendar, Clock, Image, Link2, User, Mail, Phone, Sparkles, Upload, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
@@ -40,6 +40,10 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   const [posterPreviewError, setPosterPreviewError] = useState(false);
   const [approvedProposals, setApprovedProposals] = useState<ApprovedProposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<string>('');
+  const [posterSource, setPosterSource] = useState<'upload' | 'url'>('url');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
 
   // ── Form state ──────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -55,6 +59,15 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     is_featured: event?.is_featured ?? false,
     status: event?.status ?? 'published' as 'draft' | 'published' | 'cancelled',
   });
+
+  // ── Detect if current poster is from Supabase Storage ───────────────
+  useEffect(() => {
+    if (form.poster_url && form.poster_url.includes('supabase.co/storage/v1/object/public/event-posters')) {
+      setPosterSource('upload');
+    } else {
+      setPosterSource('url');
+    }
+  }, [form.poster_url]);
 
   // ── Fetch approved proposals ─────────────────────────────────────
   useEffect(() => {
@@ -123,6 +136,76 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   const updateField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]): void => {
     setForm(prev => ({ ...prev, [key]: value }));
     if (key === 'poster_url') setPosterPreviewError(false);
+  };
+
+  // ── Image upload handler ───────────────────────────────────────────
+  const handleImageUpload = async (file: File): Promise<void> => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only JPEG, PNG, WebP, and GIF images are allowed');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    setUploadProgress(0);
+    setPosterFile(file);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('event-posters')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(100);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-posters')
+        .getPublicUrl(filePath);
+
+      // Update form with public URL
+      updateField('poster_url', publicUrl);
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
+      setPosterFile(null);
+    } finally {
+      setUploadingImage(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // ── Handle poster source change ─────────────────────────────────────
+  const handlePosterSourceChange = (source: 'upload' | 'url'): void => {
+    setPosterSource(source);
+    if (source === 'url') {
+      setPosterFile(null);
+    } else {
+      // If switching to upload and there's a URL, clear it unless it's already from Supabase
+      if (form.poster_url && !form.poster_url.includes('supabase.co/storage/v1/object/public/event-posters')) {
+        updateField('poster_url', '');
+      }
+    }
   };
 
   /** Combine date + time strings into an ISO timestamp. */
@@ -381,15 +464,76 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Image className="inline w-4 h-4 mr-1" />
-              Event Poster URL
+              Event Poster
             </label>
-            <input
-              type="url"
-              value={form.poster_url}
-              onChange={(e) => updateField('poster_url', e.target.value)}
-              placeholder="https://example.com/poster.jpg"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            />
+            
+            {/* Source toggle */}
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="posterSource"
+                  value="url"
+                  checked={posterSource === 'url'}
+                  onChange={() => handlePosterSourceChange('url')}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                />
+                <span className="text-sm text-gray-700">External URL</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="posterSource"
+                  value="upload"
+                  checked={posterSource === 'upload'}
+                  onChange={() => handlePosterSourceChange('upload')}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                />
+                <span className="text-sm text-gray-700">Upload to Supabase</span>
+              </label>
+            </div>
+
+            {/* External URL input */}
+            {posterSource === 'url' && (
+              <>
+                <input
+                  type="url"
+                  value={form.poster_url}
+                  onChange={(e) => updateField('poster_url', e.target.value)}
+                  placeholder="https://example.com/poster.jpg"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Link to an image hosted elsewhere (Facebook, Google Drive, etc.)</p>
+              </>
+            )}
+
+            {/* File upload input */}
+            {posterSource === 'upload' && (
+              <>
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                    disabled={uploadingImage}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 disabled:opacity-50"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">JPEG, PNG, WebP, or GIF (max 5MB)</p>
+                </div>
+                
+                {/* Upload progress */}
+                {uploadingImage && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Uploading... {uploadProgress}%</span>
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Live poster preview */}
             {form.poster_url && !posterPreviewError && (
               <img
