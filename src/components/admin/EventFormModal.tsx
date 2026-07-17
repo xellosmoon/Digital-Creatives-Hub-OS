@@ -114,7 +114,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   const removeEventDate = (index: number): void => {
     setForm({
       ...form,
-      eventDates: form.eventDates.filter((_, i) => i !== index)
+      eventDates: form.eventDates.filter((_: EventDate, i: number) => i !== index)
     });
   };
 
@@ -365,7 +365,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               Event Dates & Times <span className="text-red-500">*</span>
             </label>
             <div className="space-y-3">
-              {form.eventDates.map((eventDate, index) => (
+              {form.eventDates.map((eventDate: EventDate, index: number) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
