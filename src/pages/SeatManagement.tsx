@@ -11,6 +11,7 @@ export default function SeatManagement(): JSX.Element {
   const [occupancy, setOccupancy] = useState<DailyOccupancy | null>(null);
   const [zones, setZones] = useState<HubZone[]>([]);
   const [activeBookings, setActiveBookings] = useState<(HubBooking & { package?: RentalPackage })[]>([]);
+  const [activeCheckIns, setActiveCheckIns] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -29,7 +30,7 @@ export default function SeatManagement(): JSX.Element {
   const fetchAll = async (): Promise<void> => {
     setLoading(true);
     try {
-      const [configRes, occupancyRes, zonesRes, bookingsRes] = await Promise.all([
+      const [configRes, occupancyRes, zonesRes, bookingsRes, attendanceRes] = await Promise.all([
         supabase.from('hub_capacity_config').select('*').limit(1).single(),
         supabase.from('daily_occupancy').select('*').eq('occupancy_date', selectedDate).maybeSingle(),
         supabase.from('hub_zones').select('*').order('name'),
@@ -39,6 +40,12 @@ export default function SeatManagement(): JSX.Element {
           .eq('booking_date', selectedDate)
           .in('status', ['approved', 'active'])
           .order('start_time'),
+        supabase
+          .from('hub_attendance')
+          .select('*')
+          .eq('status', 'active')
+          .gte('check_in_time', `${selectedDate}T00:00:00`)
+          .lte('check_in_time', `${selectedDate}T23:59:59`),
       ]);
 
       if (configRes.data) {
@@ -59,6 +66,7 @@ export default function SeatManagement(): JSX.Element {
 
       setZones(zonesRes.data || []);
       setActiveBookings(bookingsRes.data || []);
+      setActiveCheckIns((attendanceRes.data || []).length);
     } catch (err) {
       console.error('Error:', err);
       toast.error('Failed to load seat data');
@@ -120,8 +128,9 @@ export default function SeatManagement(): JSX.Element {
 
   const totalSeats = config ? config.total_seats + adjustment : 28;
   const bookedSeats = occupancy?.total_booked_seats ?? activeBookings.reduce((s, b) => s + b.seats_used, 0);
+  const actualOccupied = Math.max(bookedSeats, activeCheckIns);
   const isFullBlock = workshopQ2 && workshopQ4;
-  const availableSeats = isFullBlock ? 0 : Math.max(0, totalSeats - bookedSeats);
+  const availableSeats = isFullBlock ? 0 : Math.max(0, totalSeats - actualOccupied);
 
   if (loading) {
     return (

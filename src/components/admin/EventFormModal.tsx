@@ -55,7 +55,25 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     organizer: event?.organizer ?? '',
     contact_email: event?.contact_email ?? '',
     contact_phone: event?.contact_phone ?? '',
-    eventDates: [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }],
+    eventDates: (() => {
+      if (event && (event as any).event_dates && Array.isArray((event as any).event_dates) && (event as any).event_dates.length > 0) {
+        // Load from existing event_dates array
+        return (event as any).event_dates.map((d: any) => ({
+          date: d.date || format(new Date(event.start_time), 'yyyy-MM-dd'),
+          start_time: d.start_time || format(new Date(event.start_time), 'HH:mm'),
+          end_time: d.end_time || format(new Date(event.end_time), 'HH:mm')
+        }));
+      } else if (event) {
+        // Derive from start_time/end_time as fallback
+        return [{
+          date: format(new Date(event.start_time), 'yyyy-MM-dd'),
+          start_time: format(new Date(event.start_time), 'HH:mm'),
+          end_time: format(new Date(event.end_time), 'HH:mm')
+        }];
+      }
+      // Default for new events
+      return [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }];
+    })(),
     is_featured: event?.is_featured ?? false,
     status: event?.status ?? 'published' as 'draft' | 'published' | 'cancelled',
   });

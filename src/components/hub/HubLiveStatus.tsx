@@ -8,6 +8,7 @@ interface HubLiveStatusData {
   totalSeats: number;
   adjustment: number;
   booked: number;
+  activeCount: number;
   available: number;
   workshopQ2: boolean;
   workshopQ4: boolean;
@@ -28,29 +29,33 @@ export default function HubLiveStatus(): JSX.Element {
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
 
-      const [configRes, occupancyRes, zonesRes] = await Promise.all([
+      const [configRes, occupancyRes, zonesRes, attendanceRes] = await Promise.all([
         supabase.from('hub_capacity_config').select('*').limit(1).single(),
         supabase.from('daily_occupancy').select('*').eq('occupancy_date', today).maybeSingle(),
         supabase.from('hub_zones').select('*').order('name'),
+        supabase.from('hub_attendance').select('*').eq('status', 'active').gte('check_in_time', `${today}T00:00:00`).lte('check_in_time', `${today}T23:59:59`),
       ]);
 
       const config: HubCapacityConfig | null = configRes.data;
       const occupancy: DailyOccupancy | null = occupancyRes.data;
       const zones: HubZone[] = zonesRes.data || [];
+      const activeCheckIns: any[] = attendanceRes.data || [];
 
       const totalSeats = config?.total_seats ?? 28;
       const adjustment = config?.manual_adjustment ?? 0;
       const booked = occupancy?.total_booked_seats ?? 0;
+      const activeCount = activeCheckIns.length;
       const workshopQ2 = occupancy?.workshop_block_q2 ?? false;
       const workshopQ4 = occupancy?.workshop_block_q4 ?? false;
 
       const isFullBlock = workshopQ2 && workshopQ4;
-      const available = isFullBlock ? 0 : Math.max(0, totalSeats + adjustment - booked);
+      const available = isFullBlock ? 0 : Math.max(0, totalSeats + adjustment - Math.max(booked, activeCount));
 
       setStatus({
         totalSeats,
         adjustment,
         booked,
+        activeCount,
         available,
         workshopQ2,
         workshopQ4,
@@ -112,6 +117,14 @@ export default function HubLiveStatus(): JSX.Element {
           <span className="text-4xl font-bold text-gray-900">{status.available}</span>
           <span className="text-lg text-gray-500">of {status.totalSeats + status.adjustment} seats available</span>
         </div>
+
+        {/* Active count */}
+        {status.activeCount > 0 && (
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <Users className="h-4 w-4 text-green-500" />
+            <span className="text-green-600 font-medium">{status.activeCount} Creators on the Floor</span>
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="mt-3 w-full bg-gray-200 rounded-full h-3">

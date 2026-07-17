@@ -267,6 +267,8 @@ export default function AdminDashboard(): JSX.Element {
     .filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd') && ['approved', 'active'].includes(b.status))
     .reduce((sum: number, b: { seats_used: number }) => sum + (b.seats_used || 0), 0);
 
+  const actualOccupied = Math.max(todayBookedSeats, active.length);
+
   const floorList = floorView === 'pending' ? pending : floorView === 'active' ? active : checkedOut;
 
   return (
@@ -346,12 +348,12 @@ export default function AdminDashboard(): JSX.Element {
             <Users className="h-5 w-5 text-violet-500" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className={`text-3xl font-extrabold ${todayBookedSeats >= 28 ? 'text-red-600' : 'text-gray-900'}`}>
-              {todayBookedSeats}
+            <span className={`text-3xl font-extrabold ${actualOccupied >= 28 ? 'text-red-600' : 'text-gray-900'}`}>
+              {actualOccupied}
             </span>
             <span className="text-lg text-gray-400">/ 28</span>
           </div>
-          {todayBookedSeats >= 28 && (
+          {actualOccupied >= 28 && (
             <p className="text-xs text-red-500 mt-1 font-medium">Capacity reached — Override available</p>
           )}
         </div>

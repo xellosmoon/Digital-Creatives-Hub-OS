@@ -231,6 +231,7 @@ RETURNS INTEGER AS $$
 DECLARE
   cfg RECORD;
   booked INTEGER;
+  active_checkins INTEGER;
   workshop_full BOOLEAN;
 BEGIN
   SELECT total_seats, manual_adjustment INTO cfg
@@ -253,7 +254,13 @@ BEGIN
   WHERE booking_date = target_date
     AND status IN ('approved', 'active');
 
-  RETURN GREATEST(0, cfg.total_seats + cfg.manual_adjustment - booked);
+  -- Count active check-ins from hub_attendance
+  SELECT COUNT(*) INTO active_checkins
+  FROM hub_attendance
+  WHERE status = 'active'
+    AND check_in_time::DATE = target_date;
+
+  RETURN GREATEST(0, cfg.total_seats + cfg.manual_adjustment - GREATEST(booked, active_checkins));
 END;
 $$ LANGUAGE plpgsql;
 

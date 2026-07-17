@@ -23,6 +23,7 @@ interface CalendarHubBooking extends Omit<HubBooking, 'package'> {
 interface DaySummary {
   totalSeats: number;       // from config
   bookedSeats: number;      // from daily_occupancy or sum of hub_bookings
+  activeCheckIns: number;   // # of active check-ins from hub_attendance
   workshopQ2: boolean;
   workshopQ4: boolean;
   coworkingCount: number;   // # of individual coworking bookings
@@ -35,6 +36,7 @@ export default function PublicCalendar(): JSX.Element {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
   const [occupancyMap, setOccupancyMap] = useState<Record<string, DailyOccupancy>>({});
+  const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
   const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -51,11 +53,12 @@ export default function PublicCalendar(): JSX.Element {
   useEffect(() => {
     fetchHubData();
 
-    // Real-time: refresh when hub_bookings or daily_occupancy change
+    // Real-time: refresh when hub_bookings, daily_occupancy, or hub_attendance change
     const sub = supabase
       .channel('calendar-hub')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_bookings' }, () => fetchHubData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_occupancy' }, () => fetchHubData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_attendance' }, () => fetchHubData())
       .subscribe();
 
     return () => { sub.unsubscribe(); };
@@ -68,8 +71,8 @@ export default function PublicCalendar(): JSX.Element {
       const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
       const monthEnd = format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
-      // Parallel: bookings, occupancy rows, capacity config
-      const [bookingsRes, occRes, configRes] = await Promise.all([
+      // Parallel: bookings, occupancy rows, capacity config, active check-ins
+      const [bookingsRes, occRes, configRes, attendanceRes] = await Promise.all([
         supabase
           .from('hub_bookings')
           .select('*, package:rental_packages(slug, name, is_bundle)')
@@ -87,6 +90,12 @@ export default function PublicCalendar(): JSX.Element {
           .select('*')
           .limit(1)
           .single(),
+        supabase
+          .from('hub_attendance')
+          .select('*')
+          .eq('status', 'active')
+          .gte('check_in_time', `${monthStart}T00:00:00`)
+          .lte('check_in_time', `${monthEnd}T23:59:59`),
       ]);
 
       setHubBookings((bookingsRes.data as CalendarHubBooking[]) ?? []);
@@ -97,6 +106,14 @@ export default function PublicCalendar(): JSX.Element {
         occMap[row.occupancy_date] = row;
       }
       setOccupancyMap(occMap);
+
+      // Index active check-ins by date string for fast lookup
+      const checkInsMap: Record<string, number> = {};
+      for (const row of (attendanceRes.data ?? [])) {
+        const dateStr = format(new Date(row.check_in_time), 'yyyy-MM-dd');
+        checkInsMap[dateStr] = (checkInsMap[dateStr] || 0) + 1;
+      }
+      setActiveCheckInsMap(checkInsMap);
 
       const config = configRes.data as HubCapacityConfig | null;
       setTotalSeats((config?.total_seats ?? 28) + (config?.manual_adjustment ?? 0));
@@ -122,6 +139,7 @@ export default function PublicCalendar(): JSX.Element {
     const dateStr = format(date, 'yyyy-MM-dd');
     const occ = occupancyMap[dateStr];
     const dayBookings = hubBookings.filter(b => b.booking_date === dateStr);
+    const activeCheckIns = activeCheckInsMap[dateStr] ?? 0;
 
     // Separate coworking (non-bundle, non-workshop) from bundles & workshops
     const coworkingCount = dayBookings.filter(
@@ -135,6 +153,7 @@ export default function PublicCalendar(): JSX.Element {
     return {
       totalSeats,
       bookedSeats: occ?.total_booked_seats ?? dayBookings.reduce((s, b) => s + b.seats_used, 0),
+      activeCheckIns,
       workshopQ2: occ?.workshop_block_q2 ?? false,
       workshopQ4: occ?.workshop_block_q4 ?? false,
       coworkingCount,
@@ -214,7 +233,7 @@ export default function PublicCalendar(): JSX.Element {
                 const isFuture   = isAfter(startOfDay(day), startOfDay(new Date())) || isToday;
 
                 const occPct = summary.totalSeats > 0
-                  ? Math.round((summary.bookedSeats / summary.totalSeats) * 100)
+                  ? Math.round((Math.max(summary.bookedSeats, summary.activeCheckIns) / summary.totalSeats) * 100)
                   : 0;
                 const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
 
@@ -244,7 +263,7 @@ export default function PublicCalendar(): JSX.Element {
                     </div>
 
                     {/* ── Occupancy mini-bar ── */}
-                    {isCurrentMonth && (summary.bookedSeats > 0 || isFullBlock) && (
+                    {isCurrentMonth && (summary.bookedSeats > 0 || summary.activeCheckIns > 0 || isFullBlock) && (
                       <div className="mb-1">
                         <div className="w-full bg-gray-100 rounded-full h-1.5">
                           <div
@@ -255,7 +274,7 @@ export default function PublicCalendar(): JSX.Element {
                         <div className="flex items-center gap-0.5 mt-0.5">
                           <Users className="w-3 h-3 text-gray-400" />
                           <span className="text-[10px] text-gray-500">
-                            {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                            Creatives at the Hub: {isFullBlock ? 'Full hub blocked' : `${Math.max(summary.bookedSeats, summary.activeCheckIns)}/${summary.totalSeats}`}
                           </span>
                         </div>
                       </div>
@@ -322,7 +341,8 @@ export default function PublicCalendar(): JSX.Element {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const dayAllBookings = hubBookings.filter(b => b.booking_date === dateStr);
         const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
-        const available = isFullBlock ? 0 : Math.max(0, summary.totalSeats - summary.bookedSeats);
+        const actualOccupied = Math.max(summary.bookedSeats, summary.activeCheckIns);
+        const available = isFullBlock ? 0 : Math.max(0, summary.totalSeats - actualOccupied);
 
         return (
           <div className="px-6 py-4 border-t border-gray-200">
@@ -334,6 +354,11 @@ export default function PublicCalendar(): JSX.Element {
             <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
               <span className="font-medium text-gray-900">{available} seats available</span>
               <span>of {summary.totalSeats}</span>
+              {summary.activeCheckIns > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+                  <Users className="w-3 h-3" /> {summary.activeCheckIns} Creators on the Floor
+                </span>
+              )}
               {isFullBlock && (
                 <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-medium">
                   <AlertTriangle className="w-3 h-3" /> Full Hub Blocked
