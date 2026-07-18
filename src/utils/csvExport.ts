@@ -90,3 +90,60 @@ export function formatEventForExport(event: Record<string, unknown>): Record<str
     'Created At': event.created_at ? new Date(String(event.created_at)).toLocaleString() : 'N/A',
   };
 }
+
+export function formatAnalyticsForExport(analytics: Record<string, unknown>): Record<string, string>[] {
+  const exportData: Record<string, string>[] = [];
+  
+  // Summary data
+  exportData.push({
+    'Metric': 'Total Bookings',
+    'Value': String(analytics.totalBookings || 0)
+  });
+  exportData.push({
+    'Metric': 'Total Revenue',
+    'Value': `₱${Number(analytics.totalRevenue || 0).toFixed(2)}`
+  });
+  exportData.push({
+    'Metric': 'Average Booking Duration',
+    'Value': `${Number(analytics.averageBookingDuration || 0).toFixed(1)} hours`
+  });
+  
+  const bookingsByStatus = analytics.bookingsByStatus as Record<string, unknown> || {};
+  const totalBookings = Number(analytics.totalBookings || 0);
+  const approvedCount = Number(bookingsByStatus.approved || 0);
+  
+  if (totalBookings > 0) {
+    exportData.push({
+      'Metric': 'Approval Rate',
+      'Value': `${((approvedCount / totalBookings) * 100).toFixed(0)}%`
+    });
+  }
+  
+  // Add a separator
+  exportData.push({ 'Metric': '', 'Value': '' });
+  exportData.push({ 'Metric': 'Space Utilization', 'Value': '' });
+  
+  // Space utilization
+  const spaceUtilization = analytics.spaceUtilization as Record<string, unknown> || {};
+  Object.entries(spaceUtilization).forEach(([space, count]) => {
+    exportData.push({
+      'Metric': space,
+      'Value': String(count || 0)
+    });
+  });
+  
+  // Add another separator
+  exportData.push({ 'Metric': '', 'Value': '' });
+  exportData.push({ 'Metric': 'Top Spaces by Revenue', 'Value': '' });
+  
+  // Popular spaces
+  const popularSpaces = analytics.popularSpaces as Array<{ name: string; revenue: number; bookings: number }> || [];
+  popularSpaces.forEach((space) => {
+    exportData.push({
+      'Metric': space.name,
+      'Value': `₱${space.revenue.toFixed(2)} (${space.bookings} bookings)`
+    });
+  });
+  
+  return exportData;
+}
