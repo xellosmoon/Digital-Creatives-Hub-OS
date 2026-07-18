@@ -105,6 +105,8 @@ export interface CalendarEvent {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  facebook_post_url?: string | null;
+  event_dates?: { date: string; start_time: string; end_time: string }[] | null;
   /** Joined from spaces table */
   space?: {
     id: string;

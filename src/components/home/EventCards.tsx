@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { CalendarEvent } from '../../types';
 
@@ -317,9 +317,17 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
   ];
   const gradient = gradients[index % gradients.length];
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (event.facebook_post_url) {
+      window.open(event.facebook_post_url, '_blank', 'noopener,noreferrer');
+    } else {
+      onClick();
+    }
+  };
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleCardClick}
       className="flex-shrink-0 w-[420px] snap-start cursor-pointer group"
     >
       <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-[#F59E0B]/30 hover:-translate-y-2">
@@ -374,7 +382,13 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
               Hosted by <span className="font-semibold text-gray-700">{event.organizer}</span>
             </p>
           )}
-          <p className="text-xs text-[#0C2340] font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to read more →</p>
+          {event.facebook_post_url ? (
+            <p className="text-xs text-[#1877F2] font-semibold mt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Facebook className="w-3.5 h-3.5" /> View Facebook Post →
+            </p>
+          ) : (
+            <p className="text-xs text-[#0C2340] font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to read more →</p>
+          )}
         </div>
       </div>
     </div>

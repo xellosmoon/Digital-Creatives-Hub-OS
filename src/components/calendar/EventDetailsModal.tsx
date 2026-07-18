@@ -100,22 +100,43 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
               <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="font-medium text-gray-900">Date</p>
-                <p className="text-gray-600">
-                  {format(new Date(event.start_time), 'EEEE, MMMM d, yyyy')}
-                </p>
+                {event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 1 ? (
+                  <div className="space-y-1.5 mt-1 max-h-36 overflow-y-auto pr-2">
+                    {event.event_dates.map((d: any, idx: number) => {
+                      if (!d.date) return null;
+                      try {
+                        const dateParts = d.date.split('-');
+                        const localDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                        return (
+                          <div key={idx} className="text-sm text-gray-600 bg-gray-50 rounded px-2.5 py-1 border border-gray-100">
+                            {format(localDate, 'EEE, MMM d, yyyy')} • {d.start_time} – {d.end_time}
+                          </div>
+                        );
+                      } catch (e) {
+                        return null;
+                      }
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-600">
+                    {format(new Date(event.start_time), 'EEEE, MMMM d, yyyy')}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-start space-x-3">
-              <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Time</p>
-                <p className="text-gray-600">
-                  {format(new Date(event.start_time), 'h:mm a')} –{' '}
-                  {format(new Date(event.end_time), 'h:mm a')}
-                </p>
+            {(!event.event_dates || !Array.isArray(event.event_dates) || event.event_dates.length <= 1) && (
+              <div className="flex items-start space-x-3">
+                <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="font-medium text-gray-900">Time</p>
+                  <p className="text-gray-600">
+                    {format(new Date(event.start_time), 'h:mm a')} –{' '}
+                    {format(new Date(event.end_time), 'h:mm a')}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />

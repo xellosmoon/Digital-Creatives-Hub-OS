@@ -68,8 +68,13 @@ export default function PublicCalendar(): JSX.Element {
   const fetchHubData = async (): Promise<void> => {
     setBookingsLoading(true);
     try {
-      const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(currentDate), 'yyyy-MM-dd');
+      const gridStart = startOfWeek(startOfMonth(currentDate));
+      const gridEnd = endOfWeek(endOfMonth(currentDate));
+      const gridStartStr = format(gridStart, 'yyyy-MM-dd');
+      const gridEndStr = format(gridEnd, 'yyyy-MM-dd');
+
+      const gridStartISO = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate(), 0, 0, 0, 0).toISOString();
+      const gridEndISO = new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59, 999).toISOString();
 
       // Parallel: bookings, occupancy rows, capacity config, active check-ins
       const [bookingsRes, occRes, configRes, attendanceRes] = await Promise.all([
@@ -77,14 +82,14 @@ export default function PublicCalendar(): JSX.Element {
           .from('hub_bookings')
           .select('*, package:rental_packages(slug, name, is_bundle)')
           .in('status', ['approved', 'active'])
-          .gte('booking_date', monthStart)
-          .lte('booking_date', monthEnd)
+          .gte('booking_date', gridStartStr)
+          .lte('booking_date', gridEndStr)
           .order('start_time', { ascending: true }),
         supabase
           .from('daily_occupancy')
           .select('*')
-          .gte('occupancy_date', monthStart)
-          .lte('occupancy_date', monthEnd),
+          .gte('occupancy_date', gridStartStr)
+          .lte('occupancy_date', gridEndStr),
         supabase
           .from('hub_capacity_config')
           .select('*')
@@ -94,8 +99,8 @@ export default function PublicCalendar(): JSX.Element {
           .from('hub_attendance')
           .select('*')
           .eq('status', 'active')
-          .gte('check_in_time', `${monthStart}T00:00:00`)
-          .lte('check_in_time', `${monthEnd}T23:59:59`),
+          .gte('check_in_time', gridStartISO)
+          .lte('check_in_time', gridEndISO),
       ]);
 
       setHubBookings((bookingsRes.data as CalendarHubBooking[]) ?? []);
@@ -131,8 +136,15 @@ export default function PublicCalendar(): JSX.Element {
     return eachDayOfInterval({ start, end });
   };
 
-  const getEventsForDay = (date: Date): CalendarEvent[] =>
-    events.filter(ev => isSameDay(new Date(ev.start_time), date));
+  const getEventsForDay = (date: Date): CalendarEvent[] => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return events.filter(ev => {
+      if (ev.event_dates && Array.isArray(ev.event_dates) && ev.event_dates.length > 0) {
+        return ev.event_dates.some((d: any) => d.date === dateStr);
+      }
+      return isSameDay(new Date(ev.start_time), date);
+    });
+  };
 
   /** Build an aggregated summary for a single day. */
   const getDaySummary = (date: Date): DaySummary => {
@@ -295,13 +307,6 @@ export default function PublicCalendar(): JSX.Element {
                         </div>
                       ))}
 
-                      {/* ── Grouped coworking count ── */}
-                      {summary.coworkingCount > 0 && (
-                        <div className="px-1 py-0.5 rounded text-[10px] truncate bg-primary-100 text-primary-800">
-                          <Users className="inline w-3 h-3 mr-0.5" />
-                          {summary.coworkingCount} coworker{summary.coworkingCount > 1 ? 's' : ''}
-                        </div>
-                      )}
 
                       {/* ── Bundle bookings ── */}
                       {summary.bundleBookings.slice(0, 1).map(bb => (
@@ -315,11 +320,9 @@ export default function PublicCalendar(): JSX.Element {
                       {(() => {
                         const shown = dayEvents.slice(0, 2).length
                           + Math.min(summary.workshopBookings.length, 1)
-                          + (summary.coworkingCount > 0 ? 1 : 0)
                           + Math.min(summary.bundleBookings.length, 1);
                         const total = dayEvents.length
                           + summary.workshopBookings.length
-                          + (summary.coworkingCount > 0 ? 1 : 0)
                           + summary.bundleBookings.length;
                         return total > shown ? (
                           <div className="text-[10px] text-gray-500 text-center">+{total - shown} more</div>

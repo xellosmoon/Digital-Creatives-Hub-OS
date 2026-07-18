@@ -17,6 +17,8 @@ interface TeamMember {
   is_featured: boolean;
   sort_order: number;
   created_at: string;
+  phone: string | null;
+  email: string | null;
 }
 
 export default function AboutUs(): JSX.Element {
@@ -161,17 +163,23 @@ export default function AboutUs(): JSX.Element {
                     {featuredMember.bio && (
                       <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">{featuredMember.bio}</p>
                     )}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
-                        <a href="mailto:cdiisiligan@gmail.com" className="hover:text-[#F59E0B] transition-colors">
-                          cdiisiligan@gmail.com
-                        </a>
-                        <span className="hidden sm:inline">•</span>
-                        <a href="tel:09756706143" className="hover:text-[#F59E0B] transition-colors">
-                          0975 670 6143
-                        </a>
+                    {(featuredMember.email || featuredMember.phone) && (
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
+                          {featuredMember.email && (
+                            <a href={`mailto:${featuredMember.email}`} className="hover:text-[#F59E0B] transition-colors">
+                              {featuredMember.email}
+                            </a>
+                          )}
+                          {featuredMember.email && featuredMember.phone && <span className="hidden sm:inline">•</span>}
+                          {featuredMember.phone && (
+                            <a href={`tel:${featuredMember.phone.replace(/\s/g, '')}`} className="hover:text-[#F59E0B] transition-colors">
+                              {featuredMember.phone}
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}

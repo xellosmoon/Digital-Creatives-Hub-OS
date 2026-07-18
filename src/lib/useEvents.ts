@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { supabase } from './supabase';
 import type { CalendarEvent } from '../types';
 
@@ -35,19 +35,32 @@ export function useEvents(currentDate: Date): { events: CalendarEvent[]; loading
   async function fetchEvents(): Promise<void> {
     setLoading(true);
     try {
-      const monthStart = startOfMonth(currentDate).toISOString();
-      const monthEnd = endOfMonth(currentDate).toISOString();
+      const gridStart = startOfWeek(startOfMonth(currentDate));
+      const gridEnd = endOfWeek(endOfMonth(currentDate));
 
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .eq('status', 'published')
-        .gte('start_time', monthStart)
-        .lte('start_time', monthEnd)
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      setEvents((data as CalendarEvent[]) ?? []);
+      
+      // Filter client-side to include multi-date events that span the visible month
+      const filteredEvents = (data as CalendarEvent[]).filter(ev => {
+        // Check if event has any date in the visible range
+        if (ev.event_dates && Array.isArray(ev.event_dates) && ev.event_dates.length > 0) {
+          return ev.event_dates.some((d: any) => {
+            const eventDate = new Date(d.date);
+            return eventDate >= gridStart && eventDate <= gridEnd;
+          });
+        }
+        // Fallback to start_time for single-date events
+        const eventStart = new Date(ev.start_time);
+        return eventStart >= gridStart && eventStart <= gridEnd;
+      });
+
+      setEvents(filteredEvents ?? []);
     } catch (err) {
       console.error('Error fetching events:', err);
     } finally {
