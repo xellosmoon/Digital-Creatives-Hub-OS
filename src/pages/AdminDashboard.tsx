@@ -247,15 +247,35 @@ export default function AdminDashboard(): JSX.Element {
     toast.success('Bookings exported successfully!');
   };
 
-  const handleExportDTI = (): void => {
-    if (attendance.length === 0) {
-      toast.error('No attendance data to export');
-      return;
+  const handleExportDTI = async (): Promise<void> => {
+    try {
+      toast.loading('Fetching all historical attendance data...', { id: 'export-dti' });
+      
+      // Fetch ALL attendance records (not just today's)
+      const { data: allAttendance, error } = await supabase
+        .from('hub_attendance')
+        .select('*')
+        .order('check_in_time', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (!allAttendance || allAttendance.length === 0) {
+        toast.dismiss('export-dti');
+        toast.error('No attendance data to export');
+        return;
+      }
+      
+      const exportData = allAttendance.map(a => formatAttendanceForDTIExport(a as unknown as Record<string, unknown>));
+      const filename = `DTI_SSF_Attendance_AllRecords_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCSV(exportData, filename);
+      
+      toast.dismiss('export-dti');
+      toast.success(`Exported ${allAttendance.length} attendance records!`);
+    } catch (err) {
+      toast.dismiss('export-dti');
+      console.error('Export error:', err);
+      toast.error('Failed to export attendance data');
     }
-    const exportData = attendance.map(a => formatAttendanceForDTIExport(a as unknown as Record<string, unknown>));
-    const filename = `DTI_SSF_Attendance_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCSV(exportData, filename);
-    toast.success('DTI attendance exported!');
   };
 
   // ── Derived counts ──
