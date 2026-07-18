@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Filter, ArrowLeft, Check, XCircle, Edit, Calendar, Users, Mail, Phone, Building2, Sparkles } from 'lucide-react';
+import { Plus, RefreshCw, Filter, ArrowLeft, Check, XCircle, Edit, Calendar, Users, Mail, Phone, Building2, Sparkles, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import type { CalendarEvent } from '../types';
 import AdminEventCard from '../components/admin/AdminEventCard';
 import EventFormModal from '../components/admin/EventFormModal';
 import { format } from 'date-fns';
+import { exportToCSV, formatEventForExport } from '../utils/csvExport';
 
 type StatusFilter = 'all' | 'proposed' | 'approved' | 'published' | 'draft' | 'cancelled';
 
@@ -118,6 +119,38 @@ export default function EventManagement(): JSX.Element {
     }
   };
 
+  // ── Export all events ─────────────────
+  const handleExportEvents = async (): Promise<void> => {
+    try {
+      toast.loading('Fetching all historical event data...', { id: 'export-events' });
+      
+      // Fetch ALL event records (not just filtered)
+      const { data: allEvents, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (!allEvents || allEvents.length === 0) {
+        toast.dismiss('export-events');
+        toast.error('No event data to export');
+        return;
+      }
+      
+      const exportData = allEvents.map(event => formatEventForExport(event));
+      const filename = `Events_AllRecords_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCSV(exportData, filename);
+      
+      toast.dismiss('export-events');
+      toast.success(`Exported ${allEvents.length} event records!`);
+    } catch (err) {
+      toast.dismiss('export-events');
+      console.error('Export error:', err);
+      toast.error('Failed to export event data');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -141,6 +174,12 @@ export default function EventManagement(): JSX.Element {
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            </button>
+            <button
+              onClick={handleExportEvents}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Download className="h-4 w-4 mr-2" /> Export All
             </button>
             <button
               onClick={() => setShowCreateModal(true)}

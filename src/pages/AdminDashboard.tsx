@@ -240,11 +240,35 @@ export default function AdminDashboard(): JSX.Element {
     fetchAttendance();
   };
 
-  const handleExportBookings = (): void => {
-    const exportData = bookings.map(booking => formatBookingForExport(booking));
-    const filename = `bookings_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    exportToCSV(exportData, filename);
-    toast.success('Bookings exported successfully!');
+  const handleExportBookings = async (): Promise<void> => {
+    try {
+      toast.loading('Fetching all historical booking data...', { id: 'export-bookings' });
+      
+      // Fetch ALL booking records (not just filtered)
+      const { data: allBookings, error } = await supabase
+        .from('hub_bookings')
+        .select('*, package:rental_packages(id, slug, name, hourly_rate, daily_rate, billing_mode, seats_consumed, is_bundle)')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (!allBookings || allBookings.length === 0) {
+        toast.dismiss('export-bookings');
+        toast.error('No booking data to export');
+        return;
+      }
+      
+      const exportData = allBookings.map(booking => formatBookingForExport(booking));
+      const filename = `Bookings_AllRecords_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      exportToCSV(exportData, filename);
+      
+      toast.dismiss('export-bookings');
+      toast.success(`Exported ${allBookings.length} booking records!`);
+    } catch (err) {
+      toast.dismiss('export-bookings');
+      console.error('Export error:', err);
+      toast.error('Failed to export booking data');
+    }
   };
 
   const handleExportDTI = async (): Promise<void> => {

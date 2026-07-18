@@ -16,6 +16,8 @@ interface TeamMember {
   image_url: string | null;
   is_featured: boolean;
   sort_order: number;
+  phone: string | null;
+  email: string | null;
 }
 
 interface TeamMemberModalProps {
@@ -36,6 +38,8 @@ export default function TeamMemberModal({ member, onClose, onSaved }: TeamMember
     image_url: member?.image_url ?? '',
     is_featured: member?.is_featured ?? false,
     sort_order: member?.sort_order ?? 0,
+    phone: member?.phone ?? '',
+    email: member?.email ?? '',
   });
 
   const updateField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]): void => {
@@ -137,6 +141,8 @@ export default function TeamMemberModal({ member, onClose, onSaved }: TeamMember
         image_url: form.image_url.trim() || null,
         is_featured: form.is_featured,
         sort_order: form.sort_order,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
       };
 
       if (isEditing && member) {
@@ -263,6 +269,36 @@ export default function TeamMemberModal({ member, onClose, onSaved }: TeamMember
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
             <p className="text-xs text-gray-500 mt-1">Optional. 2-3 sentences recommended.</p>
+          </div>
+
+          {/* Contact Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => updateField('phone', e.target.value)}
+                placeholder="0975 670 6143"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">Optional. Displayed on About Us page.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => updateField('email', e.target.value)}
+                placeholder="cdiisiligan@gmail.com"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">Optional. Displayed on About Us page.</p>
+            </div>
           </div>
 
           {/* Photo Upload */}

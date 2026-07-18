@@ -18,6 +18,8 @@ interface TeamMember {
   is_featured: boolean;
   sort_order: number;
   created_at: string;
+  phone: string | null;
+  email: string | null;
 }
 
 export default function TeamManagement(): JSX.Element {
@@ -144,6 +146,9 @@ export default function TeamManagement(): JSX.Element {
                   Name & Position
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bio
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -176,6 +181,19 @@ export default function TeamManagement(): JSX.Element {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-600">
+                      {member.phone && (
+                        <div className="text-sm text-gray-600">{member.phone}</div>
+                      )}
+                      {member.email && (
+                        <div className="text-sm text-gray-600 truncate max-w-xs">{member.email}</div>
+                      )}
+                      {!member.phone && !member.email && (
+                        <span className="text-gray-400 italic text-sm">No contact info</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
