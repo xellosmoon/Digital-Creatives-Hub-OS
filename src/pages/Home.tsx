@@ -262,7 +262,7 @@ export default function Home(): JSX.Element {
       </div>
 
       {/* What We Offer Section */}
-      <div className="py-24 bg-white relative overflow-hidden">
+      <div className="py-24 bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-[#0C2340] sm:text-4xl">What We Offer</h2>
@@ -285,7 +285,7 @@ export default function Home(): JSX.Element {
       <EventCards />
 
       {/* Stats Section */}
-      <div className="relative py-16 bg-white">
+      <div className="relative py-16 bg-gradient-to-r from-teal-50 via-cyan-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="group">
@@ -320,7 +320,7 @@ export default function Home(): JSX.Element {
       </div>
 
       {/* Features Section */}
-      <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      <div className="py-20 bg-gradient-to-br from-rose-50 via-white to-amber-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -382,7 +382,7 @@ export default function Home(): JSX.Element {
 
       {/* Available Zones Preview */}
       {zones.length > 0 && (
-        <div className="py-20 bg-white">
+        <div className="py-20 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Hub Zones</h2>
@@ -410,7 +410,7 @@ export default function Home(): JSX.Element {
 
       {/* Borrow Gear Section */}
       {equipment.length > 0 && (
-        <div className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="py-20 bg-gradient-to-br from-purple-100 via-white to-pink-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <div className="flex justify-center mb-4">
@@ -469,7 +469,7 @@ export default function Home(): JSX.Element {
       )}
 
       {/* Amenities Section */}
-      <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      <div className="py-20 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Everything You Need</h2>
