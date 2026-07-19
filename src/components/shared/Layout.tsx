@@ -93,7 +93,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -390,10 +390,30 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            © 2024 Digital Creatives Hub Iligan. All rights reserved.
-          </p>
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <p className="text-center text-sm text-gray-500 sm:text-left">
+              © {new Date().getFullYear()} Digital Creatives Hub Iligan. All rights reserved.
+            </p>
+
+            <a
+              href="mailto:lunarbyteitsolutions@gmail.com"
+              className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-50"
+            >
+              <img
+                src="/lunarbyte-logo.jpg"
+                alt="LunarByte IT Solutions"
+                className="h-10 w-10 rounded-full object-cover"
+              />
+              <span className="text-left leading-tight">
+                <span className="block text-xs text-gray-400">Website by</span>
+                <span className="block text-sm font-semibold text-gray-700 group-hover:text-primary-600">
+                  LunarByte IT Solutions
+                </span>
+                <span className="block text-xs text-gray-400">lunarbyteitsolutions@gmail.com</span>
+              </span>
+            </a>
+          </div>
         </div>
       </footer>
     </div>
