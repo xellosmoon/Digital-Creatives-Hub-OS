@@ -311,7 +311,10 @@ export default function PublicCalendar(): JSX.Element {
                         return (
                           <div
                             key={ev.id}
-                            onClick={() => handleEventClick(ev)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEventClick(ev);
+                            }}
                             className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${bgColor} hover:scale-105 transition-transform cursor-pointer`}
                             title={ev.title}
                           >
