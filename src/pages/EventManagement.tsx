@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Filter, ArrowLeft, Check, XCircle, Edit, Calendar, Users, Mail, Phone, Building2, Sparkles, Download } from 'lucide-react';
+import { Plus, RefreshCw, Filter, ArrowLeft, Check, XCircle, Sparkles, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -10,6 +10,12 @@ import { format } from 'date-fns';
 import { exportToCSV, formatEventForExport } from '../utils/csvExport';
 
 type StatusFilter = 'all' | 'proposed' | 'approved' | 'published' | 'draft' | 'cancelled';
+
+interface EventDate {
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+}
 
 interface EventProposal {
   id: string;
@@ -22,7 +28,7 @@ interface EventProposal {
   description: string;
   expected_guests: number | null;
   creative_domains: string[];
-  event_dates: any;
+  event_dates: EventDate[];
   status: string;
   created_at: string;
 }
@@ -283,7 +289,7 @@ export default function EventManagement(): JSX.Element {
                 <div className="mb-4">
                   <p className="text-gray-500 font-medium text-xs mb-2">Event Dates & Times</p>
                   <div className="space-y-1">
-                    {Array.isArray(proposal.event_dates) && proposal.event_dates.map((eventDate: any, index: number) => {
+                    {Array.isArray(proposal.event_dates) && proposal.event_dates.map((eventDate: EventDate, index: number) => {
                       if (!eventDate.date) return null;
                       try {
                         const dateObj = new Date(eventDate.date);

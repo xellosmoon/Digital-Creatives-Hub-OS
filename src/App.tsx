@@ -11,6 +11,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminBookings = lazy(() => import('./pages/AdminBookings'));
 const Bookings = lazy(() => import('./pages/Bookings'));
 const Calendar = lazy(() => import('./pages/Calendar'));
 const BookingLookup = lazy(() => import('./pages/BookingLookup'));
@@ -188,6 +189,16 @@ function App(): JSX.Element {
                 <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <TeamManagement />
+                  </ProtectedRoute>
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/bookings"
+              element={
+                <Layout session={session}>
+                  <ProtectedRoute session={session} requireAdmin>
+                    <AdminBookings />
                   </ProtectedRoute>
                 </Layout>
               }

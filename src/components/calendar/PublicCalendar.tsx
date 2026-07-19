@@ -4,15 +4,22 @@ import {
   isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval,
 } from 'date-fns';
 import {
-  ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle,
+  ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle, Calendar,
+  Terminal, Sparkles,
 } from 'lucide-react';
+
+interface EventDate {
+  date: string;
+  start_time: string;
+  end_time: string;
+}
 import { supabase } from '../../lib/supabase';
 import { useEvents } from '../../lib/useEvents';
 import type { CalendarEvent } from '../../types';
 import type { HubBooking, DailyOccupancy, HubCapacityConfig } from '../../types/hub';
 import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
-import EventChip from './EventChip';
+import AgendaPopover from './AgendaPopover';
 
 // ── Hub booking with only the joined package columns we SELECT ──────
 interface CalendarHubBooking extends Omit<HubBooking, 'package'> {
@@ -39,6 +46,7 @@ export default function PublicCalendar(): JSX.Element {
   const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
   const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showAgendaPopover, setShowAgendaPopover] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -140,7 +148,7 @@ export default function PublicCalendar(): JSX.Element {
     const dateStr = format(date, 'yyyy-MM-dd');
     return events.filter(ev => {
       if (ev.event_dates && Array.isArray(ev.event_dates) && ev.event_dates.length > 0) {
-        return ev.event_dates.some((d: any) => d.date === dateStr);
+        return ev.event_dates.some((d: EventDate) => d.date === dateStr);
       }
       return isSameDay(new Date(ev.start_time), date);
     });
@@ -185,6 +193,23 @@ export default function PublicCalendar(): JSX.Element {
   const handleEventClick = (ev: CalendarEvent): void => {
     setSelectedEvent(ev);
     setShowEventModal(true);
+  };
+
+  // ── Event type detection helper ───────────────────────────────────
+  const getEventIcon = (event: CalendarEvent): typeof Terminal | typeof Sparkles | typeof Calendar => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+
+    if (isWorkshop) return Terminal;
+    if (event.is_featured) return Sparkles;
+    return Calendar;
+  };
+
+  // ── Propose event navigation ───────────────────────────────────────
+  const handleProposeEvent = (): void => {
+    // Navigate to propose event page (adjust route as needed)
+    window.location.href = '/propose-event';
   };
 
   // ── Occupancy bar color helper ───────────────────────────────────
@@ -255,7 +280,7 @@ export default function PublicCalendar(): JSX.Element {
                     onClick={() => {
                       if (isFuture) {
                         setSelectedDate(day);
-                        setShowBookingModal(true);
+                        setShowAgendaPopover(true);
                       }
                     }}
                     className={`
@@ -292,42 +317,60 @@ export default function PublicCalendar(): JSX.Element {
                       </div>
                     )}
 
-                    {/* Day content */}
-                    <div className="space-y-0.5">
-                      {/* ── Event chips (clickable individually) ── */}
-                      {dayEvents.slice(0, 2).map(ev => (
-                        <EventChip key={ev.id} event={ev} onClick={handleEventClick} />
-                      ))}
+                    {/* Day content - horizontal badge row */}
+                    <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
+                      {/* ── Event icon badges ── */}
+                      {dayEvents.slice(0, 3).map(ev => {
+                        const Icon = getEventIcon(ev);
+                        const isWorkshop = ev.title.toLowerCase().includes('workshop') ||
+                                          ev.title.toLowerCase().includes('training') ||
+                                          ev.title.toLowerCase().includes('bootcamp');
+                        const iconColor = isWorkshop ? 'text-orange-500' : 'text-blue-600';
 
-                      {/* ── Workshop blocks ── */}
-                      {summary.workshopBookings.slice(0, 1).map(wb => (
-                        <div key={wb.id} className="px-1 py-0.5 rounded text-[10px] truncate bg-red-100 text-red-800 flex items-center gap-0.5">
-                          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                          Workshop
+                        return (
+                          <div
+                            key={ev.id}
+                            onClick={() => handleEventClick(ev)}
+                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br border hover:scale-110 transition-transform cursor-pointer"
+                            style={{
+                              background: isWorkshop
+                                ? 'linear-gradient(to bottom right, #fff7ed, #ffedd5)'
+                                : 'linear-gradient(to bottom right, #eff6ff, #dbeafe)',
+                              borderColor: isWorkshop ? '#fed7aa' : '#bfdbfe',
+                            }}
+                            title={ev.title}
+                          >
+                            <Icon className={`w-4 h-4 ${iconColor}`} />
+                          </div>
+                        );
+                      })}
+
+                      {/* ── Overflow counter ── */}
+                      {dayEvents.length > 3 && (
+                        <div className="flex items-center justify-center px-2 h-7 rounded-lg bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
+                          +{dayEvents.length - 3}
                         </div>
-                      ))}
+                      )}
 
-
-                      {/* ── Bundle bookings ── */}
-                      {summary.bundleBookings.slice(0, 1).map(bb => (
-                        <div key={bb.id} className="px-1 py-0.5 rounded text-[10px] truncate bg-purple-100 text-purple-800 flex items-center gap-0.5">
-                          <Wrench className="w-3 h-3 flex-shrink-0" />
-                          {bb.package?.name ?? 'Bundle'}
+                      {/* ── Workshop booking indicator ── */}
+                      {summary.workshopBookings.length > 0 && (
+                        <div
+                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200 hover:scale-110 transition-transform cursor-pointer"
+                          title={`${summary.workshopBookings.length} workshop booking${summary.workshopBookings.length > 1 ? 's' : ''}`}
+                        >
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
                         </div>
-                      ))}
+                      )}
 
-                      {/* Overflow */}
-                      {(() => {
-                        const shown = dayEvents.slice(0, 2).length
-                          + Math.min(summary.workshopBookings.length, 1)
-                          + Math.min(summary.bundleBookings.length, 1);
-                        const total = dayEvents.length
-                          + summary.workshopBookings.length
-                          + summary.bundleBookings.length;
-                        return total > shown ? (
-                          <div className="text-[10px] text-gray-500 text-center">+{total - shown} more</div>
-                        ) : null;
-                      })()}
+                      {/* ── Bundle booking indicator ── */}
+                      {summary.bundleBookings.length > 0 && (
+                        <div
+                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:scale-110 transition-transform cursor-pointer"
+                          title={`${summary.bundleBookings.length} bundle booking${summary.bundleBookings.length > 1 ? 's' : ''}`}
+                        >
+                          <Wrench className="w-4 h-4 text-purple-500" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -420,6 +463,26 @@ export default function PublicCalendar(): JSX.Element {
           </div>
         );
       })()}
+
+      {/* Agenda Popover */}
+      {showAgendaPopover && selectedDate && (
+        <AgendaPopover
+          selectedDate={selectedDate}
+          events={getEventsForDay(selectedDate)}
+          onClose={() => { setShowAgendaPopover(false); setSelectedDate(null); }}
+          onBookSpace={(date) => {
+            setShowAgendaPopover(false);
+            setSelectedDate(date);
+            setShowBookingModal(true);
+          }}
+          onViewDetails={(event) => {
+            setShowAgendaPopover(false);
+            setSelectedEvent(event);
+            setShowEventModal(true);
+          }}
+          onProposeEvent={handleProposeEvent}
+        />
+      )}
 
       {/* Quick Booking Modal */}
       {showBookingModal && selectedDate && (

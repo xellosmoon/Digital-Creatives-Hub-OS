@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { 
-  Calendar, Users, Zap, Shield, Building2, Clock, Star, ArrowRight, CheckCircle, 
+import {
+  Users, Zap, Shield, Building2, Clock, Star, ArrowRight, 
   Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, 
   Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb, 
   Layers, Presentation, Armchair
@@ -66,7 +66,7 @@ export default function Home(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
       setLoading(true);
       setError(null);
       await Promise.all([fetchZones(), fetchStats(), fetchEquipment()]);

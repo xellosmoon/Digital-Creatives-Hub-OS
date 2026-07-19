@@ -4,6 +4,11 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import type { HubCapacityConfig, DailyOccupancy, HubZone } from '../../types/hub';
 
+interface HubAttendanceRecord {
+  id: string;
+  [key: string]: unknown;
+}
+
 interface HubLiveStatusData {
   totalSeats: number;
   adjustment: number;
@@ -39,7 +44,7 @@ export default function HubLiveStatus(): JSX.Element {
       const config: HubCapacityConfig | null = configRes.data;
       const occupancy: DailyOccupancy | null = occupancyRes.data;
       const zones: HubZone[] = zonesRes.data || [];
-      const activeCheckIns: any[] = attendanceRes.data || [];
+      const activeCheckIns: HubAttendanceRecord[] = (attendanceRes.data || []) as HubAttendanceRecord[];
 
       const totalSeats = config?.total_seats ?? 28;
       const adjustment = config?.manual_adjustment ?? 0;

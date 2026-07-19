@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 import {
-  Sparkles, Calendar, Clock, User, Mail, Phone, FileText,
-  Users, Image, Link as LinkIcon, Building2, CheckCircle,
+  Sparkles, Calendar, User, Mail, Phone, FileText,
+  Users, Building2, CheckCircle,
   ArrowLeft, Send, PartyPopper, Info, Check, Music, Film,
   Palette, Monitor, PenTool, BookOpen, Megaphone, Landmark,
   Theater, X, Grid3X3,
@@ -90,9 +90,10 @@ export default function ProposeEvent(): JSX.Element {
     switch (step) {
       case 'organizer':
         return !!form.fullName.trim() && !!form.email.trim() && !!form.phone.trim();
-      case 'logistics':
+      case 'logistics': {
         const guestCount = parseInt(form.expectedGuests);
         return !!form.title.trim() && !!form.description.trim() && !!form.expectedGuests.trim() && !isNaN(guestCount) && guestCount > 0;
+      }
       case 'domains':
         return selectedDomains.length > 0;
       default:

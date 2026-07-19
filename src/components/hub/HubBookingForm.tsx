@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mail, Phone, User, Clock, Calendar, Info, Package, Plus, X } from 'lucide-react';
+import { Mail, Phone, User, Clock, Calendar, Info, Package, X } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
