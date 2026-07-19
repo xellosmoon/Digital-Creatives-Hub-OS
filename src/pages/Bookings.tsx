@@ -6,7 +6,7 @@ import {
   User, Mail, Phone, FileText, Users, Info,
   Package, Star, Laptop, X,
   Coffee, Palette, Film, Camera, CheckCircle, AlertCircle,
-  Zap, Shield, Monitor, Sparkles, BookOpen, Plus, PartyPopper, Briefcase,
+  Zap, Shield, Monitor, Sparkles, BookOpen, PartyPopper,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';

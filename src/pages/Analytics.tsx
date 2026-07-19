@@ -1,10 +1,87 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, Calendar, DollarSign, Clock, Download, Trash, Users, Building2, Briefcase, Package, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
-import { exportToCSV, formatAnalyticsForExport } from '../utils/csvExport';
+
+interface Booking {
+  id: string;
+  status: string;
+  start_time: string;
+  end_time: string;
+  space_id?: string;
+  space?: { name: string; hourly_rate: number };
+  booking_reference?: string;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  organization?: string;
+  purpose?: string;
+  attendees?: number;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface Space {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface Attendance {
+  id: string;
+  organization?: string;
+  guest_organization?: string;
+  pcida_domain?: string;
+  creative_domain?: string;
+  purpose?: string;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  entrance_time?: string;
+  exit_time?: string;
+  status?: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface Event {
+  id: string;
+  title?: string;
+  organizer_name?: string;
+  organizer_email?: string;
+  start_time: string;
+  end_time: string;
+  status?: string;
+  is_featured?: boolean;
+  registration_link?: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface Borrowing {
+  id: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface Proposal {
+  id: string;
+  creative_domains?: string[];
+  [key: string]: unknown;
+}
+
+interface RecordWithOrg {
+  organization?: string;
+  guest_organization?: string;
+  [key: string]: unknown;
+}
+
+interface RecordWithPurpose {
+  purpose?: string;
+  [key: string]: unknown;
+}
 
 interface AnalyticsData {
   totalBookings: number;
@@ -108,12 +185,12 @@ export default function Analytics(): JSX.Element {
   };
 
   const processAnalytics = (
-    bookings: any[],
-    spaces: { id: string; name: string }[],
-    attendance: any[],
-    events: any[],
-    borrowings: any[],
-    proposals: any[]
+    bookings: Booking[],
+    spaces: Space[],
+    attendance: Attendance[],
+    events: Event[],
+    borrowings: Borrowing[],
+    proposals: Proposal[]
   ): AnalyticsData => {
     const approvedBookings = bookings.filter(b => b.status === 'approved');
     
@@ -193,7 +270,7 @@ export default function Analytics(): JSX.Element {
 
     // Organizations breakdown
     const orgCounts: { [key: string]: number } = {};
-    [...bookings, ...attendance].forEach((record: any) => {
+    [...bookings, ...attendance].forEach((record: RecordWithOrg) => {
       const org = record.organization || record.guest_organization;
       if (org && org.trim()) {
         orgCounts[org] = (orgCounts[org] || 0) + 1;
@@ -206,14 +283,14 @@ export default function Analytics(): JSX.Element {
 
     // Creative domains breakdown (from proposals and attendance)
     const domainCounts: { [key: string]: number } = {};
-    proposals.forEach((p: any) => {
+    proposals.forEach((p: Proposal) => {
       if (Array.isArray(p.creative_domains)) {
         p.creative_domains.forEach((d: string) => {
           domainCounts[d] = (domainCounts[d] || 0) + 1;
         });
       }
     });
-    attendance.forEach((a: any) => {
+    attendance.forEach((a: Attendance) => {
       const domain = a.pcida_domain || a.creative_domain;
       if (domain && domain.trim()) {
         domainCounts[domain] = (domainCounts[domain] || 0) + 1;
@@ -225,7 +302,7 @@ export default function Analytics(): JSX.Element {
 
     // Purpose breakdown
     const purposeCounts: { [key: string]: number } = {};
-    [...bookings, ...attendance].forEach((record: any) => {
+    [...bookings, ...attendance].forEach((record: RecordWithPurpose) => {
       const purpose = record.purpose;
       if (purpose && purpose.trim()) {
         purposeCounts[purpose] = (purposeCounts[purpose] || 0) + 1;
@@ -598,10 +675,10 @@ export default function Analytics(): JSX.Element {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Top 5 Spaces by Revenue</h3>
               <div className="space-y-3">
-                {analytics.popularSpaces.map((space, index) => (
+                {analytics.popularSpaces.map((space, _index) => (
                   <div key={space.name} className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-900 mr-2">#{index + 1}</span>
+                      <span className="text-sm font-medium text-gray-900 mr-2">#{_index + 1}</span>
                       <span className="text-sm text-gray-700">{space.name}</span>
                     </div>
                     <div className="text-right">
@@ -623,10 +700,10 @@ export default function Analytics(): JSX.Element {
                 Top Organizations
               </h3>
               <div className="space-y-2">
-                {analytics.organizations.slice(0, 5).map((org, index) => (
+                {analytics.organizations.slice(0, 5).map((org, _index) => (
                   <div key={org.name} className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <span className="text-xs font-medium text-gray-500 mr-2">#{index + 1}</span>
+                      <span className="text-xs font-medium text-gray-500 mr-2">#{_index + 1}</span>
                       <span className="text-sm text-gray-700">{org.name}</span>
                     </div>
                     <span className="text-sm font-medium text-gray-900">{org.visits} visits</span>
@@ -645,12 +722,12 @@ export default function Analytics(): JSX.Element {
                 Creative Domains
               </h3>
               <div className="space-y-2">
-                {analytics.creativeDomains.slice(0, 5).map((domain, index) => (
-                  <div key={domain.domain} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{domain.domain}</span>
-                    <span className="text-sm font-medium text-gray-900">{domain.count}</span>
-                  </div>
-                ))}
+                {analytics.creativeDomains.slice(0, 5).map((domain, _index) => (
+                <div key={domain.domain} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">{domain.domain}</span>
+                  <span className="text-sm font-medium text-gray-900">{domain.count}</span>
+                </div>
+              ))}
                 {analytics.creativeDomains.length === 0 && (
                   <p className="text-sm text-gray-500">No data available</p>
                 )}
@@ -664,12 +741,12 @@ export default function Analytics(): JSX.Element {
                 Purpose of Visit
               </h3>
               <div className="space-y-2">
-                {analytics.purposeBreakdown.slice(0, 5).map((purpose, index) => (
-                  <div key={purpose.purpose} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{purpose.purpose}</span>
-                    <span className="text-sm font-medium text-gray-900">{purpose.count}</span>
-                  </div>
-                ))}
+                {analytics.purposeBreakdown.slice(0, 5).map((purpose, _index) => (
+                <div key={purpose.purpose} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">{purpose.purpose}</span>
+                  <span className="text-sm font-medium text-gray-900">{purpose.count}</span>
+                </div>
+              ))}
                 {analytics.purposeBreakdown.length === 0 && (
                   <p className="text-sm text-gray-500">No data available</p>
                 )}

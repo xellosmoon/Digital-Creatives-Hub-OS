@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
+import Footer from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
@@ -93,7 +94,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -388,14 +389,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            © 2024 Digital Creatives Hub Iligan. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,12 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { supabase } from './supabase';
 import type { CalendarEvent } from '../types';
 
+interface EventDate {
+  date: string;
+  start_time: string;
+  end_time: string;
+}
+
 /**
  * Custom hook that fetches published events for a given month from the
  * dedicated `events` table.  It also sets up a real-time subscription so
@@ -50,7 +56,7 @@ export function useEvents(currentDate: Date): { events: CalendarEvent[]; loading
       const filteredEvents = (data as CalendarEvent[]).filter(ev => {
         // Check if event has any date in the visible range
         if (ev.event_dates && Array.isArray(ev.event_dates) && ev.event_dates.length > 0) {
-          return ev.event_dates.some((d: any) => {
+          return ev.event_dates.some((d: EventDate) => {
             const eventDate = new Date(d.date);
             return eventDate >= gridStart && eventDate <= gridEnd;
           });

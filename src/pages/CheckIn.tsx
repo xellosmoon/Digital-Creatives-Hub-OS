@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Phone, ArrowRight, ArrowLeft, CheckCircle,
   Music, Film, Palette, Gamepad2, PenTool, BookOpen,
-  Megaphone, Landmark, Drama, Clock,
+  Megaphone, Landmark, Drama,
   Sparkles, UserCheck, ShieldCheck, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -61,7 +61,7 @@ export default function CheckIn(): JSX.Element {
   const update = useCallback((patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch })), []);
 
   // ── Check returning user when mobile is entered ─────────────────
-  const checkReturning = useCallback(async (mobile: string) => {
+  const checkReturning = useCallback(async (mobile: string): Promise<void> => {
     if (mobile.length < 10) return;
     try {
       const { data } = await supabase.rpc('find_returning_user', { p_mobile: mobile });
@@ -97,14 +97,14 @@ export default function CheckIn(): JSX.Element {
   };
   const deleteDigit = (): void => update({ mobile: form.mobile.slice(0, -1) });
 
-  // ── Fetch today's approved events ─────────────────────────────
+  // ── Fetch today's published events ─────────────────────────────
   useEffect(() => {
-    const fetchTodayEvents = async () => {
+    const fetchTodayEvents = async (): Promise<void> => {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
         .from('events')
         .select('id, title, start_time')
-        .eq('status', 'approved')
+        .eq('status', 'published')
         .gte('start_time', `${today}T00:00:00`)
         .lte('start_time', `${today}T23:59:59`)
         .order('start_time', { ascending: true });
@@ -155,7 +155,7 @@ export default function CheckIn(): JSX.Element {
     if (!canProceed()) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.from('hub_attendance').insert({
+      const { error } = await supabase.from('hub_attendance').insert({
         mobile_number: form.mobile,
         full_name: form.name,
         gender: form.gender || null,

@@ -7,6 +7,12 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
 
+interface EventDate {
+  date: string;
+  start_time: string;
+  end_time: string;
+}
+
 // ── Props ───────────────────────────────────────────────────────────
 interface EventDetailsModalProps {
   /** The event to display — sourced from the `events` table. */
@@ -102,7 +108,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
                 <p className="font-medium text-gray-900">Date</p>
                 {event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 1 ? (
                   <div className="space-y-1.5 mt-1 max-h-36 overflow-y-auto pr-2">
-                    {event.event_dates.map((d: any, idx: number) => {
+                    {event.event_dates.map((d: EventDate, idx: number) => {
                       if (!d.date) return null;
                       try {
                         const dateParts = d.date.split('-');
