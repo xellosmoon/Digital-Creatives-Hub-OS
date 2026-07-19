@@ -114,13 +114,20 @@ export default function CheckIn(): JSX.Element {
   }, []);
 
   // ── Navigation ─────────────────────────────────────────────────
-  const STEPS: Step[] = ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event', 'agreement'];
+  const STEPS: Step[] = todayEvents.length > 0 
+    ? ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event', 'agreement']
+    : ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'agreement'];
 
   const goNext = (): void => {
     const idx = STEPS.indexOf(step);
     // Returning users: skip from mobile straight to purpose
     if (step === 'mobile' && isReturning) {
       setStep('purpose');
+      return;
+    }
+    // Skip event step if no events today
+    if (step === 'domain' && todayEvents.length === 0) {
+      setStep('agreement');
       return;
     }
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
@@ -130,6 +137,11 @@ export default function CheckIn(): JSX.Element {
     const idx = STEPS.indexOf(step);
     if (step === 'purpose' && isReturning) {
       setStep('mobile');
+      return;
+    }
+    // Skip event step when going back if no events today
+    if (step === 'agreement' && todayEvents.length === 0) {
+      setStep('domain');
       return;
     }
     if (idx > 0) setStep(STEPS[idx - 1]);

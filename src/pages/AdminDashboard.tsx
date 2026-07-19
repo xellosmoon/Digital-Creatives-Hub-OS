@@ -28,6 +28,7 @@ export default function AdminDashboard(): JSX.Element {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
   const [pendingCounts, setPendingCounts] = useState({ bookings: 0, events: 0, total: 0 });
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
   // Live Floor state
   const [attendance, setAttendance] = useState<HubAttendance[]>([]);
@@ -637,9 +638,9 @@ export default function AdminDashboard(): JSX.Element {
                       {a.is_walk_in && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">Walk-in</span>
                       )}
-                      {(a as Record<string, unknown>).event && (
+                      {a.event && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-semibold">
-                          {((a as Record<string, unknown>).event as Record<string, unknown>)?.title as string || 'Event'}
+                          {a.event.title || 'Event'}
                         </span>
                       )}
                       {a.status === 'active' && a.confirmed_at && (
@@ -847,7 +848,7 @@ export default function AdminDashboard(): JSX.Element {
                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Select Event</label>
                 <select
                   id="assign-event-select"
-                  value={(selectedAttendance as Record<string, unknown>).event_id as string || ''}
+                  value={selectedAttendance?.event_id || ''}
                   onChange={(e) => handleAssignEvent(e.target.value || null)}
                   className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   disabled={assigningEvent}

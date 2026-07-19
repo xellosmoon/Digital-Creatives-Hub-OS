@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import {
   X, Calendar, Clock, MapPin, Users, Mail, Phone,
-  ExternalLink, Share2, Facebook, Star,
+  ExternalLink, Share2, Facebook, Star, Sparkles, Zap,
 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -29,6 +29,25 @@ interface EventDetailsModalProps {
  */
 export default function EventDetailsModal({ event, onClose, onBookSpace }: EventDetailsModalProps): JSX.Element {
   const [imageError, setImageError] = useState(false);
+
+  // ── Event type detection ─────────────────────────────────────────
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return Zap;
+    if (event.is_featured) return Sparkles;
+    return Calendar;
+  };
+
+  const getEventGradient = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return 'from-orange-500 via-amber-500 to-red-500';
+    if (event.is_featured) return 'from-purple-500 via-pink-500 to-indigo-500';
+    return 'from-blue-500 via-cyan-500 to-indigo-500';
+  };
 
   // ── Social sharing helpers ──────────────────────────────────────
   const handleShare = async (): Promise<void> => {
@@ -66,11 +85,24 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
               onError={() => setImageError(true)}
             />
           ) : (
-            /* Gradient fallback when no poster is available */
-            <div className="w-full h-72 bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-              <div className="text-center text-white px-6">
-                <Calendar className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                <h2 className="text-2xl font-bold">{event.title}</h2>
+            /* Enhanced gradient fallback when no poster is available */
+            <div className={`w-full h-72 bg-gradient-to-br ${getEventGradient()} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
+              </div>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 shadow-2xl">
+                  {(() => {
+                    const Icon = getEventIcon();
+                    return <Icon className="w-10 h-10" />;
+                  })()}
+                </div>
+                <h2 className="text-2xl font-bold text-center max-w-lg">{event.title}</h2>
+                <p className="text-white/80 text-sm mt-2">{format(new Date(event.start_time), 'MMMM d, yyyy')}</p>
               </div>
             </div>
           )}
@@ -95,8 +127,8 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
           {/* Title & organizer */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">{event.title}</h1>
-            {event.organizer && (
-              <p className="text-lg text-gray-600">Organized by {event.organizer}</p>
+            {(event.organization || event.organizer) && (
+              <p className="text-lg text-gray-600">Hosted by {event.organization || event.organizer}</p>
             )}
           </div>
 

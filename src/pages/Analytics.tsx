@@ -198,7 +198,7 @@ export default function Analytics(): JSX.Element {
     const totalBookings = bookings.length;
     const totalRevenue = approvedBookings.reduce((sum, booking) => {
       const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      return sum + (duration * booking.space.hourly_rate);
+      return sum + (duration * (booking.space?.hourly_rate || 0));
     }, 0);
 
     // Average booking duration
@@ -230,20 +230,20 @@ export default function Analytics(): JSX.Element {
     approvedBookings.forEach(booking => {
       const month = format(new Date(booking.created_at), 'MMM yyyy');
       const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      const revenue = duration * booking.space.hourly_rate;
+      const revenue = duration * (booking.space?.hourly_rate || 0);
       revenueByMonth[month] = (revenueByMonth[month] || 0) + revenue;
     });
 
     // Popular spaces
     const spaceStats: { [key: string]: { bookings: number; revenue: number } } = {};
     approvedBookings.forEach(booking => {
-      const spaceName = booking.space.name;
+      const spaceName = booking.space?.name || 'Unknown';
       if (!spaceStats[spaceName]) {
         spaceStats[spaceName] = { bookings: 0, revenue: 0 };
       }
       spaceStats[spaceName].bookings += 1;
       const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      spaceStats[spaceName].revenue += duration * booking.space.hourly_rate;
+      spaceStats[spaceName].revenue += duration * (booking.space?.hourly_rate || 0);
     });
 
     const popularSpaces = Object.entries(spaceStats)

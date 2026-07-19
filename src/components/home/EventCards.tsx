@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook, Mic, PartyPopper, Users } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook, Mic, PartyPopper, Users, Zap, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { CalendarEvent } from '../../types';
 
@@ -292,6 +292,15 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
   const icons = [Mic, PartyPopper, Users];
   const Icon = icons[index % icons.length];
 
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return Zap;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
+
   return (
     <div
       onClick={onClick}
@@ -308,11 +317,24 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center`}>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-5 mb-2">
-                <Icon className="w-14 h-14 text-white" />
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               </div>
-              <span className="text-white/80 text-sm font-medium">Live Event</span>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Live Event</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
             </div>
           )}
           
@@ -382,6 +404,15 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
   const icons = [Calendar, Sparkles, Users];
   const Icon = icons[index % icons.length];
 
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return BookOpen;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
+
   return (
     <div
       onClick={onClick}
@@ -398,11 +429,24 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center`}>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-5 mb-2">
-                <Icon className="w-14 h-14 text-white" />
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               </div>
-              <span className="text-white/80 text-sm font-medium">Upcoming Event</span>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Upcoming</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
             </div>
           )}
           
@@ -472,6 +516,15 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
   const icons = [Clock, Calendar, Users];
   const Icon = icons[index % icons.length];
 
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return BookOpen;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
+
   const handleCardClick = (_e: React.MouseEvent): void => {
     const extEvent = event as ExtendedCalendarEvent;
     if (extEvent.facebook_post_url) {
@@ -497,11 +550,24 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center`}>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-5 mb-2">
-                <Icon className="w-14 h-14 text-white" />
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               </div>
-              <span className="text-white/80 text-sm font-medium">Past Event</span>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Concluded</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
             </div>
           )}
           
@@ -635,9 +701,9 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
             </div>
 
             {/* Organizer */}
-            {event.organizer && (
+            {(event.organization || event.organizer) && (
               <p className="text-sm text-gray-600 mb-6">
-                Hosted by <span className="font-bold text-[#0C2340]">{event.organizer}</span>
+                Hosted by <span className="font-bold text-[#0C2340]">{event.organization || event.organizer}</span>
               </p>
             )}
 

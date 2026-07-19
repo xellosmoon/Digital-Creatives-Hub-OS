@@ -5,7 +5,7 @@ import {
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle, Calendar,
-  Terminal, Sparkles,
+  BookOpen, Sparkles,
 } from 'lucide-react';
 
 interface EventDate {
@@ -19,7 +19,6 @@ import type { CalendarEvent } from '../../types';
 import type { HubBooking, DailyOccupancy, HubCapacityConfig } from '../../types/hub';
 import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
-import AgendaPopover from './AgendaPopover';
 
 // ── Hub booking with only the joined package columns we SELECT ──────
 interface CalendarHubBooking extends Omit<HubBooking, 'package'> {
@@ -46,7 +45,6 @@ export default function PublicCalendar(): JSX.Element {
   const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
   const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showAgendaPopover, setShowAgendaPopover] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -195,23 +193,6 @@ export default function PublicCalendar(): JSX.Element {
     setShowEventModal(true);
   };
 
-  // ── Event type detection helper ───────────────────────────────────
-  const getEventIcon = (event: CalendarEvent): typeof Terminal | typeof Sparkles | typeof Calendar => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-
-    if (isWorkshop) return Terminal;
-    if (event.is_featured) return Sparkles;
-    return Calendar;
-  };
-
-  // ── Propose event navigation ───────────────────────────────────────
-  const handleProposeEvent = (): void => {
-    // Navigate to propose event page (adjust route as needed)
-    window.location.href = '/propose-event';
-  };
-
   // ── Occupancy bar color helper ───────────────────────────────────
   const occBarColor = (pct: number, isFullBlock: boolean): string => {
     if (isFullBlock) return 'bg-red-400';
@@ -280,7 +261,7 @@ export default function PublicCalendar(): JSX.Element {
                     onClick={() => {
                       if (isFuture) {
                         setSelectedDate(day);
-                        setShowAgendaPopover(true);
+                        setShowBookingModal(true);
                       }
                     }}
                     className={`
@@ -319,56 +300,65 @@ export default function PublicCalendar(): JSX.Element {
 
                     {/* Day content - horizontal badge row */}
                     <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
-                      {/* ── Event icon badges ── */}
+                      {/* ── Event badges with text ── */}
                       {dayEvents.slice(0, 3).map(ev => {
-                        const Icon = getEventIcon(ev);
                         const isWorkshop = ev.title.toLowerCase().includes('workshop') ||
                                           ev.title.toLowerCase().includes('training') ||
                                           ev.title.toLowerCase().includes('bootcamp');
-                        const iconColor = isWorkshop ? 'text-orange-500' : 'text-blue-600';
+                        const bgColor = isWorkshop ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200';
+                        const textColor = isWorkshop ? 'text-orange-600' : 'text-blue-600';
 
                         return (
                           <div
                             key={ev.id}
                             onClick={() => handleEventClick(ev)}
-                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br border hover:scale-110 transition-transform cursor-pointer"
-                            style={{
-                              background: isWorkshop
-                                ? 'linear-gradient(to bottom right, #fff7ed, #ffedd5)'
-                                : 'linear-gradient(to bottom right, #eff6ff, #dbeafe)',
-                              borderColor: isWorkshop ? '#fed7aa' : '#bfdbfe',
-                            }}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${bgColor} hover:scale-105 transition-transform cursor-pointer`}
                             title={ev.title}
                           >
-                            <Icon className={`w-4 h-4 ${iconColor}`} />
+                            {isWorkshop ? (
+                              <BookOpen className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
+                            ) : ev.is_featured ? (
+                              <Sparkles className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
+                            ) : (
+                              <Calendar className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
+                            )}
+                            <span className={`text-xs font-medium ${textColor} truncate max-w-[100px]`}>
+                              {ev.title}
+                            </span>
                           </div>
                         );
                       })}
 
                       {/* ── Overflow counter ── */}
                       {dayEvents.length > 3 && (
-                        <div className="flex items-center justify-center px-2 h-7 rounded-lg bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
-                          +{dayEvents.length - 3}
+                        <div className="flex items-center justify-center px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
+                          +{dayEvents.length - 3} more
                         </div>
                       )}
 
                       {/* ── Workshop booking indicator ── */}
                       {summary.workshopBookings.length > 0 && (
                         <div
-                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200 hover:scale-110 transition-transform cursor-pointer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 border border-red-200 hover:scale-105 transition-transform cursor-pointer"
                           title={`${summary.workshopBookings.length} workshop booking${summary.workshopBookings.length > 1 ? 's' : ''}`}
                         >
-                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                          <span className="text-xs font-medium text-red-700">
+                            {summary.workshopBookings.length} Workshop{summary.workshopBookings.length > 1 ? 's' : ''}
+                          </span>
                         </div>
                       )}
 
                       {/* ── Bundle booking indicator ── */}
                       {summary.bundleBookings.length > 0 && (
                         <div
-                          className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:scale-110 transition-transform cursor-pointer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 border border-purple-200 hover:scale-105 transition-transform cursor-pointer"
                           title={`${summary.bundleBookings.length} bundle booking${summary.bundleBookings.length > 1 ? 's' : ''}`}
                         >
-                          <Wrench className="w-4 h-4 text-purple-500" />
+                          <Wrench className="w-3.5 h-3.5 text-purple-500" />
+                          <span className="text-xs font-medium text-purple-700">
+                            {summary.bundleBookings.length} Bundle{summary.bundleBookings.length > 1 ? 's' : ''}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -463,26 +453,6 @@ export default function PublicCalendar(): JSX.Element {
           </div>
         );
       })()}
-
-      {/* Agenda Popover */}
-      {showAgendaPopover && selectedDate && (
-        <AgendaPopover
-          selectedDate={selectedDate}
-          events={getEventsForDay(selectedDate)}
-          onClose={() => { setShowAgendaPopover(false); setSelectedDate(null); }}
-          onBookSpace={(date) => {
-            setShowAgendaPopover(false);
-            setSelectedDate(date);
-            setShowBookingModal(true);
-          }}
-          onViewDetails={(event) => {
-            setShowAgendaPopover(false);
-            setSelectedEvent(event);
-            setShowEventModal(true);
-          }}
-          onProposeEvent={handleProposeEvent}
-        />
-      )}
 
       {/* Quick Booking Modal */}
       {showBookingModal && selectedDate && (

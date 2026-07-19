@@ -88,10 +88,10 @@ export default function AgendaPopover({
                     </span>
                   </div>
 
-                  {event.organizer && (
+                  {(event.organization || event.organizer) && (
                     <div className="flex items-center gap-2 text-xs text-slate-600 mb-3">
                       <User className="w-3 h-3 flex-shrink-0" />
-                      <span>Hosted by {event.organizer}</span>
+                      <span>Hosted by {event.organization || event.organizer}</span>
                     </div>
                   )}
 
