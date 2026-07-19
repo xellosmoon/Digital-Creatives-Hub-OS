@@ -374,7 +374,7 @@ export default function Bookings(): JSX.Element {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 pb-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 -mt-6 pb-16">
         {/* ── Step indicator (glassmorphism card) ── */}
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-violet-100/50 border border-white/60 px-4 sm:px-6 py-4 mb-8">
           <div className="flex items-center justify-between">
