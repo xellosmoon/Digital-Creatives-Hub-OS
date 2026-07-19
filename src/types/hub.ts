@@ -201,4 +201,8 @@ export interface HubAttendance {
   manually_added_by: string | null;
   notes: string | null;
   created_at: string;
+  /** Event ID from events table */
+  event_id: string | null;
+  /** Joined event data from events table */
+  event?: { id: string; title: string; start_time: string } | null;
 }
