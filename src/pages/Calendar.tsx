@@ -26,6 +26,11 @@ export default function Calendar(): JSX.Element {
           <span className="inline-block w-8 h-2 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400" />
           Creatives In-Hub
         </div>
+        {/* Historic high (past days, frozen) */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-8 h-2 rounded-full bg-slate-300" />
+          Historic High
+        </div>
         {/* Coworking */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-4 h-3 rounded bg-primary-100 border border-primary-300" />

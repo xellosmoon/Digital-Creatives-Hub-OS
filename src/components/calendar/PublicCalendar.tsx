@@ -5,7 +5,7 @@ import {
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle, Calendar,
-  BookOpen, Sparkles, CalendarClock,
+  BookOpen, Sparkles, CalendarClock, History,
 } from 'lucide-react';
 
 interface EventDate {
@@ -30,6 +30,7 @@ interface DaySummary {
   totalSeats: number;       // from config
   bookedSeats: number;      // from daily_occupancy or sum of hub_bookings
   activeCheckIns: number;   // # of active check-ins from hub_attendance
+  totalAttendance: number;  // all check-ins that day (any status) — for historic peak
   workshopQ2: boolean;
   workshopQ4: boolean;
   coworkingCount: number;   // # of individual coworking bookings
@@ -43,6 +44,7 @@ export default function PublicCalendar(): JSX.Element {
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
   const [occupancyMap, setOccupancyMap] = useState<Record<string, DailyOccupancy>>({});
   const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
+  const [attendanceTotalsMap, setAttendanceTotalsMap] = useState<Record<string, number>>({});
   const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -103,8 +105,7 @@ export default function PublicCalendar(): JSX.Element {
           .single(),
         supabase
           .from('hub_attendance')
-          .select('*')
-          .eq('status', 'active')
+          .select('check_in_time, status')
           .gte('check_in_time', gridStartISO)
           .lte('check_in_time', gridEndISO),
       ]);
@@ -118,13 +119,18 @@ export default function PublicCalendar(): JSX.Element {
       }
       setOccupancyMap(occMap);
 
-      // Index active check-ins by date string for fast lookup
+      // Index attendance by date: active check-ins (live) and all-status totals (historic peak)
       const checkInsMap: Record<string, number> = {};
+      const attendanceTotals: Record<string, number> = {};
       for (const row of (attendanceRes.data ?? [])) {
         const dateStr = format(new Date(row.check_in_time), 'yyyy-MM-dd');
-        checkInsMap[dateStr] = (checkInsMap[dateStr] || 0) + 1;
+        attendanceTotals[dateStr] = (attendanceTotals[dateStr] || 0) + 1;
+        if (row.status === 'active') {
+          checkInsMap[dateStr] = (checkInsMap[dateStr] || 0) + 1;
+        }
       }
       setActiveCheckInsMap(checkInsMap);
+      setAttendanceTotalsMap(attendanceTotals);
 
       const config = configRes.data as HubCapacityConfig | null;
       setTotalSeats((config?.total_seats ?? 28) + (config?.manual_adjustment ?? 0));
@@ -158,6 +164,7 @@ export default function PublicCalendar(): JSX.Element {
     const occ = occupancyMap[dateStr];
     const dayBookings = hubBookings.filter(b => b.booking_date === dateStr);
     const activeCheckIns = activeCheckInsMap[dateStr] ?? 0;
+    const totalAttendance = attendanceTotalsMap[dateStr] ?? 0;
 
     // Separate coworking (non-bundle, non-workshop) from bundles & workshops
     const coworkingCount = dayBookings.filter(
@@ -172,6 +179,7 @@ export default function PublicCalendar(): JSX.Element {
       totalSeats,
       bookedSeats: occ?.total_booked_seats ?? dayBookings.reduce((s, b) => s + b.seats_used, 0),
       activeCheckIns,
+      totalAttendance,
       workshopQ2: occ?.workshop_block_q2 ?? false,
       workshopQ4: occ?.workshop_block_q4 ?? false,
       coworkingCount,
@@ -284,44 +292,77 @@ export default function PublicCalendar(): JSX.Element {
                     </div>
 
                     {/* ── Occupancy mini-bars ── */}
-                    {isCurrentMonth && (summary.bookedSeats > 0 || summary.activeCheckIns > 0 || isFullBlock) && (
-                      <div className="mb-1 space-y-1">
-                        {/* Advance bookings (reserved for a future/other day) */}
-                        {(summary.bookedSeats > 0 || isFullBlock) && (
-                          <div>
+                    {isCurrentMonth && (() => {
+                      // Past days: freeze a single, static, muted "Historic High" bar at the
+                      // day's peak recorded value (max of reserved slots and total attendance).
+                      if (!isFuture) {
+                        const historicHigh = Math.max(summary.bookedSeats, summary.totalAttendance);
+                        if (historicHigh === 0 && !isFullBlock) return null;
+                        const histPct = summary.totalSeats > 0
+                          ? Math.round((historicHigh / summary.totalSeats) * 100)
+                          : 0;
+                        return (
+                          <div
+                            className="mb-1"
+                            title={isFullBlock ? 'Full hub blocked' : `${historicHigh} attendees at peak`}
+                          >
                             <div className="w-full bg-gray-100 rounded-full h-1.5">
                               <div
-                                className={`${isFullBlock ? 'bg-red-400' : 'bg-indigo-400'} h-1.5 rounded-full transition-all`}
-                                style={{ width: `${isFullBlock ? 100 : Math.min(bookedPct, 100)}%` }}
+                                className="bg-slate-300 h-1.5 rounded-full"
+                                style={{ width: `${isFullBlock ? 100 : Math.min(histPct, 100)}%` }}
                               />
                             </div>
                             <div className="flex items-center gap-0.5 mt-0.5">
-                              <CalendarClock className="w-3 h-3 text-indigo-400" />
-                              <span className="text-[10px] text-gray-500">
-                                Slots reserved: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                              <History className="w-3 h-3 text-slate-400" />
+                              <span className="text-[10px] text-gray-400">
+                                Historic High: {isFullBlock ? 'Full hub blocked' : `${historicHigh}/${summary.totalSeats}`}
                               </span>
                             </div>
                           </div>
-                        )}
-                        {/* Live floor (people currently checked in) */}
-                        {summary.activeCheckIns > 0 && (
-                          <div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5">
-                              <div
-                                className={`${occBarColor(livePct, false)} h-1.5 rounded-full transition-all`}
-                                style={{ width: `${Math.min(livePct, 100)}%` }}
-                              />
+                        );
+                      }
+
+                      // Today & future: dynamic reserved + live-floor bars.
+                      if (summary.bookedSeats === 0 && summary.activeCheckIns === 0 && !isFullBlock) return null;
+                      return (
+                        <div className="mb-1 space-y-1">
+                          {/* Advance bookings (reserved for a future/other day) */}
+                          {(summary.bookedSeats > 0 || isFullBlock) && (
+                            <div>
+                              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                <div
+                                  className={`${isFullBlock ? 'bg-red-400' : 'bg-indigo-400'} h-1.5 rounded-full transition-all`}
+                                  style={{ width: `${isFullBlock ? 100 : Math.min(bookedPct, 100)}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                <CalendarClock className="w-3 h-3 text-indigo-400" />
+                                <span className="text-[10px] text-gray-500">
+                                  Slots reserved: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-0.5 mt-0.5">
-                              <Users className="w-3 h-3 text-gray-400" />
-                              <span className="text-[10px] text-gray-500">
-                                Creatives in-hub: {summary.activeCheckIns}/{summary.totalSeats}
-                              </span>
+                          )}
+                          {/* Live floor (people currently checked in) */}
+                          {summary.activeCheckIns > 0 && (
+                            <div>
+                              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                <div
+                                  className={`${occBarColor(livePct, false)} h-1.5 rounded-full transition-all`}
+                                  style={{ width: `${Math.min(livePct, 100)}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                <Users className="w-3 h-3 text-gray-400" />
+                                <span className="text-[10px] text-gray-500">
+                                  Creatives in-hub: {summary.activeCheckIns}/{summary.totalSeats}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Day content - horizontal badge row */}
                     <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
