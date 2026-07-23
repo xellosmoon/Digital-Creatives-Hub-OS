@@ -92,8 +92,13 @@ export default function Footer(): JSX.Element {
             by
             <a
               href="mailto:lunarbyteitsolutions@gmail.com"
-              className="font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent hover:from-blue-300 hover:to-purple-300 transition-all"
+              className="inline-flex items-center gap-1.5 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-300 hover:to-purple-300 transition-all"
             >
+              <img
+                src="/lunarbyte-logo.jpg"
+                alt="LunarByte IT Solutions logo"
+                className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20"
+              />
               LUNARBYTE IT Solutions
             </a>
           </p>
