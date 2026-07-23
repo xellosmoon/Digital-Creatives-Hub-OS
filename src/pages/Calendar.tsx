@@ -19,12 +19,12 @@ export default function Calendar(): JSX.Element {
         {/* Advance bookings bar */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-8 h-2 rounded-full bg-indigo-400" />
-          Booked in Advance
+          Slots Reserved
         </div>
         {/* Live floor occupancy bar */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-8 h-2 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400" />
-          On the Floor Now
+          Creatives In-Hub
         </div>
         {/* Coworking */}
         <div className="flex items-center gap-2">

@@ -298,7 +298,7 @@ export default function PublicCalendar(): JSX.Element {
                             <div className="flex items-center gap-0.5 mt-0.5">
                               <CalendarClock className="w-3 h-3 text-indigo-400" />
                               <span className="text-[10px] text-gray-500">
-                                Booked in advance: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                                Slots reserved: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
                               </span>
                             </div>
                           </div>
@@ -315,7 +315,7 @@ export default function PublicCalendar(): JSX.Element {
                             <div className="flex items-center gap-0.5 mt-0.5">
                               <Users className="w-3 h-3 text-gray-400" />
                               <span className="text-[10px] text-gray-500">
-                                On the floor now: {summary.activeCheckIns}/{summary.totalSeats}
+                                Creatives in-hub: {summary.activeCheckIns}/{summary.totalSeats}
                               </span>
                             </div>
                           </div>
@@ -420,7 +420,7 @@ export default function PublicCalendar(): JSX.Element {
               <span>of {summary.totalSeats}</span>
               {summary.bookedSeats > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
-                  <CalendarClock className="w-3 h-3" /> {summary.bookedSeats} Booked in advance
+                  <CalendarClock className="w-3 h-3" /> {summary.bookedSeats} Slots Reserved
                 </span>
               )}
               {summary.activeCheckIns > 0 && (
