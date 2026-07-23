@@ -315,7 +315,7 @@ export default function PublicCalendar(): JSX.Element {
                             <div className="flex items-center gap-0.5 mt-0.5">
                               <History className="w-3 h-3 text-slate-400" />
                               <span className="text-[10px] text-gray-400">
-                                Historic High: {isFullBlock ? 'Full hub blocked' : `${historicHigh}/${summary.totalSeats}`}
+                                Historic High: {isFullBlock ? 'Full hub blocked' : historicHigh}
                               </span>
                             </div>
                           </div>
