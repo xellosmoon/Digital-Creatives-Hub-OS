@@ -102,7 +102,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
             <div className="flex items-center">
               {/* Logo */}
               <Link to="/" className="flex items-center flex-shrink-0">
-                <span className="font-black text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
+                <span className="font-black text-sm tracking-wider text-slate-900 uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
                   Digital Creatives Hub
                 </span>
               </Link>
@@ -364,7 +364,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pt-32 md:pt-36 pb-12 transition-all duration-300">
         {children}
       </main>
 
