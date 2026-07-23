@@ -19,22 +19,12 @@ export default function Calendar(): JSX.Element {
         {/* Advance bookings bar */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-8 h-2 rounded-full bg-indigo-400" />
-          Slots Reserved
+          Reserved
         </div>
         {/* Live floor occupancy bar */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-8 h-2 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400" />
-          Creatives In-Hub
-        </div>
-        {/* Historic high (past days, frozen) */}
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-8 h-2 rounded-full bg-slate-300" />
-          Historic High
-        </div>
-        {/* Coworking */}
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-4 h-3 rounded bg-primary-100 border border-primary-300" />
-          <Users className="w-3.5 h-3.5" /> Coworking
+          Peak/Checked In
         </div>
         {/* Workshop */}
         <div className="flex items-center gap-2">
@@ -46,10 +36,25 @@ export default function Calendar(): JSX.Element {
           <span className="inline-block w-4 h-3 rounded bg-purple-100 border border-purple-300" />
           <Wrench className="w-3.5 h-3.5" /> Bundle Package
         </div>
-        {/* Events */}
+        {/* Tech & Dev */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-4 h-3 rounded bg-cyan-100 border border-cyan-300" />
+          <CalendarIcon className="w-3.5 h-3.5 text-cyan-700" /> Tech & Dev
+        </div>
+        {/* Workshops (Events) */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300" />
-          <CalendarIcon className="w-3.5 h-3.5" /> Events
+          <CalendarIcon className="w-3.5 h-3.5 text-amber-700" /> Workshops
+        </div>
+        {/* Community */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300" />
+          <CalendarIcon className="w-3.5 h-3.5 text-emerald-700" /> Community
+        </div>
+        {/* Other Events */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-4 h-3 rounded bg-blue-100 border border-blue-300" />
+          <CalendarIcon className="w-3.5 h-3.5 text-blue-700" /> Other Events
         </div>
         {/* Featured */}
         <div className="flex items-center gap-2">
