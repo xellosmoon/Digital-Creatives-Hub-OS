@@ -16,10 +16,20 @@ export default function Calendar(): JSX.Element {
 
       {/* Color legend matching the new hub capacity model */}
       <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-700">
-        {/* Occupancy bar */}
+        {/* Advance bookings bar */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-8 h-2 rounded-full bg-indigo-400" />
+          Slots Reserved
+        </div>
+        {/* Live floor occupancy bar */}
         <div className="flex items-center gap-2">
           <span className="inline-block w-8 h-2 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400" />
-          Seat Occupancy
+          Creatives In-Hub
+        </div>
+        {/* Historic high (past days, frozen) */}
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-8 h-2 rounded-full bg-slate-300" />
+          Historic High
         </div>
         {/* Coworking */}
         <div className="flex items-center gap-2">
