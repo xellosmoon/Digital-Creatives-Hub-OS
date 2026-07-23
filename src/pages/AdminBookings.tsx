@@ -146,6 +146,8 @@ export default function AdminBookings(): JSX.Element {
     rejected: <XCircle className="h-4 w-4" />,
   };
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -239,8 +241,10 @@ export default function AdminBookings(): JSX.Element {
             <p className="text-gray-500 text-lg">No {filter !== 'all' ? filter : ''} bookings found</p>
           </div>
         ) : (
-          filteredBookings.map((booking) => (
-            <div key={booking.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          filteredBookings.map((booking) => {
+            const isPast = booking.booking_date < todayStr;
+            return (
+            <div key={booking.id} className={`rounded-2xl border p-6 hover:shadow-md transition-shadow ${isPast ? 'bg-gray-50 border-gray-200 opacity-75' : 'bg-white border-gray-200'}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -248,6 +252,9 @@ export default function AdminBookings(): JSX.Element {
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColors[booking.status] || 'bg-gray-100 text-gray-700'}`}>
                       {statusIcons[booking.status]}
                       {booking.status}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${isPast ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
+                      {isPast ? 'Past' : 'Upcoming'}
                     </span>
                     {booking.package && (
                       <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
@@ -330,7 +337,7 @@ export default function AdminBookings(): JSX.Element {
                       </button>
                     </>
                   )}
-                  {booking.status === 'approved' && (
+                  {booking.status === 'approved' && !isPast && (
                     <button
                       onClick={() => handleReject(booking.id)}
                       className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-sm transition-all"
@@ -338,10 +345,16 @@ export default function AdminBookings(): JSX.Element {
                       Cancel
                     </button>
                   )}
+                  {booking.status === 'approved' && isPast && (
+                    <span className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-400 bg-gray-100 text-center whitespace-nowrap">
+                      Completed
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
