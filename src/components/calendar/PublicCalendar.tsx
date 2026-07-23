@@ -5,7 +5,7 @@ import {
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle, Calendar,
-  BookOpen, Sparkles,
+  BookOpen, Sparkles, CalendarClock,
 } from 'lucide-react';
 
 interface EventDate {
@@ -250,8 +250,11 @@ export default function PublicCalendar(): JSX.Element {
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
                 const isFuture   = isAfter(startOfDay(day), startOfDay(new Date())) || isToday;
 
-                const occPct = summary.totalSeats > 0
-                  ? Math.round((Math.max(summary.bookedSeats, summary.activeCheckIns) / summary.totalSeats) * 100)
+                const bookedPct = summary.totalSeats > 0
+                  ? Math.round((summary.bookedSeats / summary.totalSeats) * 100)
+                  : 0;
+                const livePct = summary.totalSeats > 0
+                  ? Math.round((summary.activeCheckIns / summary.totalSeats) * 100)
                   : 0;
                 const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
 
@@ -280,21 +283,43 @@ export default function PublicCalendar(): JSX.Element {
                       )}
                     </div>
 
-                    {/* ── Occupancy mini-bar ── */}
+                    {/* ── Occupancy mini-bars ── */}
                     {isCurrentMonth && (summary.bookedSeats > 0 || summary.activeCheckIns > 0 || isFullBlock) && (
-                      <div className="mb-1">
-                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className={`${occBarColor(occPct, isFullBlock)} h-1.5 rounded-full transition-all`}
-                            style={{ width: `${isFullBlock ? 100 : Math.min(occPct, 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-0.5 mt-0.5">
-                          <Users className="w-3 h-3 text-gray-400" />
-                          <span className="text-[10px] text-gray-500">
-                            Creatives at the Hub: {isFullBlock ? 'Full hub blocked' : `${Math.max(summary.bookedSeats, summary.activeCheckIns)}/${summary.totalSeats}`}
-                          </span>
-                        </div>
+                      <div className="mb-1 space-y-1">
+                        {/* Advance bookings (reserved for a future/other day) */}
+                        {(summary.bookedSeats > 0 || isFullBlock) && (
+                          <div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div
+                                className={`${isFullBlock ? 'bg-red-400' : 'bg-indigo-400'} h-1.5 rounded-full transition-all`}
+                                style={{ width: `${isFullBlock ? 100 : Math.min(bookedPct, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <CalendarClock className="w-3 h-3 text-indigo-400" />
+                              <span className="text-[10px] text-gray-500">
+                                Booked in advance: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Live floor (people currently checked in) */}
+                        {summary.activeCheckIns > 0 && (
+                          <div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div
+                                className={`${occBarColor(livePct, false)} h-1.5 rounded-full transition-all`}
+                                style={{ width: `${Math.min(livePct, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <Users className="w-3 h-3 text-gray-400" />
+                              <span className="text-[10px] text-gray-500">
+                                On the floor now: {summary.activeCheckIns}/{summary.totalSeats}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -393,6 +418,11 @@ export default function PublicCalendar(): JSX.Element {
             <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
               <span className="font-medium text-gray-900">{available} seats available</span>
               <span>of {summary.totalSeats}</span>
+              {summary.bookedSeats > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
+                  <CalendarClock className="w-3 h-3" /> {summary.bookedSeats} Booked in advance
+                </span>
+              )}
               {summary.activeCheckIns > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
                   <Users className="w-3 h-3" /> {summary.activeCheckIns} Creators on the Floor
