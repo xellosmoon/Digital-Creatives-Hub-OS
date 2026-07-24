@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
-  CheckCircle, X, LogOut, Trash2, Timer, Building2, Check, XCircle
+  CheckCircle, X, LogOut, Trash2, Timer, Building2,
+  CreditCard, XCircle, Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import AdminStats from '../components/admin/AdminStats';
 import BookingApprovalCard from '../components/admin/BookingApprovalCard';
 import toast from 'react-hot-toast';
 import { exportToCSV, formatBookingForExport, formatAttendanceForDTIExport } from '../utils/csvExport';
@@ -27,6 +27,7 @@ export default function AdminDashboard(): JSX.Element {
   const [bookings, setBookings] = useState<{ id: string; booking_reference: string; guest_name: string | null; guest_email: string | null; guest_phone: string | null; booking_date: string; start_time: string; end_time: string; seats_used: number; total_price: number; status: string; purpose: string | null; notes: string | null; is_workshop: boolean; created_at: string; admin_contacted: boolean; admin_contacted_at: string | null; package?: { id: string; slug: string; name: string; hourly_rate: number | null; daily_rate: number | null; billing_mode: string; seats_consumed: number; is_bundle: boolean } }[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
+  const [pendingCounts, setPendingCounts] = useState({ bookings: 0, events: 0, total: 0 });
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
   // Live Floor state
@@ -35,6 +36,11 @@ export default function AdminDashboard(): JSX.Element {
   const [showForceBook, setShowForceBook] = useState(false);
   const [activeTab, setActiveTab] = useState<'bookings' | 'floor'>('floor');
   const [floorView, setFloorView] = useState<'pending' | 'active' | 'checked_out'>('pending');
+  
+  // Assign Event Modal
+  const [showAssignEvent, setShowAssignEvent] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<HubAttendance | null>(null);
+  const [assigningEvent, setAssigningEvent] = useState(false);
 
   // Manual check-in form
   const [manualForm, setManualForm] = useState({
@@ -52,22 +58,52 @@ export default function AdminDashboard(): JSX.Element {
     fetchBookings();
     fetchAttendance();
     fetchTodayEvents();
+    fetchPendingCounts();
 
     // Real-time subscriptions
     const subscription = supabase
       .channel('admin-hub-all')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hub_bookings' }, () => {
         toast('New booking request!', { icon: '🔔', duration: 5000 });
-        setHasNewNotifications(true);
         fetchBookings();
+        fetchPendingCounts();
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hub_bookings' }, () => { fetchBookings(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hub_bookings' }, () => { fetchBookings(); fetchPendingCounts(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hub_attendance' }, () => { fetchAttendance(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hub_events' }, () => {
+        toast('New event proposal!', { icon: '📅', duration: 5000 });
+        fetchPendingCounts();
+      })
       .subscribe();
 
     return () => { subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  const fetchPendingCounts = async (): Promise<void> => {
+    try {
+      // Fetch pending bookings count
+      const { count: pendingBookings } = await supabase
+        .from('hub_bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      // Fetch pending event proposals count
+      const { count: pendingEvents } = await supabase
+        .from('hub_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending_review');
+      
+      const total = (pendingBookings || 0) + (pendingEvents || 0);
+      setPendingCounts({
+        bookings: pendingBookings || 0,
+        events: pendingEvents || 0,
+        total,
+      });
+    } catch (error) {
+      console.error('Error fetching pending counts:', error);
+    }
+  };
 
   const fetchBookings = async (): Promise<void> => {
     setLoading(true);
@@ -98,7 +134,7 @@ export default function AdminDashboard(): JSX.Element {
       const { data } = await supabase
         .from('events')
         .select('id, title, start_time')
-        .eq('status', 'approved')
+        .eq('status', 'published')
         .gte('start_time', `${today}T00:00:00`)
         .lte('start_time', `${today}T23:59:59`)
         .order('start_time', { ascending: true });
@@ -110,11 +146,12 @@ export default function AdminDashboard(): JSX.Element {
 
   const fetchAttendance = async (): Promise<void> => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const now = new Date();
+      const todayStartISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
       const { data, error } = await supabase
         .from('hub_attendance')
-        .select('*')
-        .gte('check_in_time', `${today}T00:00:00`)
+        .select('*, event:events(title)')
+        .gte('check_in_time', todayStartISO)
         .order('check_in_time', { ascending: false });
       if (error) throw error;
       setAttendance((data as HubAttendance[]) || []);
@@ -146,6 +183,49 @@ export default function AdminDashboard(): JSX.Element {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Checkout failed';
       toast.error(errorMessage);
+    }
+  };
+
+  // ── Secretariat: Reject Check-In ─────────────────────────────────
+  const handleRejectCheckIn = async (id: string, name: string): Promise<void> => {
+    if (!window.confirm(`Reject ${name}'s check-in? This will remove them from the queue.`)) return;
+    try {
+      const { error } = await supabase
+        .from('hub_attendance')
+        .update({ status: 'rejected' })
+        .eq('id', id);
+      if (error) {
+        toast.error(error.message || 'Reject failed');
+        return;
+      }
+      toast.success(`${name}'s check-in rejected.`);
+      fetchAttendance();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Reject failed';
+      toast.error(errorMessage);
+    }
+  };
+
+  // ── Assign Event to Attendance ──────────────────────────────────
+  const handleAssignEvent = async (eventId: string | null): Promise<void> => {
+    if (!selectedAttendance) return;
+    setAssigningEvent(true);
+    try {
+      const { error } = await supabase
+        .from('hub_attendance')
+        .update({ event_id: eventId })
+        .eq('id', selectedAttendance.id);
+      
+      if (error) throw error;
+      toast.success(eventId ? 'Event assigned successfully!' : 'Event removed');
+      setShowAssignEvent(false);
+      setSelectedAttendance(null);
+      fetchAttendance();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to assign event';
+      toast.error(errorMessage);
+    } finally {
+      setAssigningEvent(false);
     }
   };
 
@@ -186,7 +266,10 @@ export default function AdminDashboard(): JSX.Element {
         is_walk_in: true,
         manually_added_by: session?.session?.user?.id || null,
       });
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Check-in failed');
+        return;
+      }
       toast.success(`${manualForm.name} checked in!`);
       setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '', purpose: '', eventId: '' });
       setShowManualCheckIn(false);
@@ -316,7 +399,7 @@ export default function AdminDashboard(): JSX.Element {
   const floorList = floorView === 'pending' ? pending : floorView === 'active' ? active : checkedOut;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 bg-slate-50/50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -325,10 +408,13 @@ export default function AdminDashboard(): JSX.Element {
             <p className="mt-1 text-gray-600">Secretariat Gatekeeper &amp; Booking Management</p>
           </div>
           <div className="flex items-center flex-wrap gap-2">
-            {hasNewNotifications && (
+            {pendingCounts.total > 0 && (
               <div className="relative">
-                <Bell className="h-6 w-6 text-gray-600 animate-bounce" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                <Bell className="h-6 w-6 text-amber-500 animate-bounce" />
+                <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
+                  {pendingCounts.total > 99 ? '99+' : pendingCounts.total}
+                </span>
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-ping"></span>
               </div>
             )}
             <button onClick={handleRefresh} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
@@ -336,17 +422,47 @@ export default function AdminDashboard(): JSX.Element {
             </button>
           </div>
         </div>
+        {pendingCounts.total > 0 && (
+          <div className="mt-3 flex items-center gap-4 text-sm">
+            {pendingCounts.bookings > 0 && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+                {pendingCounts.bookings} pending booking{pendingCounts.bookings > 1 ? 's' : ''}
+              </span>
+            )}
+            {pendingCounts.events > 0 && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
+                {pendingCounts.events} event proposal{pendingCounts.events > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Management Navigation Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
+        <Link to="/admin/bookings" className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          {pendingCounts.bookings > 0 && (
+            <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
+              {pendingCounts.bookings > 99 ? '99+' : pendingCounts.bookings}
+            </span>
+          )}
+          <div className="p-3 bg-cyan-50 rounded-xl group-hover:bg-cyan-100 transition-colors mb-3">
+            <CreditCard className="h-6 w-6 text-cyan-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Bookings</span>
+        </Link>
         <Link to="/admin/spaces" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
           <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors mb-3">
             <Building2 className="h-6 w-6 text-blue-600" />
           </div>
           <span className="text-sm font-bold text-gray-700">Spaces</span>
         </Link>
-        <Link to="/admin/events" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+        <Link to="/admin/events" className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          {pendingCounts.events > 0 && (
+            <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
+              {pendingCounts.events > 99 ? '99+' : pendingCounts.events}
+            </span>
+          )}
           <div className="p-3 bg-purple-50 rounded-xl group-hover:bg-purple-100 transition-colors mb-3">
             <CalendarDays className="h-6 w-6 text-purple-600" />
           </div>
@@ -376,11 +492,6 @@ export default function AdminDashboard(): JSX.Element {
           </div>
           <span className="text-sm font-bold text-gray-700">Team</span>
         </Link>
-      </div>
-
-      {/* Stats */}
-      <div className="mb-6">
-        <AdminStats />
       </div>
 
       {/* ── Capacity & Floor Summary Row ── */}
@@ -534,6 +645,11 @@ export default function AdminDashboard(): JSX.Element {
                       {a.is_walk_in && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">Walk-in</span>
                       )}
+                      {a.event && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-semibold">
+                          {a.event.title || 'Event'}
+                        </span>
+                      )}
                       {a.status === 'active' && a.confirmed_at && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold inline-flex items-center gap-0.5">
                           <Timer className="h-2.5 w-2.5" />
@@ -558,23 +674,44 @@ export default function AdminDashboard(): JSX.Element {
                     </div>
 
                     {a.status === 'pending_entrance' && (
-                      <button
-                        onClick={() => handleConfirmEntrance(a.id, a.full_name)}
-                        className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm transition-all active:scale-95"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 inline mr-1" />
-                        Confirm
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleConfirmEntrance(a.id, a.full_name)}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm transition-all active:scale-95"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 inline mr-1" />
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => handleRejectCheckIn(a.id, a.full_name)}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-sm transition-all active:scale-95"
+                        >
+                          <XCircle className="h-3.5 w-3.5 inline mr-1" />
+                          Reject
+                        </button>
+                      </div>
                     )}
 
                     {a.status === 'active' && (
-                      <button
-                        onClick={() => handleCheckout(a.id, a.full_name)}
-                        className="px-3 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all active:scale-95"
-                      >
-                        <LogOut className="h-3.5 w-3.5 inline mr-1" />
-                        Check Out
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedAttendance(a);
+                            setShowAssignEvent(true);
+                          }}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 shadow-sm transition-all active:scale-95"
+                        >
+                          <Calendar className="h-3.5 w-3.5 inline mr-1" />
+                          Assign Event
+                        </button>
+                        <button
+                          onClick={() => handleCheckout(a.id, a.full_name)}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all active:scale-95"
+                        >
+                          <LogOut className="h-3.5 w-3.5 inline mr-1" />
+                          Check Out
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -695,6 +832,64 @@ export default function AdminDashboard(): JSX.Element {
                 <UserPlus className="h-4 w-4 inline mr-2" />
                 Check In Walk-in
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ ASSIGN EVENT MODAL ═══ */}
+      {showAssignEvent && selectedAttendance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Assign Event</h2>
+                <p className="text-xs text-gray-500">{selectedAttendance.full_name}</p>
+              </div>
+              <button onClick={() => { setShowAssignEvent(false); setSelectedAttendance(null); }} className="p-1 rounded-lg hover:bg-gray-100">
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Select Event</label>
+                <select
+                  id="assign-event-select"
+                  value={selectedAttendance?.event_id || ''}
+                  onChange={(e) => handleAssignEvent(e.target.value || null)}
+                  className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  disabled={assigningEvent}
+                >
+                  <option value="">None / General Coworking</option>
+                  {todayEvents.map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.title} - {new Date(event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </option>
+                  ))}
+                </select>
+                {todayEvents.length === 0 && (
+                  <p className="text-xs text-gray-400 mt-2">No events scheduled for today</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleAssignEvent(null)}
+                  disabled={assigningEvent}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all disabled:opacity-50"
+                >
+                  Remove Event
+                </button>
+                <button
+                  onClick={() => {
+                    const selectEl = document.getElementById('assign-event-select') as HTMLSelectElement;
+                    if (selectEl) handleAssignEvent(selectEl.value || null);
+                  }}
+                  disabled={assigningEvent}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 shadow-md transition-all disabled:opacity-50"
+                >
+                  {assigningEvent ? 'Saving...' : 'Save'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

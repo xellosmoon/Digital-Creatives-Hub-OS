@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { X, Calendar, Clock, Image, Link2, User, Mail, Phone, Sparkles, Upload, Loader2 } from 'lucide-react';
+import { X, Calendar, Image, Link2, User, Mail, Phone, Sparkles, Loader2, Building2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
@@ -26,8 +26,14 @@ interface ApprovedProposal {
   organizer_name: string;
   organizer_email: string;
   organizer_phone: string;
-  event_dates: any;
+  organization: string | null;
+  event_dates: EventDate[];
   expected_guests: number | null;
+}
+
+interface ExtendedCalendarEvent extends CalendarEvent {
+  facebook_post_url?: string;
+  event_dates?: EventDate[];
 }
 
 /**
@@ -43,7 +49,6 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   const [posterSource, setPosterSource] = useState<'upload' | 'url'>('url');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [posterFile, setPosterFile] = useState<File | null>(null);
 
   // ── Form state ──────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -51,14 +56,16 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     description: event?.description ?? '',
     poster_url: event?.poster_url ?? '',
     registration_link: event?.registration_link ?? '',
-    facebook_post_url: (event as any)?.facebook_post_url ?? '',
+    facebook_post_url: (event as ExtendedCalendarEvent)?.facebook_post_url ?? '',
     organizer: event?.organizer ?? '',
+    organization: event?.organization ?? '',
     contact_email: event?.contact_email ?? '',
     contact_phone: event?.contact_phone ?? '',
     eventDates: (() => {
-      if (event && (event as any).event_dates && Array.isArray((event as any).event_dates) && (event as any).event_dates.length > 0) {
+      const extendedEvent = event as ExtendedCalendarEvent | null;
+      if (event && extendedEvent?.event_dates && Array.isArray(extendedEvent.event_dates) && extendedEvent.event_dates.length > 0) {
         // Load from existing event_dates array
-        return (event as any).event_dates.map((d: any) => ({
+        return extendedEvent.event_dates.map((d: EventDate) => ({
           date: d.date || format(new Date(event.start_time), 'yyyy-MM-dd'),
           start_time: d.start_time || format(new Date(event.start_time), 'HH:mm'),
           end_time: d.end_time || format(new Date(event.end_time), 'HH:mm')
@@ -93,7 +100,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
       // Fetch approved proposals
       const { data: proposals } = await supabase
         .from('hub_events')
-        .select('id, title, description, organizer_name, organizer_email, organizer_phone, event_dates, expected_guests')
+        .select('id, title, description, organizer_name, organizer_email, organizer_phone, organization, event_dates, expected_guests')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
       setApprovedProposals((proposals as ApprovedProposal[]) ?? []);
@@ -138,10 +145,11 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
       title: proposal.title,
       description: proposal.description,
       organizer: proposal.organizer_name,
+      organization: proposal.organization || '',
       contact_email: proposal.organizer_email,
       contact_phone: proposal.organizer_phone,
       eventDates: Array.isArray(proposal.event_dates) && proposal.event_dates.length > 0 
-        ? proposal.event_dates.map((d: any) => ({
+        ? proposal.event_dates.map((d: EventDate) => ({
             date: d.date || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
             start_time: d.start_time || '14:00',
             end_time: d.end_time || '17:00'
@@ -175,7 +183,6 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
 
     setUploadingImage(true);
     setUploadProgress(0);
-    setPosterFile(file);
 
     try {
       // Generate unique filename
@@ -184,7 +191,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
       const filePath = `${fileName}`;
 
       // Upload to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('event-posters')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -206,7 +213,6 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload image');
-      setPosterFile(null);
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);
@@ -216,13 +222,9 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   // ── Handle poster source change ─────────────────────────────────────
   const handlePosterSourceChange = (source: 'upload' | 'url'): void => {
     setPosterSource(source);
-    if (source === 'url') {
-      setPosterFile(null);
-    } else {
-      // If switching to upload and there's a URL, clear it unless it's already from Supabase
-      if (form.poster_url && !form.poster_url.includes('supabase.co/storage/v1/object/public/event-posters')) {
-        updateField('poster_url', '');
-      }
+    // If switching to upload and there's a URL, clear it unless it's already from Supabase
+    if (source === 'upload' && form.poster_url && !form.poster_url.includes('supabase.co/storage/v1/object/public/event-posters')) {
+      updateField('poster_url', '');
     }
   };
 
@@ -268,6 +270,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         registration_link: form.registration_link.trim() || null,
         facebook_post_url: form.facebook_post_url.trim() || null,
         organizer: form.organizer.trim() || null,
+        organization: form.organization.trim() || null,
         contact_email: form.contact_email.trim() || null,
         contact_phone: form.contact_phone.trim() || null,
         start_time: startISO,
@@ -422,20 +425,35 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           </div>
 
           {/* ── Organizer + contact row ───────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <User className="inline w-4 h-4 mr-1" />
-                Organizer
+                Organizer Name
               </label>
               <input
                 type="text"
                 value={form.organizer}
                 onChange={(e) => updateField('organizer', e.target.value)}
-                placeholder="Digital Creatives Hub"
+                placeholder="John Doe"
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Building2 className="inline w-4 h-4 mr-1" />
+                Organization
+              </label>
+              <input
+                type="text"
+                value={form.organization}
+                onChange={(e) => updateField('organization', e.target.value)}
+                placeholder="Your organization name"
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Mail className="inline w-4 h-4 mr-1" />

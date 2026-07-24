@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook, Mic, PartyPopper, Users, Zap, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { CalendarEvent } from '../../types';
+
+interface ExtendedCalendarEvent extends CalendarEvent {
+  facebook_post_url?: string;
+}
 
 export default function EventCards(): JSX.Element {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -10,6 +14,7 @@ export default function EventCards(): JSX.Element {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const pastScrollRef = useRef<HTMLDivElement>(null);
   const upcomingScrollRef = useRef<HTMLDivElement>(null);
+  const ongoingScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -35,11 +40,14 @@ export default function EventCards(): JSX.Element {
   };
 
   const now = new Date();
+  const ongoingEvents = events
+    .filter(e => new Date(e.start_time) <= now && new Date(e.end_time) > now)
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   const upcomingEvents = events
-    .filter(e => new Date(e.start_time) >= now)
+    .filter(e => new Date(e.start_time) > now)
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   const pastEvents = events
-    .filter(e => new Date(e.start_time) < now)
+    .filter(e => new Date(e.end_time) <= now)
     .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
 
   const scrollPast = (direction: 'left' | 'right'): void => {
@@ -51,6 +59,13 @@ export default function EventCards(): JSX.Element {
 
   const scrollUpcoming = (direction: 'left' | 'right'): void => {
     const container = upcomingScrollRef.current;
+    if (!container) return;
+    const scrollAmount = 460;
+    container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  };
+
+  const scrollOngoing = (direction: 'left' | 'right'): void => {
+    const container = ongoingScrollRef.current;
     if (!container) return;
     const scrollAmount = 460;
     container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
@@ -98,6 +113,52 @@ export default function EventCards(): JSX.Element {
               Workshops, deliberations, and collaborative sessions hosted at the Digital Creatives Hub
             </p>
           </div>
+
+          {/* ═══ ONGOING EVENTS — horizontal scroll ═══ */}
+          {ongoingEvents.length > 0 && (
+            <div className="mb-16">
+              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-violet-500 text-white animate-pulse">
+                  <Calendar className="w-4 h-4" />
+                </span>
+                Happening Now
+                <span className="text-sm font-medium text-violet-600 bg-violet-50 px-3 py-1 rounded-full">
+                  {ongoingEvents.length} event{ongoingEvents.length > 1 ? 's' : ''}
+                </span>
+              </h3>
+
+              <div className="relative group/scroll">
+                {/* Left Arrow */}
+                <button
+                  onClick={() => scrollOngoing('left')}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#0C2340]" />
+                </button>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={() => scrollOngoing('right')}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="w-5 h-5 text-[#0C2340]" />
+                </button>
+
+                {/* Scrollable Ongoing Events */}
+                <div
+                  ref={ongoingScrollRef}
+                  className="flex gap-6 overflow-x-auto scroll-smooth pb-4 snap-x"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {ongoingEvents.map((event, index) => (
+                    <OngoingEventCard key={event.id} event={event} index={index} onClick={() => setSelectedEvent(event)} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ═══ UPCOMING EVENTS — horizontal scroll ═══ */}
           {upcomingEvents.length > 0 && (
@@ -213,6 +274,115 @@ export default function EventCards(): JSX.Element {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Ongoing Event Card — horizontal scroll item
+   ────────────────────────────────────────────────────────────────── */
+interface OngoingEventCardProps {
+  event: CalendarEvent;
+  index: number;
+  onClick: () => void;
+}
+
+function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX.Element {
+  const gradients = [
+    'from-violet-600 via-purple-600 to-fuchsia-600',
+    'from-fuchsia-600 via-pink-600 to-rose-600',
+    'from-indigo-600 via-violet-600 to-purple-600',
+  ];
+  const gradient = gradients[index % gradients.length];
+  const icons = [Mic, PartyPopper, Users];
+  const Icon = icons[index % icons.length];
+
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return Zap;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className="flex-shrink-0 w-[420px] snap-start cursor-pointer group"
+    >
+      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 border-violet-200 hover:border-violet-400 hover:-translate-y-2">
+        {/* Poster Image */}
+        <div className="relative h-64 overflow-hidden">
+          {event.poster_url ? (
+            <img
+              src={event.poster_url}
+              alt={event.title}
+              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+              </div>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Live Event</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
+            </div>
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+          
+          {/* Badges */}
+          <div className="absolute top-4 right-4 flex gap-1.5">
+            {event.is_featured && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#F59E0B] text-white shadow-lg">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Featured
+              </span>
+            )}
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-violet-500 text-white shadow-lg animate-pulse">
+              Happening Now
+            </span>
+          </div>
+
+          {/* Date on image */}
+          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow">
+            <p className="text-sm font-bold text-[#0C2340]">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
+            <p className="text-xs text-gray-600">{format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}</p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-violet-600 transition-colors">
+            {event.title}
+          </h3>
+          {event.description && (
+            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed">
+              {event.description}
+            </p>
+          )}
+          {(event.organizer || event.organization) && (
+            <p className="text-xs text-gray-500">
+              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
+            </p>
+          )}
+          <p className="text-xs text-violet-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Upcoming Event Card — horizontal scroll item
    ────────────────────────────────────────────────────────────────── */
 interface UpcomingEventCardProps {
@@ -223,14 +393,25 @@ interface UpcomingEventCardProps {
 
 function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): JSX.Element {
   const gradients = [
-    'from-emerald-500 to-teal-600',
-    'from-green-500 to-emerald-600',
-    'from-teal-500 to-cyan-600',
-    'from-lime-500 to-green-600',
-    'from-cyan-500 to-blue-600',
-    'from-sky-500 to-indigo-600',
+    'from-emerald-500 via-teal-500 to-cyan-600',
+    'from-green-500 via-emerald-500 to-teal-600',
+    'from-teal-500 via-cyan-500 to-blue-600',
+    'from-lime-500 via-green-500 to-emerald-600',
+    'from-cyan-500 via-blue-500 to-indigo-600',
+    'from-sky-500 via-indigo-500 to-violet-600',
   ];
   const gradient = gradients[index % gradients.length];
+  const icons = [Calendar, Sparkles, Users];
+  const Icon = icons[index % icons.length];
+
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return BookOpen;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
 
   return (
     <div
@@ -248,8 +429,24 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-              <Calendar className="w-16 h-16 text-white/80" />
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+              </div>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Upcoming</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
             </div>
           )}
           
@@ -285,9 +482,9 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
               {event.description}
             </p>
           )}
-          {event.organizer && (
+          {(event.organizer || event.organization) && (
             <p className="text-xs text-gray-500">
-              Hosted by <span className="font-semibold text-gray-700">{event.organizer}</span>
+              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
             </p>
           )}
           <p className="text-xs text-emerald-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view full details →</p>
@@ -308,18 +505,30 @@ interface PastEventCardProps {
 
 function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Element {
   const gradients = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-indigo-600',
-    'from-amber-500 to-orange-600',
-    'from-emerald-500 to-teal-600',
-    'from-pink-500 to-rose-600',
-    'from-cyan-500 to-blue-600',
+    'from-slate-500 via-gray-500 to-gray-600',
+    'from-zinc-500 via-gray-600 to-stone-600',
+    'from-gray-500 via-zinc-500 to-slate-600',
+    'from-stone-500 via-gray-500 to-neutral-600',
+    'from-gray-500 via-slate-500 to-zinc-600',
+    'from-neutral-500 via-stone-500 to-gray-600',
   ];
   const gradient = gradients[index % gradients.length];
+  const icons = [Clock, Calendar, Users];
+  const Icon = icons[index % icons.length];
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    if (event.facebook_post_url) {
-      window.open(event.facebook_post_url, '_blank', 'noopener,noreferrer');
+  const getEventIcon = () => {
+    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
+                       event.title.toLowerCase().includes('training') ||
+                       event.title.toLowerCase().includes('bootcamp');
+    if (isWorkshop) return BookOpen;
+    if (event.is_featured) return Sparkles;
+    return Icon;
+  };
+
+  const handleCardClick = (_e: React.MouseEvent): void => {
+    const extEvent = event as ExtendedCalendarEvent;
+    if (extEvent.facebook_post_url) {
+      window.open(extEvent.facebook_post_url, '_blank', 'noopener,noreferrer');
     } else {
       onClick();
     }
@@ -341,8 +550,24 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-              <Calendar className="w-16 h-16 text-white/80" />
+            <div className={`w-full h-full bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+              {/* Decorative elements */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+              </div>
+              
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center text-white px-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 shadow-2xl">
+                  {(() => {
+                    const EventIcon = getEventIcon();
+                    return <EventIcon className="w-8 h-8" />;
+                  })()}
+                </div>
+                <span className="text-white/90 text-sm font-bold mb-1">Concluded</span>
+                <p className="text-white/70 text-xs text-center max-w-xs line-clamp-2">{event.title}</p>
+              </div>
             </div>
           )}
           
@@ -377,9 +602,9 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
               {event.description}
             </p>
           )}
-          {event.organizer && (
+          {(event.organizer || event.organization) && (
             <p className="text-xs text-gray-500">
-              Hosted by <span className="font-semibold text-gray-700">{event.organizer}</span>
+              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
             </p>
           )}
           {event.facebook_post_url ? (
@@ -476,9 +701,9 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
             </div>
 
             {/* Organizer */}
-            {event.organizer && (
+            {(event.organization || event.organizer) && (
               <p className="text-sm text-gray-600 mb-6">
-                Hosted by <span className="font-bold text-[#0C2340]">{event.organizer}</span>
+                Hosted by <span className="font-bold text-[#0C2340]">{event.organization || event.organizer}</span>
               </p>
             )}
 
@@ -494,9 +719,9 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
-              {(event as any).facebook_post_url && (
+              {(event as ExtendedCalendarEvent).facebook_post_url && (
                 <a
-                  href={(event as any).facebook_post_url}
+                  href={(event as ExtendedCalendarEvent).facebook_post_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-xl font-semibold text-sm transition-all duration-300 shadow-md hover:shadow-lg"

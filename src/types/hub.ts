@@ -177,7 +177,7 @@ export const PCIDA_DOMAINS = [
 
 export type PCIDADomain = (typeof PCIDA_DOMAINS)[number];
 
-export type AttendanceStatus = 'pending_entrance' | 'active' | 'checked_out';
+export type AttendanceStatus = 'pending_entrance' | 'active' | 'checked_out' | 'rejected';
 
 export interface HubAttendance {
   id: string;
@@ -201,4 +201,8 @@ export interface HubAttendance {
   manually_added_by: string | null;
   notes: string | null;
   created_at: string;
+  /** Event ID from events table */
+  event_id: string | null;
+  /** Joined event data from events table */
+  event?: { id: string; title: string; start_time: string } | null;
 }

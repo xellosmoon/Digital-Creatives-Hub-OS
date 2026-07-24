@@ -95,6 +95,7 @@ export interface CalendarEvent {
   poster_url: string | null;
   registration_link: string | null;
   organizer: string | null;
+  organization: string | null;
   contact_email: string | null;
   contact_phone: string | null;
   space_id: string | null;
