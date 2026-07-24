@@ -106,7 +106,9 @@ export default function CheckIn(): JSX.Element {
   }, []);
 
   // ── Navigation ─────────────────────────────────────────────────
-  const STEPS: Step[] = ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event'];
+  const STEPS: Step[] = todayEvents.length > 0 
+    ? ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event']
+    : ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain'];
 
   const goNext = (): void => {
     const idx = STEPS.indexOf(step);
@@ -161,7 +163,6 @@ export default function CheckIn(): JSX.Element {
         privacy_consented: true,
         consent_timestamp: new Date().toISOString(),
         is_walk_in: false,
-        notes: null,
       }).select('id').single();
 
       if (error) throw error;
@@ -516,7 +517,7 @@ export default function CheckIn(): JSX.Element {
               </button>
             ) : <div />}
 
-            {step === 'event' ? (
+            {step === STEPS[STEPS.length - 1] ? (
               <button
                 type="button"
                 onClick={handleSubmit}
