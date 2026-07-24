@@ -185,7 +185,10 @@ export default function CheckIn(): JSX.Element {
         notes: agreementNotes || null,
       }).select('id').single();
 
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Check-in failed');
+        return;
+      }
       toast.success('Check-in successful! Please proceed to the front desk.');
       setTimeout(() => {
         navigate('/');

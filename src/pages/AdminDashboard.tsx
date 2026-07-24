@@ -262,7 +262,10 @@ export default function AdminDashboard(): JSX.Element {
         is_walk_in: true,
         manually_added_by: session?.session?.user?.id || null,
       });
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Check-in failed');
+        return;
+      }
       toast.success(`${manualForm.name} checked in!`);
       setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '', purpose: '', eventId: '' });
       setShowManualCheckIn(false);
