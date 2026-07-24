@@ -193,7 +193,10 @@ export default function AdminDashboard(): JSX.Element {
         .from('hub_attendance')
         .update({ status: 'rejected' })
         .eq('id', id);
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Reject failed');
+        return;
+      }
       toast.success(`${name}'s check-in rejected.`);
       fetchAttendance();
     } catch (err: unknown) {
