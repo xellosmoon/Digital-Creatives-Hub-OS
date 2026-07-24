@@ -146,11 +146,12 @@ export default function AdminDashboard(): JSX.Element {
 
   const fetchAttendance = async (): Promise<void> => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const now = new Date();
+      const todayStartISO = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
       const { data, error } = await supabase
         .from('hub_attendance')
         .select('*, event:events(title)')
-        .gte('check_in_time', `${today}T00:00:00`)
+        .gte('check_in_time', todayStartISO)
         .order('check_in_time', { ascending: false });
       if (error) throw error;
       setAttendance((data as HubAttendance[]) || []);
