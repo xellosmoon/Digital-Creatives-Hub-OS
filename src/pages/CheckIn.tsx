@@ -25,7 +25,7 @@ const DOMAIN_META: Record<PCIDADomain, { icon: React.ComponentType<{ className?:
   'Other': { icon: Sparkles, gradient: 'from-gray-500 to-slate-600' },
 };
 
-type Step = 'privacy' | 'mobile' | 'identity' | 'professional' | 'purpose' | 'domain' | 'event' | 'agreement';
+type Step = 'privacy' | 'mobile' | 'identity' | 'professional' | 'purpose' | 'domain' | 'event';
 
 // ══════════════════════════════════════════════════════════════════
 export default function CheckIn(): JSX.Element {
@@ -48,14 +48,6 @@ export default function CheckIn(): JSX.Element {
     eventId: '' as string,
   });
 
-  const [agreementChecks, setAgreementChecks] = useState({
-    isRequest: false,
-    waitConfirmation: false,
-    replyEmail: false,
-    noReplyCancel: false,
-    noShowAffects: false,
-  });
-  const [agreementNotes, setAgreementNotes] = useState('');
   const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string }>>([]);
 
   const update = useCallback((patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch })), []);
@@ -115,19 +107,14 @@ export default function CheckIn(): JSX.Element {
 
   // ── Navigation ─────────────────────────────────────────────────
   const STEPS: Step[] = todayEvents.length > 0 
-    ? ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event', 'agreement']
-    : ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'agreement'];
+    ? ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain', 'event']
+    : ['privacy', 'mobile', 'identity', 'professional', 'purpose', 'domain'];
 
   const goNext = (): void => {
     const idx = STEPS.indexOf(step);
     // Returning users: skip from mobile straight to purpose
     if (step === 'mobile' && isReturning) {
       setStep('purpose');
-      return;
-    }
-    // Skip event step if no events today
-    if (step === 'domain' && todayEvents.length === 0) {
-      setStep('agreement');
       return;
     }
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
@@ -137,11 +124,6 @@ export default function CheckIn(): JSX.Element {
     const idx = STEPS.indexOf(step);
     if (step === 'purpose' && isReturning) {
       setStep('mobile');
-      return;
-    }
-    // Skip event step when going back if no events today
-    if (step === 'agreement' && todayEvents.length === 0) {
-      setStep('domain');
       return;
     }
     if (idx > 0) setStep(STEPS[idx - 1]);
@@ -157,7 +139,6 @@ export default function CheckIn(): JSX.Element {
       case 'purpose': return !!form.purpose;
       case 'domain': return form.domains.length > 0;
       case 'event': return true; // optional - can skip event selection
-      case 'agreement': return Object.values(agreementChecks).every(v => v);
       default: return false;
     }
   };
@@ -182,7 +163,6 @@ export default function CheckIn(): JSX.Element {
         privacy_consented: true,
         consent_timestamp: new Date().toISOString(),
         is_walk_in: false,
-        notes: agreementNotes || null,
       }).select('id').single();
 
       if (error) {
@@ -223,7 +203,6 @@ export default function CheckIn(): JSX.Element {
               {step === 'purpose' && 'Purpose of Visit'}
               {step === 'domain' && 'Creative Domain'}
               {step === 'event' && 'Event Attendance'}
-              {step === 'agreement' && 'Booking Agreement'}
             </h1>
             <p className="text-sm text-white/50 mt-1">
               {step === 'privacy' && 'Please read before proceeding'}
@@ -233,7 +212,6 @@ export default function CheckIn(): JSX.Element {
               {step === 'purpose' && 'What brings you to the hub today?'}
               {step === 'domain' && 'Select your PCIDA sector (RA 11904)'}
               {step === 'event' && 'Optional — select if attending an event'}
-              {step === 'agreement' && 'Please read and confirm to proceed'}
             </p>
           </div>
 
@@ -530,60 +508,6 @@ export default function CheckIn(): JSX.Element {
             </div>
           )}
 
-          {/* ═══ STEP: AGREEMENT ═══ */}
-          {step === 'agreement' && (
-            <div className="space-y-4">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                  <span className="text-sm font-bold text-white">Booking Acknowledgment & Agreement</span>
-                </div>
-                <p className="text-xs text-white/60 mb-4">Please read and confirm the following to proceed with your booking request</p>
-                
-                <div className="space-y-3">
-                  {[
-                    { key: 'isRequest', text: 'I understand that submitting this form is a booking request only and does not guarantee approval.' },
-                    { key: 'waitConfirmation', text: 'I understand that I must wait for a confirmation email from the Digital Creatives Hub before my visit.' },
-                    { key: 'replyEmail', text: 'I agree to reply to the confirmation email to confirm my attendance.' },
-                    { key: 'noReplyCancel', text: 'I understand that failure to reply to the confirmation email may result in automatic cancellation of my booking.' },
-                    { key: 'noShowAffects', text: 'I understand that no-show visits may affect future booking approvals.' },
-                  ].map(({ key, text }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setAgreementChecks(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
-                      className={`w-full flex items-start gap-3 p-3 rounded-xl transition-all duration-200 text-left ${
-                        agreementChecks[key as keyof typeof agreementChecks]
-                          ? 'bg-emerald-500/20 border-2 border-emerald-400/50'
-                          : 'bg-white/5 border-2 border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
-                        agreementChecks[key as keyof typeof agreementChecks] ? 'bg-emerald-500 text-white' : 'bg-white/10'
-                      }`}>
-                        {agreementChecks[key as keyof typeof agreementChecks] && <CheckCircle className="h-3.5 w-3.5" />}
-                      </div>
-                      <span className={`text-xs ${agreementChecks[key as keyof typeof agreementChecks] ? 'text-emerald-200' : 'text-white/70'}`}>
-                        {text}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Additional Notes (Optional)</label>
-                <textarea
-                  value={agreementNotes}
-                  onChange={e => setAgreementNotes(e.target.value)}
-                  placeholder="Any special requests or notes..."
-                  rows={3}
-                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
-                />
-              </div>
-            </div>
-          )}
-
           {/* ── Navigation ── */}
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
             {step !== 'privacy' ? (
@@ -596,7 +520,7 @@ export default function CheckIn(): JSX.Element {
               </button>
             ) : <div />}
 
-            {step === 'agreement' ? (
+            {step === STEPS[STEPS.length - 1] ? (
               <button
                 type="button"
                 onClick={handleSubmit}
