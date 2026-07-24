@@ -262,7 +262,10 @@ export default function AdminDashboard(): JSX.Element {
         is_walk_in: true,
         manually_added_by: session?.session?.user?.id || null,
       });
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Check-in failed');
+        return;
+      }
       toast.success(`${manualForm.name} checked in!`);
       setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '', purpose: '', eventId: '' });
       setShowManualCheckIn(false);
@@ -392,7 +395,7 @@ export default function AdminDashboard(): JSX.Element {
   const floorList = floorView === 'pending' ? pending : floorView === 'active' ? active : checkedOut;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 bg-slate-50/50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">

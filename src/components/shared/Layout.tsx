@@ -76,15 +76,15 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   const isActive = (path: string): boolean => location.pathname === path;
 
   const navLinkClass = (path: string): string =>
-    `inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors ${isActive(path)
-      ? 'text-primary-600 border-b-2 border-primary-500'
-      : 'text-gray-600 hover:text-primary-600'
+    `relative text-xs uppercase tracking-wider text-slate-600 font-bold px-3 py-1.5 rounded-full transition-all duration-300 ease-out block overflow-hidden ${isActive(path)
+      ? 'text-slate-950 bg-slate-100/80'
+      : 'hover:text-slate-950 hover:bg-slate-100/80 active:scale-95'
     }`;
 
   const mobileNavLinkClass = (path: string): string =>
     `flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(path)
-      ? 'bg-primary-50 text-primary-700'
-      : 'text-gray-700 hover:bg-gray-100'
+      ? 'bg-slate-100 text-slate-900'
+      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
 
   // Get user initials for avatar
@@ -96,13 +96,13 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+      <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl z-50">
+        <div className="bg-white/80 backdrop-blur-lg border border-slate-200/50 rounded-full px-6 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="flex justify-between items-center">
             <div className="flex items-center">
               {/* Logo */}
               <Link to="/" className="flex items-center flex-shrink-0">
-                <span className="text-xl font-bold text-[#0C2340]">
+                <span className="font-black text-sm tracking-wider text-slate-900 uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
                   Digital Creatives Hub
                 </span>
               </Link>
@@ -110,32 +110,25 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
               {/* Desktop Navigation Links */}
               <div className="hidden lg:ml-8 lg:flex lg:space-x-6">
                 <Link to="/" className={navLinkClass('/')}>
-                  <Home className="w-4 h-4 mr-1.5" />
                   Home
                 </Link>
                 <Link to="/bookings" className={navLinkClass('/bookings')}>
-                  <Calendar className="w-4 h-4 mr-1.5" />
                   Book
                 </Link>
                 <Link to="/calendar" className={navLinkClass('/calendar')}>
-                  <Calendar className="w-4 h-4 mr-1.5" />
                   Calendar
                 </Link>
                 <Link to="/propose-event" className={navLinkClass('/propose-event')}>
-                  <PartyPopper className="w-4 h-4 mr-1.5" />
                   Propose Event
                 </Link>
                 <Link to="/gadgets" className={navLinkClass('/gadgets')}>
-                  <Package className="w-4 h-4 mr-1.5" />
                   Gadgets
                 </Link>
                 <Link to="/about" className={navLinkClass('/about')}>
-                  <Info className="w-4 h-4 mr-1.5" />
                   About
                 </Link>
                 {!session && (
                   <Link to="/booking-lookup" className={navLinkClass('/booking-lookup')}>
-                    <Search className="w-4 h-4 mr-1.5" />
                     Find Booking
                   </Link>
                 )}
@@ -153,20 +146,20 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                     <button
                       id="user-menu-button"
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
                       aria-expanded={userDropdownOpen}
                       aria-haspopup="true"
                     >
                       {/* Avatar */}
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${isAdmin
                           ? 'bg-gradient-to-br from-violet-500 to-purple-600'
-                          : 'bg-gradient-to-br from-primary-500 to-primary-600'
+                          : 'bg-gradient-to-br from-cyan-500 to-cyan-600'
                         }`}>
                         {getUserInitials()}
                       </div>
                       <div className="hidden sm:block text-left">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-gray-800 max-w-[140px] truncate">
+                          <span className="text-sm font-medium text-slate-700 max-w-[140px] truncate">
                             {session.user.email}
                           </span>
                           {isAdmin && (
@@ -176,26 +169,26 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                           )}
                         </div>
                       </div>
-                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {/* Dropdown Menu */}
                     {userDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/60 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                         {/* User info header */}
-                        <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="px-4 py-3 border-b border-slate-200/60">
                           <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${isAdmin
                                 ? 'bg-gradient-to-br from-violet-500 to-purple-600'
-                                : 'bg-gradient-to-br from-primary-500 to-primary-600'
+                                : 'bg-gradient-to-br from-cyan-500 to-cyan-600'
                               }`}>
                               {getUserInitials()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">
+                              <p className="text-sm font-semibold text-slate-900 truncate">
                                 {session.user.email}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-slate-500">
                                 {isAdmin ? '🛡️ Administrator' : '👤 Member'}
                               </p>
                             </div>
@@ -206,55 +199,55 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                         <div className="py-1">
                           <Link
                             to="/dashboard"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <User className="w-4 h-4 text-gray-400" />
+                            <User className="w-4 h-4 text-slate-400" />
                             User Dashboard
                           </Link>
                           <Link
                             to="/my-borrows"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <ClipboardList className="w-4 h-4 text-gray-400" />
+                            <ClipboardList className="w-4 h-4 text-slate-400" />
                             My Borrows
                           </Link>
                           <Link
                             to="/settings"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <Settings className="w-4 h-4 text-gray-400" />
+                            <Settings className="w-4 h-4 text-slate-400" />
                             Settings
                           </Link>
                           {isAdmin && (
                             <>
-                              <div className="px-4 py-2 mt-1 border-t border-gray-50">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Administrative</p>
+                              <div className="px-4 py-2 mt-1 border-t border-slate-200/60">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrative</p>
                               </div>
                               <Link
                                 to="/admin"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Shield className="w-4 h-4 text-violet-400" />
+                                <Shield className="w-4 h-4 text-violet-500" />
                                 Admin Dashboard
                               </Link>
                               <Link
                                 to="/admin/gadgets"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Package className="w-4 h-4 text-gray-400" />
+                                <Package className="w-4 h-4 text-slate-400" />
                                 Gadget Mgmt
                               </Link>
                               <Link
                                 to="/admin/seats"
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-stone-100 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Armchair className="w-4 h-4 text-gray-400" />
+                                <Armchair className="w-4 h-4 text-slate-400" />
                                 Seat Mgmt
                               </Link>
                             </>
@@ -262,7 +255,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                         </div>
 
                         {/* Logout */}
-                        <div className="border-t border-gray-100 pt-1">
+                        <div className="border-t border-slate-200/60 pt-1">
                           <button
                             id="logout-button"
                             onClick={handleLogout}
@@ -280,17 +273,10 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <div className="hidden sm:flex items-center space-x-3">
                   <Link
                     to="/login"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)]"
                   >
                     Login
                   </Link>
-                  {/* Sign Up button hidden */}
-                  {/* <Link
-                    to="/register"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors shadow-sm"
-                  >
-                    Sign Up
-                  </Link> */}
                 </div>
               )}
 
@@ -298,7 +284,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
               <button
                 id="mobile-menu-button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
                 aria-expanded={mobileMenuOpen}
               >
                 <span className="sr-only">Open main menu</span>
@@ -314,7 +300,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white shadow-lg">
+          <div className="lg:hidden mt-4 bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-xl overflow-hidden">
             <div className="px-4 py-3 space-y-1">
               <Link to="/" className={mobileNavLinkClass('/')}>
                 <Home className="w-4 h-4 mr-3" />
@@ -350,30 +336,23 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
             {/* Mobile auth buttons */}
             {!session && (
-              <div className="px-4 pt-3 border-t border-gray-100 space-y-2">
+              <div className="px-4 pt-3 border-t border-slate-800/60 space-y-2">
                 <Link
                   to="/login"
-                  className="flex items-center justify-center w-full px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center w-full px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)]"
                 >
                   Login
                 </Link>
-                {/* Sign Up button hidden */}
-                {/* <Link
-                  to="/register"
-                  className="flex items-center justify-center w-full px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors"
-                >
-                  Sign Up
-                </Link> */}
               </div>
             )}
 
             {/* Mobile logout */}
             {session && (
-              <div className="px-4 pt-3 border-t border-gray-100">
+              <div className="px-4 pt-3 border-t border-slate-800/60">
                 <button
                   id="mobile-logout-button"
                   onClick={handleLogout}
-                  className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut className="w-4 h-4 mr-3" />
                   Sign Out
@@ -385,7 +364,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pt-32 md:pt-36 pb-12 transition-all duration-300">
         {children}
       </main>
 

@@ -46,13 +46,20 @@ const EQUIP_ICONS: Record<string, React.ElementType> = {
   webcam: Webcam,
 };
 
-function OfferCard({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }): JSX.Element {
+function OfferCard({ icon: Icon, title, description, iconColor }: { icon: React.ElementType, title: string, description: string, iconColor?: string }): JSX.Element {
+  const getIconContainer = () => {
+    if (iconColor === 'teal') return 'bg-teal-50 text-teal-600';
+    if (iconColor === 'slate') return 'bg-slate-100 text-slate-800';
+    if (iconColor === 'orange') return 'bg-orange-50 text-orange-600';
+    return 'bg-[#0C2340]/5 text-[#0C2340]';
+  };
+
   return (
-    <div className="group p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#F59E0B]/20 transition-all duration-500">
-      <div className="w-14 h-14 rounded-2xl bg-[#0C2340]/5 flex items-center justify-center mb-6 group-hover:bg-[#F59E0B]/10 transition-colors">
-        <Icon className="w-7 h-7 text-[#0C2340] group-hover:text-[#F59E0B] transition-colors" />
+    <div className="group p-6 rounded-2xl bg-white/60 backdrop-blur-lg border border-white/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${getIconContainer()}`}>
+        <Icon className="w-6 h-6" />
       </div>
-      <h3 className="text-xl font-bold text-[#0C2340] mb-3">{title}</h3>
+      <h3 className="text-lg font-bold text-[#0C2340] mb-2">{title}</h3>
       <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
     </div>
   );
@@ -181,13 +188,10 @@ export default function Home(): JSX.Element {
 
       {/* Hero Section */}
       <div className="relative">
-        {/* Creative As One Logo Background */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none overflow-hidden">
-          <img 
-            src="/creative-as-one-logo.png" 
-            alt="Creative As One Iligan" 
-            className="w-full max-w-4xl h-auto object-contain"
-          />
+        {/* Ambient Background Mesh */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-amber-400/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan-400/10 blur-[120px] rounded-full pointer-events-none" />
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative z-10">
@@ -266,13 +270,13 @@ export default function Home(): JSX.Element {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-[#0C2340] sm:text-4xl">What We Offer</h2>
-            <div className="w-20 h-1.5 bg-[#F59E0B] mx-auto mt-4 rounded-full"></div>
+            <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto mt-2"></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <OfferCard icon={Clock} title="24/7 Operations" description="Work anytime, day or night, in a secure and inspired environment." />
-            <OfferCard icon={Presentation} title="Meetings/Events Venue" description="Professional spaces perfect for workshops, seminars, and gatherings." />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <OfferCard icon={Presentation} title="Meetings/Events Venue" description="Professional spaces perfect for workshops, seminars, and gatherings." iconColor="slate" />
+            <OfferCard icon={Clock} title="24/7 Operations" description="Work anytime, day or night, in a secure and inspired environment." iconColor="teal" />
+            <OfferCard icon={Zap} title="Fast Internet Speed" description="Blazing fast fiber internet to keep your creative workflow uninterrupted." iconColor="orange" />
             <OfferCard icon={Briefcase} title="Virtual Office Space" description="Establish your business presence with our professional mailing address." />
-            <OfferCard icon={Zap} title="Fast Internet Speed" description="Blazing fast fiber internet to keep your creative workflow uninterrupted." />
             <OfferCard icon={Lightbulb} title="Innovation Hub" description="Access to tools and a community focused on groundbreaking ideas." />
             <OfferCard icon={Layers} title="Collaborative Space" description="Connect, share, and grow with a network of talented digital pros." />
             <OfferCard icon={Armchair} title="Co-working Space" description="Ergonomic and flexible workstations designed for productivity." />
