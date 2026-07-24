@@ -3,7 +3,7 @@ import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
   CheckCircle, X, LogOut, Trash2, Timer, Building2,
-  CreditCard, XCircle, Calendar
+  CreditCard, XCircle, Calendar, Image
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -439,7 +439,7 @@ export default function AdminDashboard(): JSX.Element {
       </div>
 
       {/* Management Navigation Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
         <Link to="/admin/bookings" className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
           {pendingCounts.bookings > 0 && (
             <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
@@ -479,6 +479,12 @@ export default function AdminDashboard(): JSX.Element {
             <Package className="h-6 w-6 text-amber-600" />
           </div>
           <span className="text-sm font-bold text-gray-700">Gadgets</span>
+        </Link>
+        <Link to="/admin/gallery" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+          <div className="p-3 bg-pink-50 rounded-xl group-hover:bg-pink-100 transition-colors mb-3">
+            <Image className="h-6 w-6 text-pink-600" />
+          </div>
+          <span className="text-sm font-bold text-gray-700">Gallery</span>
         </Link>
         <Link to="/admin/analytics" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
           <div className="p-3 bg-rose-50 rounded-xl group-hover:bg-rose-100 transition-colors mb-3">

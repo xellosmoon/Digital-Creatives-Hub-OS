@@ -29,6 +29,7 @@ const CheckIn = lazy(() => import('./pages/CheckIn'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const TeamManagement = lazy(() => import('./pages/TeamManagement'));
+const GalleryManagement = lazy(() => import('./pages/GalleryManagement'));
 
 // Components
 import Layout from './components/shared/Layout';
@@ -189,6 +190,16 @@ function App(): JSX.Element {
                 <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <TeamManagement />
+                  </ProtectedRoute>
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/gallery"
+              element={
+                <Layout session={session}>
+                  <ProtectedRoute session={session} requireAdmin>
+                    <GalleryManagement />
                   </ProtectedRoute>
                 </Layout>
               }

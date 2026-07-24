@@ -9,6 +9,7 @@ import {
 import { supabase } from '../lib/supabase';
 import type { HubZone } from '../types/hub';
 import EventCards from '../components/home/EventCards';
+import HubGalleryMarquee from '../components/home/HubGalleryMarquee';
 
 interface Equipment {
   id: string;
@@ -287,6 +288,9 @@ export default function Home(): JSX.Element {
 
       {/* Events Section */}
       <EventCards />
+
+      {/* Gallery Marquee Section */}
+      <HubGalleryMarquee />
 
       {/* Stats Section */}
       <div className="relative py-16 bg-gradient-to-r from-teal-50 via-cyan-50 to-blue-50">
