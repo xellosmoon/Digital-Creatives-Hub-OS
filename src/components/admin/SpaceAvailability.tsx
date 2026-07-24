@@ -52,16 +52,16 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
 
       if (schedulesError) throw schedulesError;
 
-      // If no schedules exist, create default ones (9 AM - 6 PM, Monday-Friday)
+      // If no schedules exist, create default ones (24/7, all days)
       if (!schedulesData || schedulesData.length === 0) {
         const defaultSchedules: AvailabilitySchedule[] = [];
         for (let day = 0; day < 7; day++) {
           defaultSchedules.push({
             space_id: spaceId,
             day_of_week: day,
-            start_time: '09:00',
-            end_time: '18:00',
-            is_available: day >= 1 && day <= 5 // Monday-Friday
+            start_time: '00:00',
+            end_time: '23:59',
+            is_available: true // All days available 24/7
           });
         }
         setSchedules(defaultSchedules);

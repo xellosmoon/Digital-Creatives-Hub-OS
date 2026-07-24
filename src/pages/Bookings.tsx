@@ -730,7 +730,7 @@ export default function Bookings(): JSX.Element {
                   {isDaily && (
                     <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-center gap-3 text-sm text-[#F59E0B]">
                       <Info className="h-5 w-5 flex-shrink-0" />
-                      Full-day pass — come and go anytime during operating hours (8 AM - 8 PM).
+                      Full-day pass — come and go anytime (24/7 access).
                     </div>
                   )}
 

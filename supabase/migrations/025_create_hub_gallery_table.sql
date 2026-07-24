@@ -30,16 +30,10 @@ COMMENT ON COLUMN hub_gallery.is_active IS 'Whether the image should be displaye
 ALTER TABLE hub_gallery ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Only admins can manage gallery images
-CREATE POLICY "Admins can view gallery images"
+CREATE POLICY "Public can view active gallery images"
   ON hub_gallery FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  TO anon, authenticated
+  USING (is_active = true);
 
 CREATE POLICY "Admins can insert gallery images"
   ON hub_gallery FOR INSERT
@@ -73,12 +67,6 @@ CREATE POLICY "Admins can delete gallery images"
       AND profiles.role = 'admin'
     )
   );
-
--- Public can view active gallery images for the homepage marquee
-CREATE POLICY "Public can view active gallery images"
-  ON hub_gallery FOR SELECT
-  TO anon
-  USING (is_active = true);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_hub_gallery_updated_at()
