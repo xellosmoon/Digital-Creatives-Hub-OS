@@ -63,8 +63,8 @@ export default function TimeSlotPicker({ spaceId, onSelect, initialDate, initial
 
   const generateTimeSlots = (): void => {
     const slots: TimeSlot[] = [];
-    const startHour = 8; // 8 AM
-    const endHour = 20; // 8 PM
+    const startHour = 0; // 12 AM (24-hour access)
+    const endHour = 24; // 12 AM next day (24-hour access)
     const now = new Date();
 
     for (let hour = startHour; hour < endHour; hour++) {

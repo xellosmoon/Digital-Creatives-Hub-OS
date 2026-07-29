@@ -13,23 +13,21 @@ interface GalleryImage {
 
 export default function HubGalleryMarquee(): JSX.Element {
   const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
 
   useEffect(() => {
     fetchImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchImages = async (): Promise<void> => {
     try {
       const { data, error } = await supabase
-        .from('hub_gallery')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
-      
+        .from('public_gallery')
+        .select('*');
+
       if (error) throw error;
-      
+
       // If no data from database, use mock data as fallback
       if (!data || data.length === 0) {
         setImages(getMockImages());
@@ -37,76 +35,73 @@ export default function HubGalleryMarquee(): JSX.Element {
         setImages(data as GalleryImage[]);
       }
     } catch (err) {
-      console.error('Error fetching gallery images:', err);
       // Fallback to mock data on error
       setImages(getMockImages());
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Mock data fallback
+  // Mock data fallback - using placeholder images that actually work
   const getMockImages = (): GalleryImage[] => [
     {
       id: '1',
-      cloudinary_public_id: 'samples/coffee-shop',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/coffee-shop.jpg',
+      cloudinary_public_id: 'placeholder-1',
+      cloudinary_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop',
       title: 'Morning Collaboration',
       category: 'Coworking',
       badge: '☕ Coworking Lounge',
     },
     {
       id: '2',
-      cloudinary_public_id: 'samples/office-work',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/office-work.jpg',
+      cloudinary_public_id: 'placeholder-2',
+      cloudinary_url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop',
       title: 'Focus Session',
       category: 'Productivity',
       badge: '💻 Deep Work Zone',
     },
     {
       id: '3',
-      cloudinary_public_id: 'samples/meeting-room',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/meeting-room.jpg',
+      cloudinary_public_id: 'placeholder-3',
+      cloudinary_url: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&h=600&fit=crop',
       title: 'Team Brainstorm',
       category: 'Meetings',
       badge: '🎯 Meeting Room',
     },
     {
       id: '4',
-      cloudinary_public_id: 'samples/podcast-studio',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/podcast-studio.jpg',
+      cloudinary_public_id: 'placeholder-4',
+      cloudinary_url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&h=600&fit=crop',
       title: 'Podcast Recording',
       category: 'Media',
       badge: '🎙️ Podcast Studio',
     },
     {
       id: '5',
-      cloudinary_public_id: 'samples/design-workshop',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/design-workshop.jpg',
+      cloudinary_public_id: 'placeholder-5',
+      cloudinary_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop',
       title: 'Design Sprint',
       category: 'Workshops',
       badge: '🎨 Design Sprint',
     },
     {
       id: '6',
-      cloudinary_public_id: 'samples/coworking-space',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/coworking-space.jpg',
+      cloudinary_public_id: 'placeholder-6',
+      cloudinary_url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=600&fit=crop',
       title: 'Community Hub',
       category: 'Community',
       badge: '👥 Community Space',
     },
     {
       id: '7',
-      cloudinary_public_id: 'samples/creative-studio',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/creative-studio.jpg',
+      cloudinary_public_id: 'placeholder-7',
+      cloudinary_url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=600&fit=crop',
       title: 'Creative Session',
       category: 'Studio',
       badge: '✨ Creative Studio',
     },
     {
       id: '8',
-      cloudinary_public_id: 'samples/event-space',
-      cloudinary_url: 'https://res.cloudinary.com/demo/image/upload/samples/event-space.jpg',
+      cloudinary_public_id: 'placeholder-8',
+      cloudinary_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=600&fit=crop',
       title: 'Workshop Event',
       category: 'Events',
       badge: '🎪 Event Space',

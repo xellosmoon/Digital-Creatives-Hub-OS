@@ -32,7 +32,7 @@ export default function Dashboard(): JSX.Element {
         await fetchProfile(currentUser.id);
       }
     } catch (error) {
-      console.error('Error loading user:', error);
+      // Error loading user
     }
   };
 
@@ -42,12 +42,12 @@ export default function Dashboard(): JSX.Element {
         .from('profiles')
         .select('full_name, phone, email, tier')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
       setProfile(profileData);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      // Error fetching profile
     }
   };
 
@@ -104,7 +104,6 @@ export default function Dashboard(): JSX.Element {
         setBookings([]);
       }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);

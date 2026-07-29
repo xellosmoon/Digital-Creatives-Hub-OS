@@ -17,11 +17,11 @@ import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadge
 import { BUNDLE_SLUGS } from '../types/hub';
 
 // ── Time slot definitions ──────────────────────────────────────────
-const HOURS = Array.from({ length: 13 }, (_, i) => {
-  const h = i + 8;
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+  const h = i;
   return {
     value: `${String(h).padStart(2, '0')}:00`,
-    label: h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`,
+    label: h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`,
   };
 });
 
@@ -95,6 +95,12 @@ export default function Bookings(): JSX.Element {
     email: preselected.prefillProfile?.email || '',
     phone: preselected.prefillProfile?.phone || '',
     purpose: '',
+    gender: '',
+    sector: '',
+    organization: '',
+    designation: '',
+    creative_domain: '',
+    facebook_link: '',
   });
 
   const [agreementChecks, setAgreementChecks] = useState({
@@ -298,6 +304,12 @@ export default function Bookings(): JSX.Element {
         booking_type: bookingType || 'individual',
         group_size: bookingType === 'group' ? groupSize : null,
         notes: agreementNotes || null,
+        gender: form.gender || null,
+        sector: form.sector || null,
+        organization: form.organization || null,
+        designation: form.designation || null,
+        creative_domain: form.creative_domain || null,
+        facebook_link: form.facebook_link || null,
       }).select().single();
 
       if (bookingError) throw bookingError;
@@ -337,7 +349,7 @@ export default function Bookings(): JSX.Element {
       setSelectedEquipment([]);
       setEquipmentTotal(0);
       setStep('package');
-      setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purpose: '' });
+      setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purpose: '', gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Booking failed';
       toast.error(errorMessage);
@@ -823,6 +835,94 @@ export default function Bookings(): JSX.Element {
                         placeholder="Video editing, web development, studying..."
                         className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300 resize-none"
                       />
+                    </div>
+
+                    {/* Additional Info Section (matching check-in fields) */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 mb-4">Additional information (optional, helps us serve you better)</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Gender
+                          </label>
+                          <select
+                            value={form.gender}
+                            onChange={e => update({ gender: e.target.value })}
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
+                          >
+                            <option value="">Select...</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Sector
+                          </label>
+                          <input
+                            type="text"
+                            value={form.sector}
+                            onChange={e => update({ sector: e.target.value })}
+                            placeholder="e.g. Government, Private, Academic"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Organization
+                          </label>
+                          <input
+                            type="text"
+                            value={form.organization}
+                            onChange={e => update({ organization: e.target.value })}
+                            placeholder="Company or school name"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Designation
+                          </label>
+                          <input
+                            type="text"
+                            value={form.designation}
+                            onChange={e => update({ designation: e.target.value })}
+                            placeholder="e.g. Graphic Designer, Student"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Creative Domain
+                          </label>
+                          <input
+                            type="text"
+                            value={form.creative_domain}
+                            onChange={e => update({ creative_domain: e.target.value })}
+                            placeholder="e.g. Visual Arts, Film & Animation, Music"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Facebook Profile Link
+                          </label>
+                          <input
+                            type="url"
+                            value={form.facebook_link}
+                            onChange={e => update({ facebook_link: e.target.value })}
+                            placeholder="https://facebook.com/your.profile"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
