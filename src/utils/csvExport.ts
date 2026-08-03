@@ -60,9 +60,31 @@ export function formatBookingForExport(booking: Record<string, unknown>): Record
 }
 
 export function formatAttendanceForDTIExport(attendance: Record<string, unknown>): Record<string, string> {
+  // Handle array fields by joining with commas
+  let creativeDomains = 'N/A';
+  if (attendance.creative_domains) {
+    if (Array.isArray(attendance.creative_domains)) {
+      creativeDomains = (attendance.creative_domains as unknown[]).map(String).join(', ') || 'N/A';
+    } else {
+      creativeDomains = String(attendance.creative_domains);
+    }
+  } else if (attendance.creative_domain) {
+    creativeDomains = String(attendance.creative_domain);
+  }
+  
+  let purposeOfVisit = 'N/A';
+  if (attendance.purpose_of_visit) {
+    if (Array.isArray(attendance.purpose_of_visit)) {
+      purposeOfVisit = (attendance.purpose_of_visit as unknown[]).map(String).join(', ') || 'N/A';
+    } else {
+      purposeOfVisit = String(attendance.purpose_of_visit);
+    }
+  }
+
   return {
     'Full Name': String(attendance.full_name || 'N/A'),
-    'Creative Domain (PCIDA)': String(attendance.creative_domain || 'N/A'),
+    'Creative Domain (PCIDA)': creativeDomains,
+    'Purpose of Visit': purposeOfVisit,
     'Organization': String(attendance.organization || 'N/A'),
     'Designation': String(attendance.designation || 'N/A'),
     'Sector': String(attendance.sector || 'N/A'),

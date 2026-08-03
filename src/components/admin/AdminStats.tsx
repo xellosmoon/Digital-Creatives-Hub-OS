@@ -60,12 +60,23 @@ export default function AdminStats(): JSX.Element {
       });
       const uniqueOrganizations = orgSet.size;
 
-      // PCIDA breakdown
+      // PCIDA breakdown (handle arrays)
       const pcidaCounts: Record<string, number> = {};
       attendance.forEach((a: Record<string, unknown>) => {
-        const domain = a.creative_domain as string;
-        if (domain && typeof domain === 'string' && domain.trim()) {
-          pcidaCounts[domain.trim()] = (pcidaCounts[domain.trim()] || 0) + 1;
+        // Handle creative_domains array
+        const domains = a.creative_domains as string[] | undefined;
+        if (domains && Array.isArray(domains)) {
+          domains.forEach(domain => {
+            if (domain && typeof domain === 'string' && domain.trim()) {
+              pcidaCounts[domain.trim()] = (pcidaCounts[domain.trim()] || 0) + 1;
+            }
+          });
+        } else {
+          // Fallback to old creative_domain field
+          const domain = a.creative_domain as string;
+          if (domain && typeof domain === 'string' && domain.trim()) {
+            pcidaCounts[domain.trim()] = (pcidaCounts[domain.trim()] || 0) + 1;
+          }
         }
       });
       const pcidaBreakdown = Object.entries(pcidaCounts)
@@ -76,12 +87,16 @@ export default function AdminStats(): JSX.Element {
       // Most active PCIDA domain
       const mostActivePCIDA = pcidaBreakdown.length > 0 ? pcidaBreakdown[0].domain : '-';
 
-      // Purpose breakdown
+      // Purpose of visit breakdown (handle arrays)
       const purposeCounts: Record<string, number> = {};
       attendance.forEach((a: Record<string, unknown>) => {
-        const purpose = a.purpose as string;
-        if (purpose && typeof purpose === 'string' && purpose.trim()) {
-          purposeCounts[purpose.trim()] = (purposeCounts[purpose.trim()] || 0) + 1;
+        const purposes = a.purpose_of_visit as string[] | undefined;
+        if (purposes && Array.isArray(purposes)) {
+          purposes.forEach(purpose => {
+            if (purpose && typeof purpose === 'string' && purpose.trim()) {
+              purposeCounts[purpose.trim()] = (purposeCounts[purpose.trim()] || 0) + 1;
+            }
+          });
         }
       });
       const purposeBreakdown = Object.entries(purposeCounts)

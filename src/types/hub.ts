@@ -177,6 +177,22 @@ export const PCIDA_DOMAINS = [
 
 export type PCIDADomain = (typeof PCIDA_DOMAINS)[number];
 
+// Purpose of visit options
+export const PURPOSE_OF_VISIT_OPTIONS = [
+  'Explore',
+  'Coworking',
+  'Meeting',
+  'Equipment Use',
+  'Content Creation',
+  'Research',
+  'Collaboration',
+  'Event',
+  'Virtual Office',
+  'Other',
+] as const;
+
+export type PurposeOfVisit = (typeof PURPOSE_OF_VISIT_OPTIONS)[number];
+
 export type AttendanceStatus = 'pending_entrance' | 'active' | 'checked_out' | 'rejected';
 
 export interface HubAttendance {
@@ -188,7 +204,9 @@ export interface HubAttendance {
   sector: string | null;
   organization: string | null;
   designation: string | null;
-  creative_domain: string;
+  creative_domain: string | null;
+  creative_domains: string[] | null;
+  purpose_of_visit: string[] | null;
   status: AttendanceStatus;
   check_in_time: string;
   confirmed_at: string | null;

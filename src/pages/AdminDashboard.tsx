@@ -11,7 +11,7 @@ import BookingApprovalCard from '../components/admin/BookingApprovalCard';
 import toast from 'react-hot-toast';
 import { exportToCSV, formatBookingForExport, formatAttendanceForDTIExport } from '../utils/csvExport';
 import { format, differenceInMinutes } from 'date-fns';
-import { PCIDA_DOMAINS } from '../types/hub';
+import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../types/hub';
 import type { HubAttendance } from '../types/hub';
 
 // Time elapsed helper
@@ -44,7 +44,7 @@ export default function AdminDashboard(): JSX.Element {
 
   // Manual check-in form
   const [manualForm, setManualForm] = useState({
-    mobile: '', name: '', domain: PCIDA_DOMAINS[0] as string, organization: '', purpose: '', eventId: '',
+    mobile: '', name: '', creative_domains: [PCIDA_DOMAINS[0]] as string[], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]] as string[], organization: '', eventId: '',
   });
   const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string }>>([]);
 
@@ -254,9 +254,9 @@ export default function AdminDashboard(): JSX.Element {
       const { error } = await supabase.from('hub_attendance').insert({
         mobile_number: manualForm.mobile,
         full_name: manualForm.name,
-        creative_domain: manualForm.domain,
+        creative_domains: manualForm.creative_domains.length > 0 ? manualForm.creative_domains : null,
+        purpose_of_visit: manualForm.purpose_of_visit.length > 0 ? manualForm.purpose_of_visit : null,
         organization: manualForm.organization || null,
-        purpose: manualForm.purpose || null,
         event_id: manualForm.eventId || null,
         status: 'active',
         confirmed_at: new Date().toISOString(),
@@ -271,7 +271,7 @@ export default function AdminDashboard(): JSX.Element {
         return;
       }
       toast.success(`${manualForm.name} checked in!`);
-      setManualForm({ mobile: '', name: '', domain: PCIDA_DOMAINS[0], organization: '', purpose: '', eventId: '' });
+      setManualForm({ mobile: '', name: '', creative_domains: [PCIDA_DOMAINS[0]], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]], organization: '', eventId: '' });
       setShowManualCheckIn(false);
       fetchAttendance();
     } catch (err: unknown) {
@@ -664,7 +664,7 @@ export default function AdminDashboard(): JSX.Element {
                       )}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                      <span>{a.creative_domain}</span>
+                      <span>{a.creative_domains?.join(', ') || a.creative_domain || '-'}</span>
                       {a.organization && <span>&bull; {a.organization}</span>}
                     </div>
                   </div>
@@ -798,10 +798,31 @@ export default function AdminDashboard(): JSX.Element {
                 <input type="text" value={manualForm.name} onChange={e => setManualForm(p => ({ ...p, name: e.target.value }))} placeholder="Juan Dela Cruz" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Creative Domain</label>
-                <select value={manualForm.domain} onChange={e => setManualForm(p => ({ ...p, domain: e.target.value }))} className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  {PCIDA_DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Creative Domains</label>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {PCIDA_DOMAINS.map((domain) => (
+                    <button
+                      key={domain}
+                      type="button"
+                      onClick={() => {
+                        const isSelected = manualForm.creative_domains.includes(domain);
+                        setManualForm(p => ({
+                          ...p,
+                          creative_domains: isSelected
+                            ? p.creative_domains.filter(d => d !== domain)
+                            : [...p.creative_domains, domain]
+                        }));
+                      }}
+                      className={`text-left px-2 py-1.5 rounded text-xs ${
+                        manualForm.creative_domains.includes(domain)
+                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {manualForm.creative_domains.includes(domain) && '✓ '} {domain}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Organization</label>
@@ -809,19 +830,30 @@ export default function AdminDashboard(): JSX.Element {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Purpose of Visit</label>
-                <select value={manualForm.purpose} onChange={e => setManualForm(p => ({ ...p, purpose: e.target.value }))} className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  <option value="">Select purpose...</option>
-                  <option value="Explore the space">Explore the space</option>
-                  <option value="Coworking or productivity">Coworking or productivity</option>
-                  <option value="Conduct a meeting or session">Conduct a meeting or session</option>
-                  <option value="Use available equipment or services">Use available equipment or services</option>
-                  <option value="Content creation or digital work">Content creation or digital work</option>
-                  <option value="Research or academic purposes">Research or academic purposes</option>
-                  <option value="Propose Collaboration">Propose Collaboration</option>
-                  <option value="Attend an event in the hub">Attend an event in the hub</option>
-                  <option value="Virtual Office Inquiry">Virtual Office Inquiry</option>
-                  <option value="Other">Other</option>
-                </select>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
+                    <button
+                      key={purpose}
+                      type="button"
+                      onClick={() => {
+                        const isSelected = manualForm.purpose_of_visit.includes(purpose);
+                        setManualForm(p => ({
+                          ...p,
+                          purpose_of_visit: isSelected
+                            ? p.purpose_of_visit.filter(p => p !== purpose)
+                            : [...p.purpose_of_visit, purpose]
+                        }));
+                      }}
+                      className={`text-left px-2 py-1.5 rounded text-xs ${
+                        manualForm.purpose_of_visit.includes(purpose)
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {manualForm.purpose_of_visit.includes(purpose) && '✓ '} {purpose}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Event Attendance (Optional)</label>

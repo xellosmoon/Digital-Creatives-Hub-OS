@@ -38,6 +38,7 @@ interface DaySummary {
   workshopQ2: boolean;
   workshopQ4: boolean;
   coworkingCount: number;   // # of individual coworking bookings
+  pendingCount: number;      // # of pending bookings
   bundleBookings: CalendarHubBooking[];
   workshopBookings: CalendarHubBooking[];
 }
@@ -46,6 +47,7 @@ export default function PublicCalendar(): JSX.Element {
   // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<CalendarHubBooking[]>([]);
   const [occupancyMap, setOccupancyMap] = useState<Record<string, DailyOccupancy>>({});
   const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
   const [attendanceTotalsMap, setAttendanceTotalsMap] = useState<Record<string, number>>({});
@@ -102,12 +104,19 @@ export default function PublicCalendar(): JSX.Element {
       const gridStartISO = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate(), 0, 0, 0, 0).toISOString();
       const gridEndISO = new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59, 999).toISOString();
 
-      // Parallel: bookings, occupancy rows, capacity config, active check-ins
-      const [bookingsRes, occRes, configRes, attendanceRes] = await Promise.all([
+      // Parallel: bookings, pending bookings, occupancy rows, capacity config, active check-ins
+      const [bookingsRes, pendingRes, occRes, configRes, attendanceRes] = await Promise.all([
         supabase
           .from('hub_bookings')
           .select('*, package:rental_packages(slug, name, is_bundle)')
           .in('status', ['approved', 'active'])
+          .gte('booking_date', gridStartStr)
+          .lte('booking_date', gridEndStr)
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('hub_bookings')
+          .select('*, package:rental_packages(slug, name, is_bundle)')
+          .eq('status', 'pending')
           .gte('booking_date', gridStartStr)
           .lte('booking_date', gridEndStr)
           .order('start_time', { ascending: true }),
@@ -129,6 +138,7 @@ export default function PublicCalendar(): JSX.Element {
       ]);
 
       setHubBookings((bookingsRes.data as CalendarHubBooking[]) ?? []);
+      setPendingBookings((pendingRes.data as CalendarHubBooking[]) ?? []);
 
       // Index occupancy by date string for fast lookup
       const occMap: Record<string, DailyOccupancy> = {};
@@ -181,6 +191,7 @@ export default function PublicCalendar(): JSX.Element {
     const dateStr = format(date, 'yyyy-MM-dd');
     const occ = occupancyMap[dateStr];
     const dayBookings = hubBookings.filter(b => b.booking_date === dateStr);
+    const dayPending = pendingBookings.filter(b => b.booking_date === dateStr);
     const activeCheckIns = activeCheckInsMap[dateStr] ?? 0;
     const totalAttendance = attendanceTotalsMap[dateStr] ?? 0;
 
@@ -201,6 +212,7 @@ export default function PublicCalendar(): JSX.Element {
       workshopQ2: occ?.workshop_block_q2 ?? false,
       workshopQ4: occ?.workshop_block_q4 ?? false,
       coworkingCount,
+      pendingCount: dayPending.length,
       bundleBookings,
       workshopBookings,
     };
@@ -499,6 +511,32 @@ export default function PublicCalendar(): JSX.Element {
                         </div>
                       )}
 
+                      {/* ── Regular coworking indicator (non-workshop, non-bundle) ── */}
+                      {summary.coworkingCount > 0 && (
+                        <div
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 border border-slate-300 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Coworking' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
+                          title={`${summary.coworkingCount} coworking booking${summary.coworkingCount > 1 ? 's' : ''}`}
+                        >
+                          <Users className="w-3.5 h-3.5 text-slate-600" />
+                          <span className="text-xs font-medium text-slate-700">
+                            {summary.coworkingCount} Coworking{summary.coworkingCount > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* ── Pending bookings indicator ── */}
+                      {summary.pendingCount > 0 && (
+                        <div
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-50 border border-yellow-300 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
+                          title={`${summary.pendingCount} pending booking${summary.pendingCount > 1 ? 's' : ''} awaiting approval`}
+                        >
+                          <Clock className="w-3.5 h-3.5 text-yellow-600" />
+                          <span className="text-xs font-medium text-yellow-800">
+                            {summary.pendingCount} Pending{summary.pendingCount > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 );
@@ -583,6 +621,11 @@ export default function PublicCalendar(): JSX.Element {
                         <p className="text-xs text-gray-600 mt-1">
                           {b.package?.name ?? 'Coworking'}{b.guest_name ? ` · ${b.guest_name}` : ''}
                         </p>
+                        {b.purpose && (
+                          <p className="text-[10px] text-gray-500 mt-0.5">
+                            Purpose: {b.purpose}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Users className="h-4 w-4 mr-1" />

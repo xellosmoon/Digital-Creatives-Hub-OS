@@ -4,6 +4,7 @@ import { X, Calendar, Clock, Users, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { isPricingDisabled, formatPeso } from '../../lib/hubPricingEngine';
 import type { RentalPackage } from '../../types/hub';
 
 interface QuickBookingModalProps {
@@ -75,11 +76,41 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
   };
 
   // Format pricing label
-  const priceLabel = (pkg: RentalPackage): string => {
-    if (pkg.hourly_rate && pkg.daily_rate) return `₱${pkg.hourly_rate}/hr or ₱${pkg.daily_rate}/day`;
-    if (pkg.hourly_rate) return `₱${pkg.hourly_rate}/hr`;
-    if (pkg.daily_rate) return `₱${pkg.daily_rate}/day`;
-    return '';
+  const priceLabel = (pkg: RentalPackage): JSX.Element => {
+    const pricingDisabled = isPricingDisabled();
+    
+    if (pricingDisabled) {
+      if (pkg.hourly_rate && pkg.daily_rate) {
+        return (
+          <>
+            <span className="line-through text-gray-400 text-xs">₱{pkg.hourly_rate}/hr or ₱{pkg.daily_rate}/day</span>
+            <span className="text-emerald-600 font-bold ml-1">FREE</span>
+          </>
+        );
+      }
+      if (pkg.hourly_rate) {
+        return (
+          <>
+            <span className="line-through text-gray-400 text-xs">₱{pkg.hourly_rate}/hr</span>
+            <span className="text-emerald-600 font-bold ml-1">FREE</span>
+          </>
+        );
+      }
+      if (pkg.daily_rate) {
+        return (
+          <>
+            <span className="line-through text-gray-400 text-xs">₱${pkg.daily_rate}/day</span>
+            <span className="text-emerald-600 font-bold ml-1">FREE</span>
+          </>
+        );
+      }
+      return <span className="text-emerald-600 font-bold">FREE</span>;
+    }
+    
+    if (pkg.hourly_rate && pkg.daily_rate) return <span>₱{pkg.hourly_rate}/hr or ₱{pkg.daily_rate}/day</span>;
+    if (pkg.hourly_rate) return <span>₱{pkg.hourly_rate}/hr</span>;
+    if (pkg.daily_rate) return <span>₱${pkg.daily_rate}/day</span>;
+    return <span></span>;
   };
 
   const timeSlots = [

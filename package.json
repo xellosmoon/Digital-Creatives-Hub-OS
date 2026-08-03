@@ -16,6 +16,7 @@
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.17.0",
+    "canvas-confetti": "^1.9.3",
     "cloudinary": "^2.10.0",
     "date-fns": "^3.0.0",
     "lucide-react": "^0.303.0",
@@ -26,6 +27,7 @@
     "react-router-dom": "^6.21.0"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall, LogIn, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
+import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../../types/hub';
 
 interface HubBookingRow {
   id: string;
@@ -45,7 +46,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
   const [overrideReason, setOverrideReason] = useState('');
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkInData, setCheckInData] = useState({
-    creative_domain: '',
+    creative_domains: [] as string[],
+    purpose_of_visit: [] as string[],
     gender: '',
     sector: '',
     organization: '',
@@ -140,7 +142,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     try {
       const { data, error } = await supabase.rpc('create_attendance_from_booking', {
         p_booking_id: booking.id,
-        p_creative_domain: checkInData.creative_domain || null,
+        p_creative_domains: checkInData.creative_domains.length > 0 ? checkInData.creative_domains : null,
+        p_purpose_of_visit: checkInData.purpose_of_visit.length > 0 ? checkInData.purpose_of_visit : null,
         p_gender: checkInData.gender || null,
         p_sector: checkInData.sector || null,
         p_organization: checkInData.organization || null,
@@ -153,7 +156,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       await supabase
         .from('hub_bookings')
         .update({
-          creative_domain: checkInData.creative_domain || null,
+          creative_domains: checkInData.creative_domains.length > 0 ? checkInData.creative_domains : null,
+          purpose_of_visit: checkInData.purpose_of_visit.length > 0 ? checkInData.purpose_of_visit : null,
           gender: checkInData.gender || null,
           sector: checkInData.sector || null,
           organization: checkInData.organization || null,
@@ -164,7 +168,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       toast.success('Check-in created successfully!');
       setShowCheckInModal(false);
       setCheckInData({
-        creative_domain: '',
+        creative_domains: [],
+        purpose_of_visit: [],
         gender: '',
         sector: '',
         organization: '',
@@ -395,14 +400,59 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Creative Domain</label>
-                <input
-                  type="text"
-                  value={checkInData.creative_domain}
-                  onChange={e => setCheckInData({ ...checkInData, creative_domain: e.target.value })}
-                  placeholder="e.g. Visual Arts, Film & Animation"
-                  className="w-full rounded-md border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Creative Domains</label>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {PCIDA_DOMAINS.map((domain) => (
+                    <button
+                      key={domain}
+                      type="button"
+                      onClick={() => {
+                        const isSelected = checkInData.creative_domains.includes(domain);
+                        setCheckInData(d => ({
+                          ...d,
+                          creative_domains: isSelected
+                            ? d.creative_domains.filter(d => d !== domain)
+                            : [...d.creative_domains, domain]
+                        }));
+                      }}
+                      className={`text-left px-2 py-1.5 rounded text-xs ${
+                        checkInData.creative_domains.includes(domain)
+                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {checkInData.creative_domains.includes(domain) && '✓ '} {domain}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
+                    <button
+                      key={purpose}
+                      type="button"
+                      onClick={() => {
+                        const isSelected = checkInData.purpose_of_visit.includes(purpose);
+                        setCheckInData(d => ({
+                          ...d,
+                          purpose_of_visit: isSelected
+                            ? d.purpose_of_visit.filter(p => p !== purpose)
+                            : [...d.purpose_of_visit, purpose]
+                        }));
+                      }}
+                      className={`text-left px-2 py-1.5 rounded text-xs ${
+                        checkInData.purpose_of_visit.includes(purpose)
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {checkInData.purpose_of_visit.includes(purpose) && '✓ '} {purpose}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -415,7 +465,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                   <option value="">Select...</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
 
