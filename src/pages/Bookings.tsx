@@ -15,6 +15,7 @@ import { calculateTotalRate, formatPeso as formatPesoGadgets, PRICING_ENABLED as
 import type { RentalPackage, HubPriceEstimate, PackageRequiredAsset } from '../types/hub';
 import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 import { BUNDLE_SLUGS } from '../types/hub';
+import PurposeBlockGrid from '../components/shared/PurposeBlockGrid';
 
 // ── Time slot definitions ──────────────────────────────────────────
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -94,7 +95,7 @@ export default function Bookings(): JSX.Element {
     name: preselected.prefillProfile?.name || '',
     email: preselected.prefillProfile?.email || '',
     phone: preselected.prefillProfile?.phone || '',
-    purpose: '',
+    purposes: [] as string[],
     gender: '',
     sector: '',
     organization: '',
@@ -245,9 +246,9 @@ export default function Bookings(): JSX.Element {
       case 'datetime': return !!form.date && !!form.start && !!form.end;
       case 'details': 
         if (bookingType === 'group') {
-          return !!form.name.trim() && !!form.email.trim() && groupSize > 0;
+          return !!form.name.trim() && !!form.email.trim() && groupSize > 0 && form.purposes.length > 0;
         }
-        return !!form.name.trim() && !!form.email.trim();
+        return !!form.name.trim() && !!form.email.trim() && form.purposes.length > 0;
       case 'equipment': return true;
       case 'agreement': return Object.values(agreementChecks).every(v => v);
       default: return true;
@@ -300,7 +301,7 @@ export default function Bookings(): JSX.Element {
         seats_used: bookingType === 'group' ? pkg.seats_consumed * groupSize : pkg.seats_consumed,
         total_price: estimate.totalPrice + equipmentTotal,
         status: 'pending',
-        purpose: form.purpose || null,
+        purpose: form.purposes.length > 0 ? form.purposes : null,
         booking_type: bookingType || 'individual',
         group_size: bookingType === 'group' ? groupSize : null,
         notes: agreementNotes || null,
@@ -338,7 +339,7 @@ export default function Bookings(): JSX.Element {
               matched_tier_hours: priceEstimate.matchedTier.duration_hours,
               total_price: priceEstimate.totalPrice,
               status: 'pending',
-              purpose: form.purpose || null,
+              purpose: form.purposes.length > 0 ? form.purposes : null,
             });
           }
         }
@@ -349,7 +350,7 @@ export default function Bookings(): JSX.Element {
       setSelectedEquipment([]);
       setEquipmentTotal(0);
       setStep('package');
-      setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purpose: '', gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
+      setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Booking failed';
       toast.error(errorMessage);
@@ -825,15 +826,13 @@ export default function Bookings(): JSX.Element {
                       </div>
                     )}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <FileText className="h-4 w-4 text-[#0C2340]" /> What will you be working on?
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={form.purpose}
-                        onChange={e => update({ purpose: e.target.value })}
-                        placeholder="Video editing, web development, studying..."
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300 resize-none"
+                      <PurposeBlockGrid
+                        selectedValues={form.purposes as any}
+                        onChange={(values) => update({ purposes: values as string[] })}
+                        label="What will you be working on?"
+                        description="Select all that apply"
+                        gridCols={2}
+                        required
                       />
                     </div>
 
@@ -1098,7 +1097,15 @@ export default function Bookings(): JSX.Element {
                       <div className="flex items-center gap-2"><User className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.name}</span></div>
                       <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.email}</span></div>
                       {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.phone}</span></div>}
-                      {form.purpose && <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-500 italic">{form.purpose}</span></div>}
+                      {form.purposes && form.purposes.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-[#0C2340]" />
+                          <span className="text-gray-500 italic">
+                            {form.purposes.slice(0, 2).join(', ')}
+                            {form.purposes.length > 2 && ` +${form.purposes.length - 2} more`}
+                          </span>
+                        </div>
+                      )}
 
                     {/* Equipment summary */}
                     {selectedEquipment.length > 0 && (
