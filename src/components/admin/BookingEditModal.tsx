@@ -25,7 +25,7 @@ export default function BookingEditModal({ booking, onClose, onUpdate }: Booking
     guest_email: booking.guest_email || '',
     guest_phone: booking.guest_phone || '',
     attendees: booking.attendees || 1,
-    purpose: booking.purpose || '',
+    purpose: Array.isArray(booking.purpose) ? booking.purpose.join(', ') : (booking.purpose || ''),
     status: booking.status
   });
   const [eventData, setEventData] = useState({

@@ -42,6 +42,16 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
 }
 
 export function formatBookingForExport(booking: Record<string, unknown>): Record<string, string> {
+  // Handle purpose as array
+  let purpose = 'N/A';
+  if (booking.purpose) {
+    if (Array.isArray(booking.purpose)) {
+      purpose = (booking.purpose as unknown[]).map(String).join(', ') || 'N/A';
+    } else {
+      purpose = String(booking.purpose);
+    }
+  }
+
   return {
     'Reference': String(booking.booking_reference || booking.id || ''),
     'Package': String((booking.package as Record<string, unknown>)?.name || 'N/A'),
@@ -53,7 +63,7 @@ export function formatBookingForExport(booking: Record<string, unknown>): Record
     'End Time': booking.end_time ? new Date(String(booking.end_time)).toLocaleTimeString() : 'N/A',
     'Seats': String(booking.seats_used || 1),
     'Status': String(booking.status || ''),
-    'Purpose': String(booking.purpose || 'N/A'),
+    'Purpose': purpose,
     'Total Price': booking.total_price ? `₱${booking.total_price}` : 'N/A',
     'Created At': booking.created_at ? new Date(String(booking.created_at)).toLocaleString() : 'N/A',
   };

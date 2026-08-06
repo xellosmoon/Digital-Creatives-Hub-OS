@@ -621,9 +621,10 @@ export default function PublicCalendar(): JSX.Element {
                         <p className="text-xs text-gray-600 mt-1">
                           {b.package?.name ?? 'Coworking'}{b.guest_name ? ` · ${b.guest_name}` : ''}
                         </p>
-                        {b.purpose && (
+                        {b.purpose && Array.isArray(b.purpose) && b.purpose.length > 0 && (
                           <p className="text-[10px] text-gray-500 mt-0.5">
-                            Purpose: {b.purpose}
+                            {b.purpose.slice(0, 2).join(', ')}
+                            {b.purpose.length > 2 && ` +${b.purpose.length - 2} more`}
                           </p>
                         )}
                       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { X, Calendar, Image, Link2, User, Mail, Phone, Sparkles, Loader2, Building2 } from 'lucide-react';
+import { X, Calendar, Image, Link2, User, Mail, Phone, Sparkles, Loader2, Building2, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
@@ -57,10 +57,12 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     poster_url: event?.poster_url ?? '',
     registration_link: event?.registration_link ?? '',
     facebook_post_url: (event as ExtendedCalendarEvent)?.facebook_post_url ?? '',
+    facebook_page: (event as any)?.facebook_page ?? '',
     organizer: event?.organizer ?? '',
     organization: event?.organization ?? '',
     contact_email: event?.contact_email ?? '',
     contact_phone: event?.contact_phone ?? '',
+    expected_guests: (event as any)?.expected_guests ?? 0,
     eventDates: (() => {
       const extendedEvent = event as ExtendedCalendarEvent | null;
       if (event && extendedEvent?.event_dates && Array.isArray(extendedEvent.event_dates) && extendedEvent.event_dates.length > 0) {
@@ -269,10 +271,12 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         poster_url: form.poster_url.trim() || null,
         registration_link: form.registration_link.trim() || null,
         facebook_post_url: form.facebook_post_url.trim() || null,
+        facebook_page: form.facebook_page.trim() || null,
         organizer: form.organizer.trim() || null,
         organization: form.organization.trim() || null,
         contact_email: form.contact_email.trim() || null,
         contact_phone: form.contact_phone.trim() || null,
+        expected_guests: form.expected_guests || null,
         start_time: startISO,
         end_time: endISO,
         event_dates: form.eventDates,
@@ -281,6 +285,8 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         ...(isEditing ? {} : { created_by: user?.id ?? null }),
       };
 
+      let eventId: string | null = null;
+
       if (isEditing && event) {
         // Update existing event
         const { error } = await supabase
@@ -288,14 +294,58 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           .update(payload)
           .eq('id', event.id);
         if (error) throw error;
+        eventId = event.id;
         toast.success('Event updated');
       } else {
         // Insert new event
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('events')
-          .insert(payload);
+          .insert(payload)
+          .select('id')
+          .single();
         if (error) throw error;
+        eventId = data.id;
         toast.success('Event created');
+      }
+
+      // Create hub_bookings rows for seat reservation if expected_guests > 0
+      if (eventId && form.expected_guests > 0) {
+        // First, delete any existing bookings for this event (if editing)
+        if (isEditing) {
+          await supabase
+            .from('hub_bookings')
+            .delete()
+            .like('booking_reference', `EVT-${eventId.substring(0, 8).toUpperCase()}%`);
+        }
+
+        // Create new bookings for each event date
+        const bookingPromises = form.eventDates.map(async (eventDate: EventDate) => {
+          const dateStartISO = toISO(eventDate.date, eventDate.start_time);
+          const dateEndISO = toISO(eventDate.date, eventDate.end_time);
+
+          return supabase.from('hub_bookings').insert({
+            user_id: null,
+            package_id: null, // Event bookings don't use packages
+            guest_name: form.organizer || form.title,
+            guest_email: form.contact_email,
+            guest_phone: form.contact_phone,
+            facebook_page: form.facebook_page || null,
+            booking_date: eventDate.date,
+            start_time: dateStartISO,
+            end_time: dateEndISO,
+            seats_used: form.expected_guests,
+            total_price: 0, // Events are free
+            status: 'approved',
+            is_workshop: true, // Mark as event/workshop to distinguish from regular bookings
+            workshop_zones: [],
+            purpose: `Event: ${form.title}`,
+            notes: form.description,
+            booking_reference: `EVT-${eventId.substring(0, 8).toUpperCase()}`,
+            admin_contacted: false,
+          });
+        });
+
+        await Promise.all(bookingPromises);
       }
 
       onSaved();
@@ -359,6 +409,23 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               required
             />
+          </div>
+
+          {/* ── Expected Guests ─────────────────────────────────────── */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Users className="inline w-4 h-4 mr-1" />
+              Expected Guests <span className="text-gray-400 font-normal">(for seat reservation)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={form.expected_guests}
+              onChange={(e) => updateField('expected_guests', parseInt(e.target.value) || 0)}
+              placeholder="0"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Number of expected attendees. This will reserve seats in the calendar.</p>
           </div>
 
           {/* ── Event Dates & Times (Multiple) ──────────────────────── */}
@@ -610,6 +677,22 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
             <p className="text-xs text-gray-500 mt-1">Link to the Facebook post for this event</p>
+          </div>
+
+          {/* ── Facebook Page Name ─────────────────────────────── */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Link2 className="inline w-4 h-4 mr-1 text-blue-600" />
+              Facebook Page/Profile Name
+            </label>
+            <input
+              type="text"
+              value={form.facebook_page}
+              onChange={(e) => updateField('facebook_page', e.target.value)}
+              placeholder="Digital Creatives Hub"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Facebook page or profile name for easier contact</p>
           </div>
 
           {/* ── Toggles row ───────────────────────────────────── */}

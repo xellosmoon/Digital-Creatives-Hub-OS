@@ -91,15 +91,58 @@ export default function EventManagement(): JSX.Element {
   // ── Approve proposal ─────────────────
   const handleApproveProposal = async (id: string): Promise<void> => {
     try {
+      // First, get the proposal details
+      const { data: proposal, error: fetchError } = await supabase
+        .from('hub_events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!proposal) throw new Error('Proposal not found');
+
       // Update proposal status to approved
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('hub_events')
         .update({ status: 'approved' })
         .eq('id', id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast.success('Event proposal approved! Use "New Event" to add to calendar.');
+      // Create hub_bookings rows for each event date to reserve seats
+      if (Array.isArray(proposal.event_dates) && proposal.event_dates.length > 0 && proposal.expected_guests) {
+        const bookingPromises = proposal.event_dates.map(async (eventDate: EventDate) => {
+          if (!eventDate.date || !eventDate.start_time || !eventDate.end_time) return null;
+
+          const startISO = new Date(`${eventDate.date}T${eventDate.start_time}`).toISOString();
+          const endISO = new Date(`${eventDate.date}T${eventDate.end_time}`).toISOString();
+
+          return supabase.from('hub_bookings').insert({
+            user_id: null,
+            package_id: null, // Event bookings don't use packages
+            guest_name: proposal.organizer_name || proposal.title,
+            guest_email: proposal.organizer_email,
+            guest_phone: proposal.organizer_phone,
+            facebook_page: (proposal as any).facebook_page || null,
+            booking_date: eventDate.date,
+            start_time: startISO,
+            end_time: endISO,
+            seats_used: proposal.expected_guests,
+            total_price: 0, // Events are free
+            status: 'approved',
+            is_workshop: true, // Mark as event/workshop to distinguish from regular bookings
+            workshop_zones: [],
+            purpose: `Event: ${proposal.title}`,
+            notes: proposal.description,
+            booking_reference: `EVT-${proposal.id.substring(0, 8).toUpperCase()}`,
+            admin_contacted: false,
+          });
+        });
+
+        await Promise.all(bookingPromises);
+      }
+
+      toast.success('Event proposal approved! Seats reserved for expected guests.');
       fetchProposals();
       fetchEvents();
     } catch (err: unknown) {

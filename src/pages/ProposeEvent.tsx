@@ -46,7 +46,7 @@ export default function ProposeEvent(): JSX.Element {
     phone: '',
     organization: '',
     role: '',
-    facebook_link: '',
+    facebook_page: '',
     // Section B: Event Logistics
     title: '',
     description: '',
@@ -129,7 +129,7 @@ export default function ProposeEvent(): JSX.Element {
         organizer_phone: form.phone,
         organization: form.organization || null,
         role: form.role || null,
-        facebook_link: form.facebook_link || null,
+        facebook_page: form.facebook_page || null,
         // Event details
         title: form.title,
         description: form.description,
@@ -323,13 +323,13 @@ export default function ProposeEvent(): JSX.Element {
 
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                    <PartyPopper className="h-4 w-4 text-amber-500" /> Facebook Profile Link
+                    <PartyPopper className="h-4 w-4 text-amber-500" /> Facebook Page/Profile Name
                   </label>
                   <input
-                    type="url"
-                    value={form.facebook_link}
-                    onChange={e => update({ facebook_link: e.target.value })}
-                    placeholder="https://facebook.com/your.profile"
+                    type="text"
+                    value={form.facebook_page}
+                    onChange={e => update({ facebook_page: e.target.value })}
+                    placeholder="Digital Creatives Hub"
                     className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
                   />
                 </div>

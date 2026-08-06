@@ -8,6 +8,7 @@ import { calculateTotalRate, formatPeso as formatPesoGadgets } from '../../lib/p
 import type { RentalPackage, HubPriceEstimate } from '../../types/hub';
 import type { Asset, Item, PricingTier, AssetAvailability } from '../../types/gadgets';
 import { BUNDLE_SLUGS } from '../../types/hub';
+import PurposeBlockGrid from '../shared/PurposeBlockGrid';
 
 interface HubBookingFormProps {
   selectedPackage: RentalPackage;
@@ -32,10 +33,12 @@ export default function HubBookingForm({
     guestName: '',
     guestEmail: '',
     guestPhone: '',
+    facebookPage: '',
+    organization: '',
     bookingDate: format(new Date(), 'yyyy-MM-dd'),
     startTime: '09:00',
     endTime: '17:00',
-    purpose: '',
+    purposes: [] as string[],
     notes: '',
   });
 
@@ -187,13 +190,15 @@ export default function HubBookingForm({
         guest_name: formData.guestName,
         guest_email: formData.guestEmail,
         guest_phone: formData.guestPhone || null,
+        facebook_page: formData.facebookPage || null,
+        organization: formData.organization || null,
         booking_date: formData.bookingDate,
         start_time: startISO,
         end_time: endISO,
         seats_used: selectedPackage.seats_consumed,
         total_price: (priceEstimate?.totalPrice ?? 0) + equipmentTotal,
         status: 'pending',
-        purpose: formData.purpose || null,
+        purpose: formData.purposes.length > 0 ? formData.purposes : null,
         notes: formData.notes || null,
       }).select().single();
 
@@ -223,7 +228,7 @@ export default function HubBookingForm({
               matched_tier_hours: priceEstimate.matchedTier.duration_hours,
               total_price: priceEstimate.totalPrice,
               status: 'pending',
-              purpose: formData.purpose || null,
+              purpose: formData.purposes.length > 0 ? formData.purposes : null,
             });
           }
         }
@@ -449,16 +454,45 @@ export default function HubBookingForm({
         </div>
 
         <div>
-          <label htmlFor="hubPurpose" className="block text-sm font-medium text-gray-700">
-            Purpose
+          <label htmlFor="hubFacebookPage" className="block text-sm font-medium text-gray-700">
+            Facebook Page/Profile Name
           </label>
-          <textarea
-            id="hubPurpose"
-            rows={2}
-            value={formData.purpose}
-            onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            placeholder="What will you be working on?"
+          <div className="mt-1 relative">
+            <input
+              type="text"
+              id="hubFacebookPage"
+              value={formData.facebookPage}
+              onChange={(e) => setFormData({ ...formData, facebookPage: e.target.value })}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              placeholder="Digital Creatives Hub"
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">For easier contact</p>
+        </div>
+
+        <div>
+          <label htmlFor="hubOrganization" className="block text-sm font-medium text-gray-700">
+            Organization
+          </label>
+          <div className="mt-1 relative">
+            <input
+              type="text"
+              id="hubOrganization"
+              value={formData.organization}
+              onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              placeholder="e.g. your company or team name — helps others know who's using the space"
+            />
+          </div>
+        </div>
+
+        <div>
+          <PurposeBlockGrid
+            selectedValues={formData.purposes as any}
+            onChange={(values) => setFormData({ ...formData, purposes: values as string[] })}
+            label="Purpose"
+            description="Select all that apply"
+            gridCols={2}
           />
         </div>
       </div>

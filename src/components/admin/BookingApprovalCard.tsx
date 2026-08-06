@@ -53,6 +53,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     organization: '',
     designation: '',
   });
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [eventTitle, setEventTitle] = useState('');
 
   const formatDate = (dateString: string | null | undefined, formatStr: string): string => {
     if (!dateString) return 'No date';
@@ -108,6 +110,46 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       onUpdate();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Override failed';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePromoteToEvent = async (): Promise<void> => {
+    if (!eventTitle.trim()) {
+      toast.error('Please enter an event title');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create event from booking
+      const { data: session } = await supabase.auth.getSession();
+      const { error: eventError } = await supabase
+        .from('events')
+        .insert({
+          title: eventTitle.trim(),
+          description: booking.notes || `Promoted from booking ${booking.booking_reference}`,
+          organizer: booking.guest_name || 'Unknown',
+          organization: (booking as any).organization || null,
+          contact_email: booking.guest_email || null,
+          contact_phone: booking.guest_phone || null,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          promoted_booking_id: booking.id,
+          status: 'published',
+          created_by: session?.session?.user?.id || null,
+        });
+
+      if (eventError) throw eventError;
+
+      toast.success('Booking promoted to event successfully');
+      setShowPromoteModal(false);
+      setEventTitle('');
+      onUpdate();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error promoting to event';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -268,10 +310,13 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           </div>
 
           {/* Purpose */}
-          {booking.purpose && (
+          {booking.purpose && Array.isArray(booking.purpose) && booking.purpose.length > 0 && (
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700 mb-0.5">Purpose:</p>
-              <p className="text-sm text-gray-600">{booking.purpose}</p>
+              <p className="text-sm text-gray-600">
+                {booking.purpose.slice(0, 2).join(', ')}
+                {booking.purpose.length > 2 && ` +${booking.purpose.length - 2} more`}
+              </p>
             </div>
           )}
 
@@ -322,6 +367,13 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           >
             Override & Approve (Ignore Capacity)
           </button>
+          <button
+            onClick={() => setShowPromoteModal(true)}
+            className="w-full inline-flex items-center justify-center px-4 py-2 border border-violet-300 text-sm font-medium rounded-md text-violet-700 bg-violet-50 hover:bg-violet-100 transition-colors"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Promote to Event
+          </button>
           {showOverride && (
             <div className="bg-orange-50 rounded-lg p-3 space-y-2 border border-orange-200">
               <input
@@ -338,6 +390,34 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               >
                 Confirm Override Approval
               </button>
+            </div>
+          )}
+          {showPromoteModal && (
+            <div className="bg-violet-50 rounded-lg p-4 space-y-3 border border-violet-200">
+              <h4 className="text-sm font-semibold text-violet-900">Promote to Event</h4>
+              <p className="text-xs text-violet-700">This will create a public event from this booking. The booking will remain intact.</p>
+              <input
+                type="text"
+                value={eventTitle}
+                onChange={e => setEventTitle(e.target.value)}
+                placeholder="Enter public event title (e.g., Strategic Alignment Meeting)"
+                className="w-full rounded-md border-violet-200 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-violet-400"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePromoteToEvent}
+                  disabled={loading}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                >
+                  Promote
+                </button>
+                <button
+                  onClick={() => setShowPromoteModal(false)}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>

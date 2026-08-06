@@ -76,6 +76,8 @@ export interface HubBooking {
   guest_name: string | null;
   guest_email: string | null;
   guest_phone: string | null;
+  facebook_page: string | null;
+  organization: string | null;
   booking_date: string;         // ISO date
   start_time: string;           // ISO timestamp
   end_time: string;             // ISO timestamp
@@ -84,7 +86,7 @@ export interface HubBooking {
   status: HubBookingStatus;
   is_workshop: boolean;
   workshop_zones: string[];
-  purpose: string | null;
+  purpose: Purpose[] | null;
   notes: string | null;
   booking_reference: string;
   created_at: string;
@@ -177,8 +179,8 @@ export const PCIDA_DOMAINS = [
 
 export type PCIDADomain = (typeof PCIDA_DOMAINS)[number];
 
-// Purpose of visit options
-export const PURPOSE_OF_VISIT_OPTIONS = [
+// Purpose options - shared between bookings and check-in
+export const PURPOSE_OPTIONS = [
   'Explore',
   'Coworking',
   'Meeting',
@@ -191,7 +193,11 @@ export const PURPOSE_OF_VISIT_OPTIONS = [
   'Other',
 ] as const;
 
-export type PurposeOfVisit = (typeof PURPOSE_OF_VISIT_OPTIONS)[number];
+// Purpose of visit options (alias for backward compatibility)
+export const PURPOSE_OF_VISIT_OPTIONS = PURPOSE_OPTIONS;
+
+export type Purpose = (typeof PURPOSE_OPTIONS)[number];
+export type PurposeOfVisit = Purpose;
 
 export type AttendanceStatus = 'pending_entrance' | 'active' | 'checked_out' | 'rejected';
 
