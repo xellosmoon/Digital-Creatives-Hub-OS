@@ -20,6 +20,7 @@ import type { HubBooking, DailyOccupancy, HubCapacityConfig } from '../../types/
 import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
 import EventPopover from './EventPopover';
+import DayTimelineModal from './DayTimelineModal';
 
 // ── Categories for UI filters ──────────────────────────────────────
 const EVENT_CATEGORIES = ['All', 'Coworking', 'Workshops', 'Tech & Dev', 'Community'];
@@ -54,6 +55,7 @@ export default function PublicCalendar(): JSX.Element {
   const [totalSeats, setTotalSeats] = useState(28);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(true);
@@ -330,10 +332,8 @@ export default function PublicCalendar(): JSX.Element {
                   <div
                     key={idx}
                     onClick={() => {
-                      if (isFuture) {
-                        setSelectedDate(day);
-                        setShowBookingModal(true);
-                      }
+                      setSelectedDate(day);
+                      setShowTimelineModal(true);
                     }}
                     className={`
                       bg-white p-2 min-h-[110px] relative group border
@@ -546,101 +546,6 @@ export default function PublicCalendar(): JSX.Element {
         )}
       </div>
 
-      {/* ── Selected Date Details panel ─────────────────────────────── */}
-      {selectedDate && (() => {
-        const summary = getDaySummary(selectedDate);
-        const dayEvts = getEventsForDay(selectedDate);
-        const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const dayAllBookings = hubBookings.filter(b => b.booking_date === dateStr);
-        const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
-        const actualOccupied = Math.max(summary.bookedSeats, summary.activeCheckIns);
-        const available = isFullBlock ? 0 : Math.max(0, summary.totalSeats - actualOccupied);
-
-        return (
-          <div className="px-6 py-4 border-t border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-1">
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </h3>
-
-            {/* Seat summary */}
-            <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-              <span className="font-medium text-gray-900">{available} seats available</span>
-              <span>of {summary.totalSeats}</span>
-              {summary.bookedSeats > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-medium">
-                  <CalendarClock className="w-3 h-3" /> {summary.bookedSeats} Slots Reserved
-                </span>
-              )}
-              {summary.activeCheckIns > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
-                  <Users className="w-3 h-3" /> {summary.activeCheckIns} Creators on the Floor
-                </span>
-              )}
-              {isFullBlock && (
-                <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-medium">
-                  <AlertTriangle className="w-3 h-3" /> Full Hub Blocked
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              {/* Events */}
-              {dayEvts.map(ev => (
-                <button
-                  key={ev.id}
-                  onClick={() => handleEventClick(ev)}
-                  className="w-full bg-amber-50 rounded-lg p-3 text-left hover:bg-amber-100 transition-colors"
-                >
-                  <span className="text-sm font-medium text-amber-900">{ev.title}</span>
-                  <span className="block text-xs text-amber-700 mt-0.5">
-                    {format(new Date(ev.start_time), 'h:mm a')} – {format(new Date(ev.end_time), 'h:mm a')}
-                  </span>
-                </button>
-              ))}
-
-              {/* Hub bookings grouped by type */}
-              {dayAllBookings.length === 0 && dayEvts.length === 0 ? (
-                <p className="text-gray-500 text-sm">No bookings for this date</p>
-              ) : (
-                dayAllBookings.map(b => (
-                  <div key={b.id} className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium">
-                            {format(new Date(b.start_time), 'h:mm a')} – {format(new Date(b.end_time), 'h:mm a')}
-                          </span>
-                          {b.is_workshop && (
-                            <span className="text-[10px] font-medium bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Workshop</span>
-                          )}
-                          {b.package?.is_bundle && (
-                            <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Bundle</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {b.package?.name ?? 'Coworking'}{b.guest_name ? ` · ${b.guest_name}` : ''}
-                        </p>
-                        {b.purpose && Array.isArray(b.purpose) && b.purpose.length > 0 && (
-                          <p className="text-[10px] text-gray-500 mt-0.5">
-                            {b.purpose.slice(0, 2).join(', ')}
-                            {b.purpose.length > 2 && ` +${b.purpose.length - 2} more`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="h-4 w-4 mr-1" />
-                        {b.seats_used}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Quick Booking Modal */}
       {showBookingModal && selectedDate && (
         <QuickBookingModal
@@ -676,6 +581,18 @@ export default function PublicCalendar(): JSX.Element {
             setSelectedDate(eventDate);
             setShowBookingModal(true);
           }}
+        />
+      )}
+
+      {/* Day Timeline Modal */}
+      {showTimelineModal && selectedDate && (
+        <DayTimelineModal
+          date={selectedDate}
+          events={getEventsForDay(selectedDate)}
+          bookings={hubBookings.filter(b => b.booking_date === format(selectedDate, 'yyyy-MM-dd'))}
+          onClose={() => { setShowTimelineModal(false); setSelectedDate(null); }}
+          onEventClick={handleEventClick}
+          getEventCategory={getEventCategory}
         />
       )}
     </div>
