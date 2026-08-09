@@ -17,7 +17,7 @@ interface HubBookingRow {
   seats_used: number;
   total_price: number;
   status: string;
-  purpose: string | null;
+  purpose: string | string[] | null;
   notes: string | null;
   is_workshop: boolean;
   created_at: string;
@@ -310,12 +310,18 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           </div>
 
           {/* Purpose */}
-          {booking.purpose && Array.isArray(booking.purpose) && booking.purpose.length > 0 && (
+          {booking.purpose && (
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700 mb-0.5">Purpose:</p>
               <p className="text-sm text-gray-600">
-                {booking.purpose.slice(0, 2).join(', ')}
-                {booking.purpose.length > 2 && ` +${booking.purpose.length - 2} more`}
+                {Array.isArray(booking.purpose) ? (
+                  <>
+                    {booking.purpose.slice(0, 2).join(', ')}
+                    {booking.purpose.length > 2 && ` +${booking.purpose.length - 2} more`}
+                  </>
+                ) : (
+                  booking.purpose
+                )}
               </p>
             </div>
           )}

@@ -48,7 +48,7 @@ export default function PurposeBlockGrid({
         <p className="text-xs text-gray-500 mb-2">{description}</p>
       )}
       <div className={`grid ${gridColsClass} gap-3`}>
-        {purposeOptions.map((purpose) => {
+        {purposeOptions.map((purpose: Purpose) => {
           const isSelected = selectedValues.includes(purpose);
           return (
             <label
