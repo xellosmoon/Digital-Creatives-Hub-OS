@@ -265,13 +265,12 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
       const startISO = toISO(firstDate.date, firstDate.start_time);
       const endISO = toISO(firstDate.date, firstDate.end_time);
 
-      const payload = {
+      const payload: any = {
         title: form.title.trim(),
         description: form.description.trim() || null,
         poster_url: form.poster_url.trim() || null,
         registration_link: form.registration_link.trim() || null,
         facebook_post_url: form.facebook_post_url.trim() || null,
-        facebook_page: form.facebook_page.trim() || null,
         organizer: form.organizer.trim() || null,
         organization: form.organization.trim() || null,
         contact_email: form.contact_email.trim() || null,
@@ -284,6 +283,12 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         status: form.status,
         ...(isEditing ? {} : { created_by: user?.id ?? null }),
       };
+
+      // Only include facebook_page if the user provided a value
+      // (column may not exist in older database versions)
+      if (form.facebook_page && form.facebook_page.trim()) {
+        payload.facebook_page = form.facebook_page.trim();
+      }
 
       let eventId: string | null = null;
 

@@ -55,7 +55,6 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
         .update({
           full_name: formData.fullName,
           phone: formData.phone,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
 

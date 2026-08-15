@@ -122,14 +122,13 @@ export default function ProposeEvent(): JSX.Element {
         status: 'pending_review',
       });
 
-      const { data, error } = await supabase.from('hub_events').insert({
+      const insertData: any = {
         // Organizer details
         organizer_name: form.fullName,
         organizer_email: form.email,
         organizer_phone: form.phone,
         organization: form.organization || null,
         role: form.role || null,
-        facebook_page: form.facebook_page || null,
         // Event details
         title: form.title,
         description: form.description,
@@ -144,7 +143,15 @@ export default function ProposeEvent(): JSX.Element {
         creative_domains: selectedDomains,
         // Status
         status: 'pending_review',
-      }).select();
+      };
+
+      // Only include facebook_page if the user provided a value
+      // (column may not exist in older database versions)
+      if (form.facebook_page && form.facebook_page.trim()) {
+        insertData.facebook_page = form.facebook_page.trim();
+      }
+
+      const { data, error } = await supabase.from('hub_events').insert(insertData).select();
 
       console.log('Insert result:', { data, error });
 

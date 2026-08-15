@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper, Info } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Search, Settings, Shield, Package, ClipboardList, Armchair, Menu, X, ChevronDown, PartyPopper, Info, Moon, Sun } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RealtimeNotifications from '../notifications/RealtimeNotifications';
 import Footer from './Footer';
@@ -18,7 +18,31 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   const [isAdmin, setIsAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check for saved dark mode preference or system preference
+    const savedDarkMode = localStorage.getItem('darkMode');
+    if (savedDarkMode !== null) {
+      setDarkMode(savedDarkMode === 'true');
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setDarkMode(prefersDark);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Apply dark mode class to html element
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     checkAdminStatus();
@@ -76,15 +100,15 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   const isActive = (path: string): boolean => location.pathname === path;
 
   const navLinkClass = (path: string): string =>
-    `relative text-xs uppercase tracking-wider text-slate-600 font-bold px-3 py-1.5 rounded-full transition-all duration-300 ease-out block overflow-hidden ${isActive(path)
-      ? 'text-slate-950 bg-slate-100/80'
-      : 'hover:text-slate-950 hover:bg-slate-100/80 active:scale-95'
+    `relative text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold px-3 py-1.5 rounded-full transition-all duration-300 ease-out block overflow-hidden ${isActive(path)
+      ? 'text-slate-950 dark:text-white bg-slate-100/80 dark:bg-slate-700/80'
+      : 'hover:text-slate-950 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-700/80 active:scale-95'
     }`;
 
   const mobileNavLinkClass = (path: string): string =>
     `flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(path)
-      ? 'bg-slate-100 text-slate-900'
-      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+      ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
     }`;
 
   // Get user initials for avatar
@@ -94,15 +118,15 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
       {/* Navigation */}
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl z-50">
-        <div className="bg-white/80 backdrop-blur-lg border border-slate-200/50 rounded-full px-6 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200/50 dark:border-slate-700/50 rounded-full px-6 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               {/* Logo */}
               <Link to="/" className="flex items-center flex-shrink-0">
-                <span className="font-black text-sm tracking-wider text-slate-900 uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">
+                <span className="font-black text-sm tracking-wider text-slate-900 dark:text-white uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white">
                   Digital Creatives Hub
                 </span>
               </Link>
@@ -137,6 +161,19 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
             {/* Right side */}
             <div className="flex items-center gap-2">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+
               {session ? (
                 <>
                   <RealtimeNotifications userEmail={session.user.email!} />
@@ -159,11 +196,11 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                       </div>
                       <div className="hidden sm:block text-left">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-slate-700 max-w-[140px] truncate">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 max-w-[140px] truncate">
                             {session.user.email}
                           </span>
                           {isAdmin && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-bold uppercase tracking-wide">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 font-bold uppercase tracking-wide">
                               Admin
                             </span>
                           )}
@@ -174,9 +211,9 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
                     {/* Dropdown Menu */}
                     {userDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/60 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="absolute right-0 mt-2 w-64 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                         {/* User info header */}
-                        <div className="px-4 py-3 border-b border-slate-200/60">
+                        <div className="px-4 py-3 border-b border-slate-200/60 dark:border-slate-700/60">
                           <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${isAdmin
                                 ? 'bg-gradient-to-br from-violet-500 to-purple-600'
@@ -185,10 +222,10 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                               {getUserInitials()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                                 {session.user.email}
                               </p>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {isAdmin ? '🛡️ Administrator' : '👤 Member'}
                               </p>
                             </div>
@@ -199,36 +236,36 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                         <div className="py-1">
                           <Link
                             to="/dashboard"
-                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <User className="w-4 h-4 text-slate-400" />
+                            <User className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                             User Dashboard
                           </Link>
                           <Link
                             to="/my-borrows"
-                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <ClipboardList className="w-4 h-4 text-slate-400" />
+                            <ClipboardList className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                             My Borrows
                           </Link>
                           <Link
                             to="/settings"
-                            className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                            className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                             onClick={() => setUserDropdownOpen(false)}
                           >
-                            <Settings className="w-4 h-4 text-slate-400" />
+                            <Settings className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                             Settings
                           </Link>
                           {isAdmin && (
                             <>
-                              <div className="px-4 py-2 mt-1 border-t border-slate-200/60">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrative</p>
+                              <div className="px-4 py-2 mt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Administrative</p>
                               </div>
                               <Link
                                 to="/admin"
-                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
                                 <Shield className="w-4 h-4 text-violet-500" />
@@ -236,18 +273,18 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                               </Link>
                               <Link
                                 to="/admin/gadgets"
-                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Package className="w-4 h-4 text-slate-400" />
+                                <Package className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                 Gadget Mgmt
                               </Link>
                               <Link
                                 to="/admin/seats"
-                                className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors gap-2"
+                                className="flex items-center px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors gap-2"
                                 onClick={() => setUserDropdownOpen(false)}
                               >
-                                <Armchair className="w-4 h-4 text-slate-400" />
+                                <Armchair className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                 Seat Mgmt
                               </Link>
                             </>
@@ -255,11 +292,11 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                         </div>
 
                         {/* Logout */}
-                        <div className="border-t border-slate-200/60 pt-1">
+                        <div className="border-t border-slate-200/60 dark:border-slate-700/60 pt-1">
                           <button
                             id="logout-button"
                             onClick={handleLogout}
-                            className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            className="flex items-center w-full px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           >
                             <LogOut className="w-4 h-4 mr-3" />
                             Sign Out
@@ -300,7 +337,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-4 bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-xl overflow-hidden">
+          <div className="lg:hidden mt-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/60 rounded-2xl shadow-xl overflow-hidden">
             <div className="px-4 py-3 space-y-1">
               <Link to="/" className={mobileNavLinkClass('/')}>
                 <Home className="w-4 h-4 mr-3" />

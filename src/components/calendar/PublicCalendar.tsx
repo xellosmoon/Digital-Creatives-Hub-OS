@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval,
@@ -21,6 +22,7 @@ import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
 import EventPopover from './EventPopover';
 import DayTimelineModal from './DayTimelineModal';
+import BrandedLoader from '../shared/BrandedLoader';
 
 // ── Categories for UI filters ──────────────────────────────────────
 const EVENT_CATEGORIES = ['All', 'Coworking', 'Workshops', 'Tech & Dev', 'Community'];
@@ -45,6 +47,8 @@ interface DaySummary {
 }
 
 export default function PublicCalendar(): JSX.Element {
+  const navigate = useNavigate();
+
   // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
@@ -244,29 +248,29 @@ export default function PublicCalendar(): JSX.Element {
 
   // ── JSX ──────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
       {/* Calendar Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {format(currentDate, 'MMMM yyyy')}
           </h2>
           <div className="flex space-x-2">
-            <button onClick={() => navigateMonth('prev')} className="p-2 hover:bg-gray-100 rounded-md">
-              <ChevronLeft className="h-5 w-5" />
+            <button onClick={() => navigateMonth('prev')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
+              <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
-            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
+            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300">
               Today
             </button>
-            <button onClick={() => navigateMonth('next')} className="p-2 hover:bg-gray-100 rounded-md">
-              <ChevronRight className="h-5 w-5" />
+            <button onClick={() => navigateMonth('next')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
+              <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Category Filter Bar */}
-      <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <div className="px-6 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2 overflow-x-auto no-scrollbar">
         {EVENT_CATEGORIES.map(category => {
           const isActive = activeFilter === category;
           return (
@@ -274,9 +278,9 @@ export default function PublicCalendar(): JSX.Element {
               key={category}
               onClick={() => setActiveFilter(category)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ease-out whitespace-nowrap ${
-                isActive 
+                isActive
                   ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 scale-105'
-                  : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 border border-slate-200/50'
+                  : 'bg-slate-100/80 dark:bg-slate-700/80 hover:bg-slate-200/80 dark:hover:bg-slate-600/80 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-600/50'
               }`}
             >
               {category}
@@ -289,19 +293,19 @@ export default function PublicCalendar(): JSX.Element {
       <div className="p-6">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+            <BrandedLoader size="md" />
           </div>
         ) : (
           <>
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-px mb-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                <div key={d} className="text-center text-sm font-medium text-gray-700 py-2">{d}</div>
+                <div key={d} className="text-center text-sm font-medium text-gray-700 dark:text-gray-300 py-2">{d}</div>
               ))}
             </div>
 
             {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-px bg-gray-200">
+            <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-slate-700">
               {getDaysInMonth().map((day, idx) => {
                 const dayEvents = getEventsForDay(day);
                 const summary   = getDaySummary(day);
@@ -336,20 +340,20 @@ export default function PublicCalendar(): JSX.Element {
                       setShowTimelineModal(true);
                     }}
                     className={`
-                      bg-white p-2 min-h-[110px] relative group border
+                      bg-white dark:bg-slate-900 p-2 min-h-[110px] relative group border
                       ${heatmapClass}
-                      ${!isCurrentMonth ? 'text-gray-400' : ''}
-                      ${isToday ? 'bg-primary-50' : ''}
+                      ${!isCurrentMonth ? 'text-gray-400 dark:text-gray-500' : ''}
+                      ${isToday ? 'bg-primary-50 dark:bg-primary-900/20' : ''}
                       ${isSelected ? 'ring-2 ring-primary-500' : ''}
                       transition-all duration-200 ease-out
-                      ${isFuture ? 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:z-20 hover:shadow-xl hover:border-indigo-400/80 hover:bg-white' : 'cursor-not-allowed opacity-60'}
+                      ${isFuture ? 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:z-20 hover:shadow-xl hover:border-indigo-400/80 hover:bg-white dark:hover:bg-slate-800' : 'cursor-not-allowed opacity-60'}
                     `}
                   >
                     {/* Day number + add icon */}
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-sm transition-colors group-hover:text-indigo-600 group-hover:font-bold">{format(day, 'd')}</span>
+                      <span className="font-medium text-sm text-gray-700 dark:text-gray-300 transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:font-bold">{format(day, 'd')}</span>
                       {isFuture && (
-                        <Plus className="w-4 h-4 text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Plus className="w-4 h-4 text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
 
@@ -431,6 +435,31 @@ export default function PublicCalendar(): JSX.Element {
                       );
                     })()}
 
+                    {/* Category color hints (small dots) */}
+                    {dayEvents.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1">
+                        {(() => {
+                          const categories = Array.from(new Set(dayEvents.map(ev => getEventCategory(ev))));
+                          const categoryColors: Record<string, string> = {
+                            'Tech & Dev': 'bg-cyan-500',
+                            'Workshops': 'bg-amber-500',
+                            'Community': 'bg-emerald-500',
+                            'Events': 'bg-blue-500',
+                          };
+                          return categories.slice(0, 4).map(cat => (
+                            <div
+                              key={cat}
+                              className={`w-2 h-2 rounded-full ${categoryColors[cat] || 'bg-blue-500'}`}
+                              title={cat}
+                            />
+                          ));
+                        })()}
+                        {dayEvents.length > 4 && (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400">+{dayEvents.length - 4}</span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Day content - horizontal badge row */}
                     <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
                       {/* ── Event badges with text ── */}
@@ -459,7 +488,7 @@ export default function PublicCalendar(): JSX.Element {
                             key={ev.id}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setPopoverEvent(ev);
+                              navigate(`/events/${ev.id}`);
                             }}
                             className={`flex items-center gap-1.5 px-2 py-1 rounded-full border ${bgColor} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
                             title={ev.title}
@@ -590,6 +619,7 @@ export default function PublicCalendar(): JSX.Element {
           date={selectedDate}
           events={getEventsForDay(selectedDate)}
           bookings={hubBookings.filter(b => b.booking_date === format(selectedDate, 'yyyy-MM-dd'))}
+          activeUsers={activeCheckInsMap[format(selectedDate, 'yyyy-MM-dd')] || 0}
           onClose={() => { setShowTimelineModal(false); setSelectedDate(null); }}
           onEventClick={handleEventClick}
           getEventCategory={getEventCategory}

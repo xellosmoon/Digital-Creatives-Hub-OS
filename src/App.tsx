@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
+import BrandedLoader from './components/shared/BrandedLoader';
 
 // Lazy load pages
 const Home = lazy(() => import('./pages/Home'));
@@ -25,6 +26,7 @@ const AdminGadgets = lazy(() => import('./pages/AdminGadgets'));
 const MyBorrows = lazy(() => import('./pages/MyBorrows'));
 const SeatManagement = lazy(() => import('./pages/SeatManagement'));
 const ProposeEvent = lazy(() => import('./pages/ProposeEvent'));
+const EventDetails = lazy(() => import('./pages/EventDetails'));
 const CheckIn = lazy(() => import('./pages/CheckIn'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
@@ -61,7 +63,7 @@ function App(): JSX.Element {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <BrandedLoader size="lg" />
       </div>
     );
   }
@@ -69,7 +71,7 @@ function App(): JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandedLoader size="lg" /></div>}>
           <Routes>
             <Route path="/check-in" element={<CheckIn />} />
             <Route path="/" element={<Layout session={session}><Home /></Layout>} />
@@ -81,6 +83,7 @@ function App(): JSX.Element {
             <Route path="/booking-lookup" element={<Layout session={session}><BookingLookup /></Layout>} />
             <Route path="/gadgets" element={<Layout session={session}><Gadgets /></Layout>} />
             <Route path="/propose-event" element={<Layout session={session}><ProposeEvent /></Layout>} />
+            <Route path="/events/:id" element={<Layout session={session}><EventDetails /></Layout>} />
             <Route path="/about" element={<Layout session={session}><AboutUs /></Layout>} />
 
             {/* Protected Routes */}

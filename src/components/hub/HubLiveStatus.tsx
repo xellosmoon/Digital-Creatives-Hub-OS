@@ -4,6 +4,33 @@ import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import type { HubCapacityConfig, DailyOccupancy, HubZone } from '../../types/hub';
 
+// Animated number component for smooth transitions
+function AnimatedNumber({ value, className }: { value: number; className?: string }): JSX.Element {
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    const duration = 300;
+    const steps = 10;
+    const stepDuration = duration / steps;
+    const stepValue = (value - displayValue) / steps;
+    let currentStep = 0;
+
+    const interval = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        setDisplayValue(value);
+        clearInterval(interval);
+      } else {
+        setDisplayValue(prev => Math.round(prev + stepValue));
+      }
+    }, stepDuration);
+
+    return () => clearInterval(interval);
+  }, [value]);
+
+  return <span className={className}>{displayValue}</span>;
+}
+
 interface HubAttendanceRecord {
   id: string;
   [key: string]: unknown;
@@ -119,22 +146,24 @@ export default function HubLiveStatus(): JSX.Element {
 
         {/* Big number */}
         <div className="mt-4 flex items-baseline gap-2">
-          <span className="text-4xl font-bold text-gray-900">{status.available}</span>
-          <span className="text-lg text-gray-500">of {status.totalSeats + status.adjustment} seats available</span>
+          <AnimatedNumber value={status.available} className="text-4xl font-bold text-gray-900 dark:text-white" />
+          <span className="text-lg text-gray-500 dark:text-gray-400">of {status.totalSeats + status.adjustment} seats available</span>
         </div>
 
         {/* Active count */}
         {status.activeCount > 0 && (
           <div className="mt-2 flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-green-500" />
-            <span className="text-green-600 font-medium">{status.activeCount} Creators on the Floor</span>
+            <span className="text-green-600 dark:text-green-400 font-medium">
+              <AnimatedNumber value={status.activeCount} /> Creators on the Floor
+            </span>
           </div>
         )}
 
         {/* Progress bar */}
-        <div className="mt-3 w-full bg-gray-200 rounded-full h-3">
+        <div className="mt-3 w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3">
           <div
-            className={`${barColor} h-3 rounded-full transition-all duration-500`}
+            className={`${barColor} h-3 rounded-full transition-all duration-500 ease-out`}
             style={{ width: `${Math.max(2, pct)}%` }}
           />
         </div>

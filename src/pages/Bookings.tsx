@@ -43,6 +43,14 @@ const PKG_GRAD: Record<string, string> = {
   creative_suite: 'from-[#0C2340] to-purple-600',
   production_access: 'from-indigo-500 to-blue-600',
 };
+const PKG_PATTERN: Record<string, string> = {
+  coworking_hourly: 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/5 via-transparent to-transparent',
+  student_pass: 'bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent',
+  coworker_lite: 'bg-[linear-gradient(45deg,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-orange-500/5',
+  weekend_creator: 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent',
+  creative_suite: 'bg-[linear-gradient(135deg,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-purple-500/5',
+  production_access: 'bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent',
+};
 
 // ── Step metadata ──────────────────────────────────────────────────
 type Step = 'bookingType' | 'package' | 'datetime' | 'details' | 'equipment' | 'agreement' | 'confirm';
@@ -389,7 +397,7 @@ export default function Bookings(): JSX.Element {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 pb-16">
         {/* ── Step indicator (glassmorphism card) ── */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-violet-100/50 border border-white/60 px-4 sm:px-6 py-4 mb-8">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-lg shadow-violet-100/50 dark:shadow-violet-900/20 border border-white/60 dark:border-slate-700/60 px-4 sm:px-6 py-4 mb-8">
           <div className="flex items-center justify-between">
             {STEP_META.map((s, i) => {
               const done = i < stepIdx;
@@ -397,17 +405,17 @@ export default function Bookings(): JSX.Element {
               return (
                 <div key={s.key} className="flex items-center flex-1">
                   {i > 0 && (
-                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-[#0C2340]' : 'bg-gray-200'}`} />
+                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-[#0C2340]' : 'bg-gray-200 dark:bg-slate-600'}`} />
                   )}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className={`
                       h-8 w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold
                       transition-all duration-300
-                      ${done ? 'bg-[#0C2340] text-white shadow-md shadow-violet-200' : active ? 'bg-violet-100 text-[#F59E0B] ring-2 ring-[#0C2340]' : 'bg-gray-100 text-gray-400'}
+                      ${done ? 'bg-[#0C2340] text-white shadow-md shadow-violet-200' : active ? 'bg-violet-100 dark:bg-violet-900/50 text-[#F59E0B] ring-2 ring-[#0C2340]' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-gray-500'}
                     `}>
                       {done ? <Check className="h-4 w-4" /> : i + 1}
                     </span>
-                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-[#F59E0B]' : done ? 'text-[#0C2340]' : 'text-gray-400'}`}>
+                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-[#F59E0B]' : done ? 'text-[#0C2340]' : 'text-gray-400 dark:text-gray-500'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -421,13 +429,13 @@ export default function Bookings(): JSX.Element {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* ── Left: Step content ── */}
           <div className="lg:col-span-2">
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-100/30 border border-white/60 p-5 sm:p-8 transition-all duration-300">
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-100/30 dark:shadow-violet-900/20 border border-white/60 dark:border-slate-700/60 p-5 sm:p-8 transition-all duration-300">
 
               {/* ═══ STEP: BOOKING TYPE ═══ */}
               {step === 'bookingType' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">What are you booking for?</h2>
-                  <p className="text-sm text-gray-500 mb-6">Choose the type of booking that fits your needs</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">What are you booking for?</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Choose the type of booking that fits your needs</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <button
@@ -435,56 +443,54 @@ export default function Bookings(): JSX.Element {
                       onClick={() => setBookingType('individual')}
                       className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
                         bookingType === 'individual'
-                          ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
-                          : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
+                          ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'
                       }`}
                     >
                       <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white mb-3 shadow-sm mx-auto">
                         <Laptop className="h-6 w-6" />
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-1">Individual Coworking</h3>
-                      <p className="text-xs text-gray-500">For solo work or study</p>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">Individual Coworking</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">For solo work or study</p>
                       {bookingType === 'individual' && (
                         <div className="absolute top-4 right-4">
                           <CheckCircle className="h-5 w-5 text-[#0C2340]" />
                         </div>
                       )}
                     </button>
-
                     <button
                       type="button"
                       onClick={() => setBookingType('group')}
                       className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
                         bookingType === 'group'
-                          ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
-                          : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
+                          ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'
                       }`}
                     >
                       <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white mb-3 shadow-sm mx-auto">
                         <Users className="h-6 w-6" />
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-1">Group Booking</h3>
-                      <p className="text-xs text-gray-500">For meetings, study groups, team coworking</p>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">Group Booking</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">For meetings, study groups, team coworking</p>
                       {bookingType === 'group' && (
                         <div className="absolute top-4 right-4">
                           <CheckCircle className="h-5 w-5 text-[#0C2340]" />
                         </div>
                       )}
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
                         setBookingType('event');
                         navigate('/propose-event');
                       }}
-                      className="relative text-center rounded-2xl border-2 p-6 transition-all duration-300 border-gray-200/80 bg-white hover:border-orange-300 hover:shadow-md hover:scale-[1.01]"
+                      className="relative text-center rounded-2xl border-2 p-6 transition-all duration-300 border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-500 hover:shadow-md hover:scale-[1.01]"
                     >
                       <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white mb-3 shadow-sm mx-auto">
                         <PartyPopper className="h-6 w-6" />
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-1">Public Event</h3>
-                      <p className="text-xs text-gray-500">For workshops, meetups open to public</p>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">Public Event</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">For workshops, meetups open to public</p>
                     </button>
                   </div>
                 </div>
@@ -500,6 +506,7 @@ export default function Bookings(): JSX.Element {
                     {packages.map(p => {
                       const Icon = PKG_ICON[p.slug] || Laptop;
                       const grad = PKG_GRAD[p.slug] || 'from-gray-500 to-gray-600';
+                      const pattern = PKG_PATTERN[p.slug] || '';
                       const reason = disabledReason(p);
                       const disabled = !!reason;
                       const selected = pkg?.id === p.id;
@@ -511,15 +518,17 @@ export default function Bookings(): JSX.Element {
                           disabled={disabled}
                           onClick={() => setPkg(p)}
                           className={`
-                            relative text-left rounded-2xl border-2 p-5
+                            relative text-left rounded-2xl border-2 p-5 overflow-hidden
                             transition-all duration-300
                             ${disabled
                               ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
                               : selected
-                              ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg shadow-violet-100'
-                              : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'}
+                              ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg shadow-violet-100 dark:shadow-violet-900/20'
+                              : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'}
                           `}
                         >
+                          {/* Background pattern */}
+                          <div className={`absolute inset-0 ${pattern} pointer-events-none`} />
                           {/* Gradient icon */}
                           <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br ${grad} text-white mb-3 shadow-sm`}>
                             <Icon className="h-5 w-5" />

@@ -17,6 +17,7 @@ interface DayTimelineModalProps {
   date: Date;
   events: CalendarEvent[];
   bookings: TimelineBooking[];
+  activeUsers: number;
   onClose: () => void;
   onEventClick: (event: CalendarEvent) => void;
   getEventCategory: (event: CalendarEvent) => string;
@@ -26,6 +27,7 @@ export default function DayTimelineModal({
   date,
   events,
   bookings,
+  activeUsers,
   onClose,
   onEventClick,
   getEventCategory,
@@ -88,7 +90,7 @@ export default function DayTimelineModal({
               <div>
                 <h2 className="text-xl font-bold">{format(date, 'EEEE, MMMM d, yyyy')}</h2>
                 <p className="text-sm text-violet-200 mt-0.5">
-                  {events.length} event{events.length !== 1 ? 's' : ''} · {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                  {events.length} event{events.length !== 1 ? 's' : ''} · {bookings.length} booking{bookings.length !== 1 ? 's' : ''} · {activeUsers} active user{activeUsers !== 1 ? 's' : ''} on floor
                 </p>
               </div>
             </div>

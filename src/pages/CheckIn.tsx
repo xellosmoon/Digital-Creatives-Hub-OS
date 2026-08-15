@@ -1,15 +1,18 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import {
-  Phone, ArrowRight, ArrowLeft, CheckCircle,
-  Sparkles, UserCheck, ShieldCheck, Loader2, ChevronDown, Edit2, X, Building, Briefcase, Mail, User, Check
+  ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
+  UserCheck, Sparkles, X, CalendarClock, Building, Coffee, Palette,
+  Film, Camera, BookOpen, Monitor, CheckCircle, Plus, ArrowRight as ArrowRightIcon,
+  Building2, BadgeCheck, Edit2, Loader2, PartyPopper,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../types/hub';
 
-type Step = 'privacy' | 'mobile' | 'confirm' | 'newUser' | 'success';
+type Step = 'privacy' | 'mobile' | 'identify' | 'purpose' | 'newUser' | 'success';
 
 const SECTOR_OPTIONS = [
   'Teacher/Academe',
@@ -57,10 +60,12 @@ export default function CheckIn(): JSX.Element {
     purpose_of_visit?: string[];
   } | null>(null);
 
+  const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string; end_time: string }>>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
   const [editingSector, setEditingSector] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingCreativeDomains, setEditingCreativeDomains] = useState(false);
-  const [editingPurposeOfVisit, setEditingPurposeOfVisit] = useState(false);
   const [editingOrganization, setEditingOrganization] = useState(false);
   const [editingDesignation, setEditingDesignation] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
@@ -71,6 +76,31 @@ export default function CheckIn(): JSX.Element {
     setForm(prev => ({ ...prev, ...patch }));
     setHasEdits(true);
   }, []);
+
+  // ── Fetch today's events ───────────────────────────────────────────
+  const fetchTodayEvents = useCallback(async (): Promise<void> => {
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, start_time, end_time')
+        .eq('date', today)
+        .in('status', ['approved', 'confirmed'])
+        .order('start_time');
+
+      if (error) throw error;
+      setTodayEvents(data || []);
+    } catch (err) {
+      console.error('Error fetching today\'s events:', err);
+    }
+  }, []);
+
+  // Fetch today's events when component mounts or when entering purpose step
+  useEffect(() => {
+    if (step === 'purpose') {
+      fetchTodayEvents();
+    }
+  }, [step, fetchTodayEvents]);
 
   // ── Check returning user when mobile is entered ─────────────────
   const checkReturning = useCallback(async (mobile: string) => {
@@ -88,21 +118,22 @@ export default function CheckIn(): JSX.Element {
           designation: user.designation || '',
           creative_domain: user.creative_domain || '',
         });
-        setForm(prev => ({ 
-          ...prev, 
+        setForm(prev => ({
+          ...prev,
+          name: user.full_name || '',
           sector: user.sector || '',
           creative_domains: user.creative_domains || (user.creative_domain ? [user.creative_domain] : []),
-          purpose_of_visit: user.purpose_of_visit || [],
+          purpose_of_visit: [], // Always clear purpose of visit - ask every time
           organization: user.organization || '',
           designation: user.designation || '',
           email: user.email || '',
           gender: user.gender || '',
         }));
-        setStep('confirm');
+        setStep('identify');
       } else {
         setFoundUser(null);
-        setForm(prev => ({ 
-          ...prev, 
+        setForm(prev => ({
+          ...prev,
           sector: '',
           creative_domains: [],
           purpose_of_visit: [],
@@ -115,8 +146,8 @@ export default function CheckIn(): JSX.Element {
       }
     } catch {
       setFoundUser(null);
-      setForm(prev => ({ 
-        ...prev, 
+      setForm(prev => ({
+        ...prev,
         sector: '',
         creative_domains: [],
         purpose_of_visit: [],
@@ -167,10 +198,10 @@ export default function CheckIn(): JSX.Element {
   const goBack = (): void => {
     if (step === 'mobile') {
       navigate('/');
-    } else if (step === 'confirm') {
-      setForm({ 
-        mobile: form.mobile, 
-        name: '', 
+    } else if (step === 'identify') {
+      setForm({
+        mobile: form.mobile,
+        name: '',
         sector: '',
         creative_domains: [],
         purpose_of_visit: [],
@@ -181,10 +212,13 @@ export default function CheckIn(): JSX.Element {
       });
       setFoundUser(null);
       setStep('mobile');
+    } else if (step === 'purpose') {
+      setStep('identify');
+      setSelectedEventId(null);
     } else if (step === 'newUser') {
-      setForm({ 
-        mobile: '', 
-        name: '', 
+      setForm({
+        mobile: '',
+        name: '',
         sector: '',
         creative_domains: [],
         purpose_of_visit: [],
@@ -198,14 +232,35 @@ export default function CheckIn(): JSX.Element {
     }
   };
 
+  const handleYesThisIsMe = (): void => {
+    setStep('purpose');
+  };
+
   const handleNotMe = (): void => {
     // Keep the phone number, just let them enter their own name
     setFoundUser(null);
+    setForm(prev => ({ 
+      ...prev, 
+      name: '', 
+      sector: '',
+      creative_domains: [],
+      purpose_of_visit: [],
+      organization: '',
+      designation: '',
+      email: '',
+      gender: '',
+    }));
     setStep('newUser');
   };
 
   // ── Submit Check-In ────────────────────────────────────────────
   const handleCheckIn = async (): Promise<void> => {
+    // Validate purpose of visit is always required
+    if (form.purpose_of_visit.length === 0) {
+      toast.error('Please select at least one purpose of visit');
+      return;
+    }
+
     setSubmitting(true);
     try {
       // If returning user made edits, update their most recent record first
@@ -226,7 +281,7 @@ export default function CheckIn(): JSX.Element {
           .eq('mobile_number', form.mobile)
           .order('check_in_time', { ascending: false })
           .limit(1);
-        
+
         if (updateError) console.error('Failed to update user record:', updateError);
       }
 
@@ -235,11 +290,12 @@ export default function CheckIn(): JSX.Element {
         full_name: form.name || foundUser?.full_name,
         sector: form.sector || foundUser?.sector || null,
         creative_domains: form.creative_domains.length > 0 ? form.creative_domains : (foundUser?.creative_domains || null),
-        purpose_of_visit: form.purpose_of_visit.length > 0 ? form.purpose_of_visit : (foundUser?.purpose_of_visit || null),
+        purpose_of_visit: form.purpose_of_visit, // Always use current selection (required)
         organization: form.organization || foundUser?.organization || null,
         designation: form.designation || foundUser?.designation || null,
         email: form.email || foundUser?.email || null,
         gender: form.gender || foundUser?.gender || null,
+        event_id: selectedEventId || null, // Include selected event if any
         status: 'pending_entrance',
         privacy_consented: true,
         consent_timestamp: new Date().toISOString(),
@@ -250,6 +306,7 @@ export default function CheckIn(): JSX.Element {
       setStep('success');
       setSubmitting(false);
       setHasEdits(false);
+      setSelectedEventId(null); // Reset event selection
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Check-in failed';
       toast.error(errorMessage);
@@ -312,7 +369,7 @@ export default function CheckIn(): JSX.Element {
   // RENDER
   // ══════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* ── Glassmorphism Card ── */}
         <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] shadow-2xl shadow-black/20 border border-white/20 p-6 sm:p-8">
@@ -325,14 +382,18 @@ export default function CheckIn(): JSX.Element {
             <h1 className="text-xl sm:text-2xl font-extrabold text-white">
               {step === 'privacy' && 'Data Privacy Notice'}
               {step === 'mobile' && 'Enter Your Mobile Number'}
-              {step === 'confirm' && 'Is this you?'}
+              {step === 'identify' && 'Is this you?'}
+              {step === 'purpose' && 'What brings you here?'}
+              {step === 'confirm' && 'Confirm your details'}
               {step === 'newUser' && 'Welcome!'}
               {step === 'success' && 'Welcome to the Hub!'}
             </h1>
             <p className="text-sm text-white/50 mt-1">
               {step === 'privacy' && 'Please read before proceeding'}
               {step === 'mobile' && 'Use the keypad below or type on keyboard'}
-              {step === 'confirm' && 'Please confirm your identity'}
+              {step === 'identify' && 'We found a previous visitor with this number'}
+              {step === 'purpose' && 'Select all that apply'}
+              {step === 'confirm' && 'Review and edit your information if needed'}
               {step === 'newUser' && 'Let us know your name'}
               {step === 'success' && '🎉'}
             </p>
@@ -442,493 +503,205 @@ export default function CheckIn(): JSX.Element {
             </div>
           )}
 
-          {/* ═══ STEP: CONFIRM (Returning User) ═══ */}
-          {step === 'confirm' && (
-            <div className="space-y-6">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                <UserCheck className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-                
-                {/* Name with inline edit */}
-                <div className="mb-4">
-                  {editingName ? (
-                    <div className="flex items-center gap-2 justify-center">
-                      <input
-                        type="text"
-                        value={form.name || foundUser?.full_name || ''}
-                        onChange={e => update({ name: e.target.value })}
-                        onBlur={() => setEditingName(false)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') setEditingName(false);
-                          if (e.key === 'Escape') {
-                            setEditingName(false);
-                            setForm(prev => ({ ...prev, name: '' }));
-                          }
-                        }}
-                        autoFocus
-                        className="w-full max-w-xs bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-center text-lg font-bold focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingName(false);
-                          setForm(prev => ({ ...prev, name: '' }));
-                        }}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 justify-center">
-                      <p className="text-2xl font-bold text-white">{form.name || foundUser?.full_name}</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingName(true);
-                          setForm(prev => ({ ...prev, name: foundUser?.full_name || '' }));
-                        }}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                        title="Edit name"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+          {/* ═══ STEP: IDENTIFY (Colorful "Is this you?" check) ═══ */}
+          {step === 'identify' && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-violet-500/20 to-purple-600/20 border-2 border-violet-400/30 rounded-3xl p-6 text-center relative overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/20 to-violet-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-                <p className="text-sm text-white/50 mb-4">{form.mobile}</p>
-
-                {/* Additional fields grid */}
-                <div className="space-y-3 text-left">
-                  {/* Sector */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/50 w-24">Sector:</span>
-                    {editingSector ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <select
-                          value={form.sector || foundUser?.sector || ''}
-                          onChange={e => update({ sector: e.target.value })}
-                          onBlur={() => setEditingSector(false)}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs appearance-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
-                        >
-                          <option value="" className="bg-slate-900">Select sector</option>
-                          {SECTOR_OPTIONS.map(opt => (
-                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingSector(false);
-                            setForm(prev => ({ ...prev, sector: '' }));
-                          }}
-                          className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {foundUser?.sector || form.sector ? (
-                          <>
-                            <span className="text-sm text-white/80">{form.sector || foundUser?.sector}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingSector(true);
-                                setForm(prev => ({ ...prev, sector: foundUser?.sector || '' }));
-                              }}
-                              className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setEditingSector(true)}
-                            className="text-xs text-violet-300 underline hover:text-violet-200"
-                          >
-                            + Add
-                          </button>
+                <div className="relative">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 mb-4 shadow-lg shadow-emerald-500/30">
+                    <UserCheck className="h-10 w-10 text-white" />
+                  </div>
+                  <p className="text-sm font-semibold text-violet-200 mb-3">We found this visitor:</p>
+                  
+                  {/* User info card */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-5 border border-white/20">
+                    <p className="text-3xl font-bold text-white mb-2">{form.name || foundUser?.full_name}</p>
+                    <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
+                    
+                    {/* Additional details */}
+                    {(foundUser?.sector || foundUser?.organization) && (
+                      <div className="space-y-1 text-left text-sm">
+                        {foundUser?.sector && (
+                          <div className="flex items-center gap-2 text-white/70">
+                            <Building2 className="h-4 w-4" />
+                            <span>{foundUser.sector}</span>
+                          </div>
+                        )}
+                        {foundUser?.organization && (
+                          <div className="flex items-center gap-2 text-white/70">
+                            <Building className="h-4 w-4" />
+                            <span>{foundUser.organization}</span>
+                          </div>
+                        )}
+                        {foundUser?.designation && (
+                          <div className="flex items-center gap-2 text-white/70">
+                            <BadgeCheck className="h-4 w-4" />
+                            <span>{foundUser.designation}</span>
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
-
-                  {/* Creative Domains */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-white/50">Creative Domains:</span>
-                      <button
-                        type="button"
-                        onClick={() => setEditingCreativeDomains(!editingCreativeDomains)}
-                        className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                      >
-                        {editingCreativeDomains ? <X className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
-                      </button>
-                    </div>
-                    {editingCreativeDomains ? (
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {PCIDA_DOMAINS.map((domain) => (
-                          <button
-                            key={domain}
-                            type="button"
-                            onClick={() => {
-                              const isSelected = form.creative_domains.includes(domain);
-                              update({
-                                creative_domains: isSelected
-                                  ? form.creative_domains.filter(d => d !== domain)
-                                  : [...form.creative_domains, domain]
-                              });
-                            }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-all ${
-                              form.creative_domains.includes(domain)
-                                ? 'bg-violet-500/20 border border-violet-400/50 text-violet-200'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
-                            }`}
-                          >
-                            <div className={`h-3.5 w-3.5 rounded flex items-center justify-center flex-shrink-0 ${
-                              form.creative_domains.includes(domain) ? 'bg-violet-500' : 'bg-white/10'
-                            }`}>
-                              {form.creative_domains.includes(domain) && <Check className="h-2.5 w-2.5 text-white" />}
-                            </div>
-                            {domain}
-                          </button>
-                        ))}
+                  
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      type="button"
+                      onClick={handleYesThisIsMe}
+                      className="flex-1 max-w-[180px] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 active:scale-95"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Check className="h-5 w-5" />
+                        Yes, this is me
                       </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {(form.creative_domains.length > 0 ? form.creative_domains : foundUser?.creative_domains)?.map((domain) => (
-                          <span key={domain} className="text-xs text-white/80 bg-white/10 px-2 py-0.5 rounded">
-                            {domain}
-                          </span>
-                        ))}
-                        {(!form.creative_domains.length && !foundUser?.creative_domains?.length) && (
-                          <span className="text-xs text-white/30 italic">None selected</span>
-                        )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNotMe}
+                      className="flex-1 max-w-[180px] px-6 py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 active:scale-95"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <X className="h-5 w-5" />
+                        No, this isn't me
                       </div>
-                    )}
-                  </div>
-
-                  {/* Purpose of Visit */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-white/50">Purpose of Visit:</span>
-                      <button
-                        type="button"
-                        onClick={() => setEditingPurposeOfVisit(!editingPurposeOfVisit)}
-                        className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                      >
-                        {editingPurposeOfVisit ? <X className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
-                      </button>
-                    </div>
-                    {editingPurposeOfVisit ? (
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
-                          <button
-                            key={purpose}
-                            type="button"
-                            onClick={() => {
-                              const isSelected = form.purpose_of_visit.includes(purpose);
-                              update({
-                                purpose_of_visit: isSelected
-                                  ? form.purpose_of_visit.filter(p => p !== purpose)
-                                  : [...form.purpose_of_visit, purpose]
-                              });
-                            }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-all ${
-                              form.purpose_of_visit.includes(purpose)
-                                ? 'bg-emerald-500/20 border border-emerald-400/50 text-emerald-200'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
-                            }`}
-                          >
-                            <div className={`h-3.5 w-3.5 rounded flex items-center justify-center flex-shrink-0 ${
-                              form.purpose_of_visit.includes(purpose) ? 'bg-emerald-500' : 'bg-white/10'
-                            }`}>
-                              {form.purpose_of_visit.includes(purpose) && <Check className="h-2.5 w-2.5 text-white" />}
-                            </div>
-                            {purpose}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {(form.purpose_of_visit.length > 0 ? form.purpose_of_visit : foundUser?.purpose_of_visit)?.map((purpose) => (
-                          <span key={purpose} className="text-xs text-white/80 bg-white/10 px-2 py-0.5 rounded">
-                            {purpose}
-                          </span>
-                        ))}
-                        {(!form.purpose_of_visit.length && !foundUser?.purpose_of_visit?.length) && (
-                          <span className="text-xs text-white/30 italic">None selected</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Organization */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/50 w-24">Organization:</span>
-                    {editingOrganization ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <input
-                          type="text"
-                          value={form.organization || foundUser?.organization || ''}
-                          onChange={e => update({ organization: e.target.value })}
-                          onBlur={() => setEditingOrganization(false)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') setEditingOrganization(false);
-                            if (e.key === 'Escape') {
-                              setEditingOrganization(false);
-                              setForm(prev => ({ ...prev, organization: '' }));
-                            }
-                          }}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                          placeholder="Organization"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingOrganization(false);
-                            setForm(prev => ({ ...prev, organization: '' }));
-                          }}
-                          className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {foundUser?.organization || form.organization ? (
-                          <>
-                            <span className="text-sm text-white/80">{form.organization || foundUser?.organization}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingOrganization(true);
-                                setForm(prev => ({ ...prev, organization: foundUser?.organization || '' }));
-                              }}
-                              className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setEditingOrganization(true)}
-                            className="text-xs text-violet-300 underline hover:text-violet-200"
-                          >
-                            + Add
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Designation */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/50 w-24">Designation:</span>
-                    {editingDesignation ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <input
-                          type="text"
-                          value={form.designation || foundUser?.designation || ''}
-                          onChange={e => update({ designation: e.target.value })}
-                          onBlur={() => setEditingDesignation(false)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') setEditingDesignation(false);
-                            if (e.key === 'Escape') {
-                              setEditingDesignation(false);
-                              setForm(prev => ({ ...prev, designation: '' }));
-                            }
-                          }}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                          placeholder="Designation"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingDesignation(false);
-                            setForm(prev => ({ ...prev, designation: '' }));
-                          }}
-                          className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {foundUser?.designation || form.designation ? (
-                          <>
-                            <span className="text-sm text-white/80">{form.designation || foundUser?.designation}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingDesignation(true);
-                                setForm(prev => ({ ...prev, designation: foundUser?.designation || '' }));
-                              }}
-                              className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setEditingDesignation(true)}
-                            className="text-xs text-violet-300 underline hover:text-violet-200"
-                          >
-                            + Add
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/50 w-24">Email:</span>
-                    {editingEmail ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <input
-                          type="email"
-                          value={form.email || foundUser?.email || ''}
-                          onChange={e => update({ email: e.target.value })}
-                          onBlur={() => setEditingEmail(false)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') setEditingEmail(false);
-                            if (e.key === 'Escape') {
-                              setEditingEmail(false);
-                              setForm(prev => ({ ...prev, email: '' }));
-                            }
-                          }}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                          placeholder="Email"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingEmail(false);
-                            setForm(prev => ({ ...prev, email: '' }));
-                          }}
-                          className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {foundUser?.email || form.email ? (
-                          <>
-                            <span className="text-sm text-white/80">{form.email || foundUser?.email}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingEmail(true);
-                                setForm(prev => ({ ...prev, email: foundUser?.email || '' }));
-                              }}
-                              className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setEditingEmail(true)}
-                            className="text-xs text-violet-300 underline hover:text-violet-200"
-                          >
-                            + Add
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Gender */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/50 w-24">Gender:</span>
-                    {editingGender ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <select
-                          value={form.gender || foundUser?.gender || ''}
-                          onChange={e => update({ gender: e.target.value })}
-                          onBlur={() => setEditingGender(false)}
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-xs appearance-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
-                        >
-                          <option value="" className="bg-slate-900">Select gender</option>
-                          {GENDER_OPTIONS.map(opt => (
-                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingGender(false);
-                            setForm(prev => ({ ...prev, gender: '' }));
-                          }}
-                          className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {foundUser?.gender || form.gender ? (
-                          <>
-                            <span className="text-sm text-white/80">{form.gender || foundUser?.gender}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingGender(true);
-                                setForm(prev => ({ ...prev, gender: foundUser?.gender || '' }));
-                              }}
-                              className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-all"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setEditingGender(true)}
-                            className="text-xs text-violet-300 underline hover:text-violet-200"
-                          >
-                            + Add
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    </button>
                   </div>
                 </div>
-
-                <p className="text-lg text-white/80">Is this you?</p>
               </div>
+            </div>
+          )}
 
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={handleCheckIn}
-                  disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-lg font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
-                >
-                  {submitting ? (
+          {/* ═══ STEP: PURPOSE OF VISIT (Colorful selection) ═══ */}
+          {step === 'purpose' && (
+            <div className="space-y-4">
+              {/* Event Selection (if events are happening today) */}
+              {todayEvents.length > 0 && (
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-400/30 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <PartyPopper className="h-5 w-5 text-amber-400" />
+                    <p className="text-sm font-semibold text-amber-200">Events happening today</p>
+                  </div>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEventId(null)}
+                      className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                        selectedEventId === null
+                          ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
+                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          selectedEventId === null ? 'bg-amber-500' : 'bg-white/10'
+                        }`}>
+                          {selectedEventId === null && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Just visiting / General purpose</p>
+                        </div>
+                      </div>
+                    </button>
+                    {todayEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => setSelectedEventId(event.id)}
+                        className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                          selectedEventId === event.id
+                            ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
+                            : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            selectedEventId === event.id ? 'bg-amber-500' : 'bg-white/10'
+                          }`}>
+                            {selectedEventId === event.id && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{event.title}</p>
+                            <p className="text-xs text-white/50">
+                              {event.start_time} - {event.end_time}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
+                  const isSelected = form.purpose_of_visit.includes(purpose);
+                  const colors = [
+                    'from-pink-500 to-rose-500',
+                    'from-purple-500 to-indigo-500',
+                    'from-blue-500 to-cyan-500',
+                    'from-teal-500 to-emerald-500',
+                    'from-green-500 to-lime-500',
+                    'from-yellow-500 to-amber-500',
+                    'from-orange-500 to-red-500',
+                    'from-red-500 to-pink-500',
+                    'from-indigo-500 to-purple-500',
+                    'from-violet-500 to-fuchsia-500',
+                  ];
+                  const colorClass = colors[index % colors.length];
+                  
+                  return (
+                    <button
+                      key={purpose}
+                      type="button"
+                      onClick={() => {
+                        const newSelection = isSelected
+                          ? form.purpose_of_visit.filter(p => p !== purpose)
+                          : [...form.purpose_of_visit, purpose];
+                        update({ purpose_of_visit: newSelection });
+                      }}
+                      className={`
+                        relative px-4 py-4 rounded-2xl text-left transition-all duration-200
+                        ${isSelected
+                          ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02]`
+                          : 'bg-white/10 border-2 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                          isSelected ? 'bg-white/20' : 'bg-white/10'
+                        }`}>
+                          {isSelected && <Check className="h-4 w-4 text-white" />}
+                        </div>
+                        <span className="font-semibold text-sm">{purpose}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {form.purpose_of_visit.length === 0 && (
+                <p className="text-center text-sm text-red-400 mt-2">Please select at least one purpose</p>
+              )}
+              
+              <button
+                type="button"
+                onClick={handleCheckIn}
+                disabled={form.purpose_of_visit.length === 0 || submitting}
+                className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              >
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <CheckCircle className="h-5 w-5" />
-                  )}
-                  {submitting ? 'Checking in...' : 'Yes, Check In'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleNotMe}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                >
-                  Not me - Enter my info
-                </button>
-              </div>
+                    Checking in...
+                  </span>
+                ) : (
+                  'Check In'
+                )}
+              </button>
             </div>
           )}
 
@@ -1006,34 +779,56 @@ export default function CheckIn(): JSX.Element {
               <div>
                 <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Purpose of Visit *</label>
                 <p className="text-xs text-white/40 mb-2">Select all that apply</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
-                    <button
-                      key={purpose}
-                      type="button"
-                      onClick={() => {
-                        const isSelected = form.purpose_of_visit.includes(purpose);
-                        update({
-                          purpose_of_visit: isSelected
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
+                    const isSelected = form.purpose_of_visit.includes(purpose);
+                    const colors = [
+                      'from-pink-500 to-rose-500',
+                      'from-purple-500 to-indigo-500',
+                      'from-blue-500 to-cyan-500',
+                      'from-teal-500 to-emerald-500',
+                      'from-green-500 to-lime-500',
+                      'from-yellow-500 to-amber-500',
+                      'from-orange-500 to-red-500',
+                      'from-red-500 to-pink-500',
+                      'from-indigo-500 to-purple-500',
+                      'from-violet-500 to-fuchsia-500',
+                    ];
+                    const colorClass = colors[index % colors.length];
+                    
+                    return (
+                      <button
+                        key={purpose}
+                        type="button"
+                        onClick={() => {
+                          const newSelection = isSelected
                             ? form.purpose_of_visit.filter(p => p !== purpose)
-                            : [...form.purpose_of_visit, purpose]
-                        });
-                      }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-all ${
-                        form.purpose_of_visit.includes(purpose)
-                          ? 'bg-emerald-500/20 border border-emerald-400/50 text-emerald-200'
-                          : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className={`h-4 w-4 rounded flex items-center justify-center flex-shrink-0 ${
-                        form.purpose_of_visit.includes(purpose) ? 'bg-emerald-500' : 'bg-white/10'
-                      }`}>
-                        {form.purpose_of_visit.includes(purpose) && <Check className="h-3 w-3 text-white" />}
-                      </div>
-                      {purpose}
-                    </button>
-                  ))}
+                            : [...form.purpose_of_visit, purpose];
+                          update({ purpose_of_visit: newSelection });
+                        }}
+                        className={`
+                          relative px-4 py-3 rounded-2xl text-left transition-all duration-200
+                          ${isSelected
+                            ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02]`
+                            : 'bg-white/10 border-2 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-5 w-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                            isSelected ? 'bg-white/20' : 'bg-white/10'
+                          }`}>
+                            {isSelected && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <span className="font-semibold text-xs">{purpose}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+                {form.purpose_of_visit.length === 0 && (
+                  <p className="text-xs text-red-400 mt-2">Please select at least one purpose</p>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -1068,9 +863,17 @@ export default function CheckIn(): JSX.Element {
               <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 mb-6 animate-pulse">
                 <CheckCircle className="h-12 w-12 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome to the Hub!</h2>
-              <p className="text-4xl mb-4">🎉</p>
-              <p className="text-white/70 text-sm">You're all checked in!</p>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {foundUser ? 'Welcome back!' : 'Welcome to the Hub!'}
+              </h2>
+              <p className="text-4xl mb-4">
+                {foundUser ? '👋' : '🎉'}
+              </p>
+              <p className="text-white/70 text-sm">
+                {foundUser 
+                  ? 'Great to see you again! You\'re all checked in.' 
+                  : 'You\'re all checked in! Enjoy your first visit.'}
+              </p>
             </div>
           )}
 
