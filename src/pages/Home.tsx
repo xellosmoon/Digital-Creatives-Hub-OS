@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
-  Users, Zap, Shield, Building2, Clock, Star, ArrowRight, 
-  Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu, 
-  Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb, 
+  Users, Zap, Shield, Building2, Clock, Star, ArrowRight,
+  Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu,
+  Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb,
   Layers, Presentation, Armchair
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -127,20 +128,31 @@ export default function Home(): JSX.Element {
 
   const fetchStats = async (): Promise<void> => {
     try {
-      const { count: spacesCount, error: spacesError } = await supabase
-        .from('spaces')
-        .select('*', { count: 'exact', head: true });
-      if (spacesError) throw spacesError;
+      // Get total seats from hub_zones
+      const { data: zonesData, error: zonesError } = await supabase
+        .from('hub_zones')
+        .select('seats')
+        .eq('is_bookable', true);
+      if (zonesError) throw zonesError;
+      const totalSeats = zonesData?.reduce((sum, zone) => sum + (zone.seats || 0), 0) || 0;
 
+      // Get total bookings from hub_bookings
       const { count: bookingsCount, error: bookingsError } = await supabase
-        .from('bookings')
+        .from('hub_bookings')
         .select('*', { count: 'exact', head: true });
       if (bookingsError) throw bookingsError;
 
+      // Get unique visitors from hub_attendance
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('hub_attendance')
+        .select('mobile_number');
+      if (attendanceError) throw attendanceError;
+      const uniqueVisitors = new Set(attendanceData?.map(a => a.mobile_number)).size;
+
       setStats({
-        totalSpaces: spacesCount || 0,
+        totalSpaces: totalSeats,
         totalBookings: bookingsCount || 0,
-        happyUsers: Math.floor((bookingsCount || 0) * 0.95)
+        happyUsers: uniqueVisitors
       });
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -177,7 +189,12 @@ export default function Home(): JSX.Element {
   }
 
   return (
-    <div className="relative overflow-hidden">
+    <>
+      <Helmet>
+        <title>Digital Creatives Hub Iligan - 24/7 Co-working & Innovation Space</title>
+        <meta name="description" content="Your 24/7 innovation, collaboration, and co-working space in Iligan City. Book spaces, attend events, and join a community of creative professionals." />
+      </Helmet>
+      <div className="relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 -z-10">
         <div className="absolute inset-0 opacity-30">
@@ -317,11 +334,11 @@ export default function Home(): JSX.Element {
             <div className="group">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 transition-colors">
-                  <Star className="w-8 h-8 text-[#F59E0B]" />
+                  <ClipboardCheck className="w-8 h-8 text-[#F59E0B]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340]">4.9</div>
-              <div className="text-gray-600 mt-1">Average Rating</div>
+              <div className="text-4xl font-bold text-[#0C2340]">{stats.totalBookings}</div>
+              <div className="text-gray-600 mt-1">Bookings Made</div>
             </div>
           </div>
         </div>
@@ -513,5 +530,6 @@ export default function Home(): JSX.Element {
       </div>
 
     </div>
+    </>
   );
 }

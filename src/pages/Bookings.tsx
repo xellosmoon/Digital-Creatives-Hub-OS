@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Calendar, Clock,
@@ -380,7 +381,12 @@ export default function Bookings(): JSX.Element {
   //  RENDER
   // ══════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
+    <>
+      <Helmet>
+        <title>Book a Space - Digital Creatives Hub Iligan</title>
+        <meta name="description" content="Book your space at Digital Creatives Hub Iligan. Choose from hourly, daily, and package options for individuals and groups." />
+      </Helmet>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
       {/* ── Gradient hero strip ── */}
       <div className="bg-gradient-to-r from-[#0C2340] via-[#0C2340] to-blue-600 text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
@@ -1321,5 +1327,6 @@ export default function Bookings(): JSX.Element {
         </div>
       </div>
     </div>
+    </>
   );
 }

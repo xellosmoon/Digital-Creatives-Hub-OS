@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
@@ -369,7 +370,12 @@ export default function CheckIn(): JSX.Element {
   // RENDER
   // ══════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center p-4">
+    <>
+      <Helmet>
+        <title>Check-In - Digital Creatives Hub Iligan</title>
+        <meta name="description" content="Walk-in check-in kiosk for Digital Creatives Hub Iligan. Register your visit and check into available events." />
+      </Helmet>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* ── Glassmorphism Card ── */}
         <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] shadow-2xl shadow-black/20 border border-white/20 p-6 sm:p-8">
@@ -384,7 +390,6 @@ export default function CheckIn(): JSX.Element {
               {step === 'mobile' && 'Enter Your Mobile Number'}
               {step === 'identify' && 'Is this you?'}
               {step === 'purpose' && 'What brings you here?'}
-              {step === 'confirm' && 'Confirm your details'}
               {step === 'newUser' && 'Welcome!'}
               {step === 'success' && 'Welcome to the Hub!'}
             </h1>
@@ -393,7 +398,6 @@ export default function CheckIn(): JSX.Element {
               {step === 'mobile' && 'Use the keypad below or type on keyboard'}
               {step === 'identify' && 'We found a previous visitor with this number'}
               {step === 'purpose' && 'Select all that apply'}
-              {step === 'confirm' && 'Review and edit your information if needed'}
               {step === 'newUser' && 'Let us know your name'}
               {step === 'success' && '🎉'}
             </p>
@@ -912,5 +916,6 @@ export default function CheckIn(): JSX.Element {
         </p>
       </div>
     </div>
+    </>
   );
 }

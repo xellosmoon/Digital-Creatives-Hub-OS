@@ -5,6 +5,7 @@ import { useEffect, useState, lazy, Suspense } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import BrandedLoader from './components/shared/BrandedLoader';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Lazy load pages
 const Home = lazy(() => import('./pages/Home'));
@@ -69,10 +70,11 @@ function App(): JSX.Element {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandedLoader size="lg" /></div>}>
-          <Routes>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandedLoader size="lg" /></div>}>
+            <Routes>
             <Route path="/check-in" element={<CheckIn />} />
             <Route path="/" element={<Layout session={session}><Home /></Layout>} />
             <Route path="/login" element={<Layout session={session}><Login /></Layout>} />
@@ -121,7 +123,7 @@ function App(): JSX.Element {
               path="/test-dashboard"
               element={
                 <Layout session={session}>
-                  <ProtectedRoute session={session}>
+                  <ProtectedRoute session={session} requireAdmin>
                     <TestDashboard />
                   </ProtectedRoute>
                 </Layout>
@@ -222,6 +224,7 @@ function App(): JSX.Element {
       </Router>
       <Toaster position="top-right" />
     </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 

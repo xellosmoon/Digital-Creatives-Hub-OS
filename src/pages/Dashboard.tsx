@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import BookingCard from '../components/booking/BookingCard';
 import toast from 'react-hot-toast';
-import type { Booking } from '../types';
+import type { HubBooking } from '../types/hub';
 
 interface User {
   id: string;
@@ -12,7 +12,7 @@ interface User {
 }
 
 export default function Dashboard(): JSX.Element {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<HubBooking[]>([]);
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -59,50 +59,31 @@ export default function Dashboard(): JSX.Element {
       const userEmail = user?.email;
 
       let query = supabase
-        .from('bookings')
-        .select('*');
-      
+        .from('hub_bookings')
+        .select('*, package:rental_packages(name, hourly_rate, daily_rate, billing_mode)');
+
       // Build OR condition properly
       if (userEmail) {
         query = query.or(`user_id.eq.${userId},guest_email.eq.${userEmail}`);
       } else {
         query = query.eq('user_id', userId);
       }
-      
-      query = query.order('start_time', { ascending: false });
+
+      query = query.order('created_at', { ascending: false });
 
       // Apply filter
       const now = new Date().toISOString();
       if (filter === 'upcoming') {
-        query = query.gte('start_time', now);
+        query = query.gte('booking_date', now.split('T')[0]);
       } else if (filter === 'past') {
-        query = query.lt('start_time', now);
+        query = query.lt('booking_date', now.split('T')[0]);
       }
 
       const { data: bookingsData, error: bookingsError } = await query;
 
       if (bookingsError) throw bookingsError;
 
-      // Fetch space details for each booking
-      if (bookingsData && bookingsData.length > 0) {
-        const spaceIds = [...new Set(bookingsData.map(b => b.space_id))];
-        const { data: spacesData, error: spacesError } = await supabase
-          .from('spaces')
-          .select('id, name, location, hourly_rate')
-          .in('id', spaceIds);
-
-        if (spacesError) throw spacesError;
-
-        // Combine bookings with space data
-        const bookingsWithSpaces = bookingsData.map(booking => ({
-          ...booking,
-          spaces: spacesData?.find(space => space.id === booking.space_id) || null
-        }));
-
-        setBookings(bookingsWithSpaces);
-      } else {
-        setBookings([]);
-      }
+      setBookings(bookingsData || []);
     } catch (error) {
       toast.error('Failed to load bookings');
     } finally {
@@ -114,8 +95,8 @@ export default function Dashboard(): JSX.Element {
     total: bookings.length,
     approved: bookings.filter(b => b.status === 'approved').length,
     pending: bookings.filter(b => b.status === 'pending').length,
-    upcoming: bookings.filter(b => 
-      b.status === 'approved' && new Date(b.start_time) > new Date()
+    upcoming: bookings.filter(b =>
+      b.status === 'approved' && new Date(b.booking_date) >= new Date(new Date().toISOString().split('T')[0])
     ).length,
   };
 
@@ -243,7 +224,7 @@ export default function Dashboard(): JSX.Element {
               {bookings.map((booking) => (
                 <BookingCard
                   key={booking.id}
-                  booking={booking as Booking & { space?: { name: string; location?: string; hourly_rate: number } }}
+                  booking={booking as any}
                   onUpdate={() => user?.id && fetchBookings(user.id)}
                 />
               ))}

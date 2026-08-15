@@ -1,9 +1,15 @@
 import { Calendar as CalendarIcon, Star, Users, AlertTriangle, Wrench } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 import PublicCalendar from '../components/calendar/PublicCalendar';
 
 export default function Calendar(): JSX.Element {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <Helmet>
+        <title>Calendar & Events - Digital Creatives Hub Iligan</title>
+        <meta name="description" content="View hub availability, upcoming events, and workshops at Digital Creatives Hub Iligan. Book seats and check event schedules." />
+      </Helmet>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Hub Availability & Events</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300">
@@ -72,5 +78,6 @@ export default function Calendar(): JSX.Element {
         </p>
       </div>
     </div>
+    </>
   );
 }

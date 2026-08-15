@@ -134,13 +134,13 @@ export default function Analytics(): JSX.Element {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [bookingsRes, spacesRes, attendanceRes, eventsRes, borrowingsRes, proposalsRes] = await Promise.all([
+      const [bookingsRes, spacesRes, attendanceRes, eventsRes, borrowingsRes] = await Promise.all([
         supabase
-          .from('bookings')
-          .select('*, space:spaces(name, hourly_rate)')
+          .from('hub_bookings')
+          .select('*, package:rental_packages(name, hourly_rate)')
           .gte('created_at', dateRange.start.toISOString())
           .lte('created_at', dateRange.end.toISOString()),
-        supabase.from('spaces').select('id, name'),
+        supabase.from('hub_zones').select('id, name, seats'),
         supabase
           .from('hub_attendance')
           .select('*')
@@ -153,11 +153,6 @@ export default function Analytics(): JSX.Element {
           .lte('created_at', dateRange.end.toISOString()),
         supabase
           .from('borrowings')
-          .select('*')
-          .gte('created_at', dateRange.start.toISOString())
-          .lte('created_at', dateRange.end.toISOString()),
-        supabase
-          .from('hub_events')
           .select('*')
           .gte('created_at', dateRange.start.toISOString())
           .lte('created_at', dateRange.end.toISOString())
@@ -173,7 +168,7 @@ export default function Analytics(): JSX.Element {
         attendanceRes.data || [],
         eventsRes.data || [],
         borrowingsRes.data || [],
-        proposalsRes.data || []
+        []
       );
       setAnalytics(analyticsData);
     } catch (error) {
@@ -185,20 +180,19 @@ export default function Analytics(): JSX.Element {
   };
 
   const processAnalytics = (
-    bookings: Booking[],
-    spaces: Space[],
-    attendance: Attendance[],
-    events: Event[],
-    borrowings: Borrowing[],
-    proposals: Proposal[]
+    bookings: any[],
+    zones: any[],
+    attendance: any[],
+    events: any[],
+    borrowings: any[],
+    proposals: any[]
   ): AnalyticsData => {
     const approvedBookings = bookings.filter(b => b.status === 'approved');
-    
+
     // Total bookings and revenue
     const totalBookings = bookings.length;
     const totalRevenue = approvedBookings.reduce((sum, booking) => {
-      const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      return sum + (duration * (booking.space?.hourly_rate || 0));
+      return sum + (booking.total_price || 0);
     }, 0);
 
     // Average booking duration
@@ -207,11 +201,11 @@ export default function Analytics(): JSX.Element {
     }, 0);
     const averageBookingDuration = approvedBookings.length > 0 ? totalDuration / approvedBookings.length : 0;
 
-    // Space utilization
-    const spaceUtilization: { [key: string]: number } = {};
-    spaces.forEach(space => {
-      const spaceBookings = approvedBookings.filter(b => b.space_id === space.id);
-      spaceUtilization[space.name] = spaceBookings.length;
+    // Zone utilization
+    const zoneUtilization: { [key: string]: number } = {};
+    zones.forEach(zone => {
+      const zoneBookings = approvedBookings.filter(b => b.workshop_zones?.includes(zone.id));
+      zoneUtilization[zone.name] = zoneBookings.length;
     });
 
     // Bookings by status
@@ -229,24 +223,22 @@ export default function Analytics(): JSX.Element {
     const revenueByMonth: { [key: string]: number } = {};
     approvedBookings.forEach(booking => {
       const month = format(new Date(booking.created_at), 'MMM yyyy');
-      const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      const revenue = duration * (booking.space?.hourly_rate || 0);
+      const revenue = booking.total_price || 0;
       revenueByMonth[month] = (revenueByMonth[month] || 0) + revenue;
     });
 
-    // Popular spaces
-    const spaceStats: { [key: string]: { bookings: number; revenue: number } } = {};
+    // Popular packages (replaces popular spaces)
+    const packageStats: { [key: string]: { bookings: number; revenue: number } } = {};
     approvedBookings.forEach(booking => {
-      const spaceName = booking.space?.name || 'Unknown';
-      if (!spaceStats[spaceName]) {
-        spaceStats[spaceName] = { bookings: 0, revenue: 0 };
+      const packageName = booking.package?.name || 'Unknown';
+      if (!packageStats[packageName]) {
+        packageStats[packageName] = { bookings: 0, revenue: 0 };
       }
-      spaceStats[spaceName].bookings += 1;
-      const duration = (new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime()) / (1000 * 60 * 60);
-      spaceStats[spaceName].revenue += duration * (booking.space?.hourly_rate || 0);
+      packageStats[packageName].bookings += 1;
+      packageStats[packageName].revenue += booking.total_price || 0;
     });
 
-    const popularSpaces = Object.entries(spaceStats)
+    const popularSpaces = Object.entries(packageStats)
       .map(([name, stats]) => ({ name, ...stats }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
@@ -266,11 +258,11 @@ export default function Analytics(): JSX.Element {
     const totalCheckins = attendance.length;
     const totalEvents = events.length;
     const gadgetsBorrowed = borrowings.filter(b => b.status === 'returned' || b.status === 'active').length;
-    const spacesOccupied = new Set(approvedBookings.map(b => b.space_id)).size;
+    const spacesOccupied = new Set(approvedBookings.map(b => b.workshop_zones).flat()).size;
 
     // Organizations breakdown
     const orgCounts: { [key: string]: number } = {};
-    [...bookings, ...attendance].forEach((record: RecordWithOrg) => {
+    [...bookings, ...attendance].forEach((record: any) => {
       const org = record.organization || record.guest_organization;
       if (org && org.trim()) {
         orgCounts[org] = (orgCounts[org] || 0) + 1;
@@ -316,7 +308,7 @@ export default function Analytics(): JSX.Element {
       totalBookings,
       totalRevenue,
       averageBookingDuration,
-      spaceUtilization,
+      spaceUtilization: zoneUtilization,
       bookingsByStatus,
       revenueByMonth: Object.entries(revenueByMonth).map(([month, revenue]) => ({ month, revenue })),
       popularSpaces,
@@ -465,19 +457,19 @@ export default function Analytics(): JSX.Element {
       return;
     }
 
-    const confirmMsg = deleteAll 
-      ? 'Delete ALL analytics data (bookings, attendance, events)? This cannot be undone!'
+    const confirmMsg = deleteAll
+      ? 'Delete ALL analytics data (hub_bookings, attendance, events)? This cannot be undone!'
       : `Delete data from ${deleteStartDate} to ${deleteEndDate}? This cannot be undone!`;
-    
+
     if (!window.confirm(confirmMsg)) return;
 
     setDeleting(true);
     try {
-      const tables = ['bookings', 'hub_attendance', 'events'];
-      
+      const tables = ['hub_bookings', 'hub_attendance', 'events'];
+
       for (const table of tables) {
         let query = supabase.from(table).delete();
-        
+
         if (!deleteAll) {
           query = query
             .gte('created_at', new Date(deleteStartDate).toISOString())

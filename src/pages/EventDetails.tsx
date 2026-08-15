@@ -100,10 +100,10 @@ export default function EventDetails(): JSX.Element {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           {/* Event Hero */}
-          {event.image_url && (
+          {event.poster_url && (
             <div className="h-64 bg-gradient-to-br from-violet-500 to-purple-600 relative">
               <img
-                src={event.image_url}
+                src={event.poster_url}
                 alt={event.title}
                 className="w-full h-full object-cover"
               />

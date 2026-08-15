@@ -24,7 +24,7 @@ function timeElapsed(from: string): string {
 }
 
 export default function AdminDashboard(): JSX.Element {
-  const [bookings, setBookings] = useState<{ id: string; booking_reference: string; guest_name: string | null; guest_email: string | null; guest_phone: string | null; booking_date: string; start_time: string; end_time: string; seats_used: number; total_price: number; status: string; purpose: string | null; notes: string | null; is_workshop: boolean; created_at: string; admin_contacted: boolean; admin_contacted_at: string | null; package?: { id: string; slug: string; name: string; hourly_rate: number | null; daily_rate: number | null; billing_mode: string; seats_consumed: number; is_bundle: boolean } }[]>([]);
+  const [bookings, setBookings] = useState<{ id: string; booking_reference: string; guest_name: string | null; guest_email: string | null; guest_phone: string | null; booking_date: string; start_time: string; end_time: string; seats_used: number; total_price: number; status: string; purpose: string[] | null; notes: string | null; is_workshop: boolean; created_at: string; admin_contacted: boolean; admin_contacted_at: string | null; package?: { id: string; slug: string; name: string; hourly_rate: number | null; daily_rate: number | null; billing_mode: string; seats_consumed: number; is_bundle: boolean } }[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
   const [pendingCounts, setPendingCounts] = useState({ bookings: 0, events: 0, total: 0 });
