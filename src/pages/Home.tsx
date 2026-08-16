@@ -220,7 +220,7 @@ export default function Home(): JSX.Element {
                 Creative As One, Iligan
               </span>
             </div>
-            <h1 className="text-5xl font-extrabold text-[#0C2340] dark:bg-gradient-to-r dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] dark:bg-clip-text dark:text-transparent sm:text-6xl md:text-7xl mb-6" style={{ textShadow: '0 0 20px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.3)' }}>
+            <h1 className="text-5xl font-extrabold text-[#0C2340] dark:bg-gradient-to-r dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] dark:bg-clip-text dark:text-transparent sm:text-6xl md:text-7xl mb-6 dark:filter dark:drop-shadow-[0_0_25px_rgba(245,158,11,0.8)]">
               Digital Creatives Hub Iligan
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
