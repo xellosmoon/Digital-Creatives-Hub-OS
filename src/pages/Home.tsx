@@ -220,7 +220,7 @@ export default function Home(): JSX.Element {
                 Creative As One, Iligan
               </span>
             </div>
-            <h1 className="text-5xl font-extrabold text-[#0C2340] sm:text-6xl md:text-7xl mb-6">
+            <h1 className="text-5xl font-extrabold text-[#0C2340] dark:bg-gradient-to-r dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] dark:bg-clip-text dark:text-transparent sm:text-6xl md:text-7xl mb-6" style={{ textShadow: '0 0 20px rgba(245, 158, 11, 0.5), 0 0 40px rgba(245, 158, 11, 0.3)' }}>
               Digital Creatives Hub Iligan
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
@@ -251,13 +251,13 @@ export default function Home(): JSX.Element {
                 <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Advanced Booking</p>
                 <Link
                   to="/bookings"
-                  className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-[#0C2340] rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                  className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl overflow-hidden shadow-xl shadow-blue-900/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-900/60"
                 >
                   <span className="relative z-10 flex items-center">
                     Book a Space
                     <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-[#0C2340] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
                 <p className="mt-3 text-sm text-gray-500">Individual or group bookings</p>
               </div>

@@ -126,7 +126,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
             <div className="flex items-center">
               {/* Logo */}
               <Link to="/" className="flex items-center flex-shrink-0">
-                <span className="font-black text-sm tracking-wider text-slate-900 dark:text-white uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white">
+                <span className="font-black text-sm tracking-wider text-slate-900 dark:text-[#F59E0B] uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B]">
                   Digital Creatives Hub
                 </span>
               </Link>

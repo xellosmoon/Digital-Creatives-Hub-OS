@@ -29,7 +29,7 @@ export default function Footer(): JSX.Element {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-blue-100 to-blue-300 bg-clip-text text-transparent drop-shadow-sm">
+              <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-white via-blue-100 to-blue-300 dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] bg-clip-text text-transparent drop-shadow-sm">
                 Digital Creatives Hub
               </h2>
             </div>

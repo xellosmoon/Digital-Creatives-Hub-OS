@@ -47,6 +47,7 @@ export default function CheckIn(): JSX.Element {
     designation: '',
     email: '',
     gender: '',
+    age: '',
   });
 
   const [foundUser, setFoundUser] = useState<{
@@ -54,6 +55,7 @@ export default function CheckIn(): JSX.Element {
     sector?: string;
     email?: string;
     gender?: string;
+    age?: number;
     organization?: string;
     designation?: string;
     creative_domain?: string;
@@ -71,6 +73,7 @@ export default function CheckIn(): JSX.Element {
   const [editingDesignation, setEditingDesignation] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingGender, setEditingGender] = useState(false);
+  const [editingAge, setEditingAge] = useState(false);
   const [hasEdits, setHasEdits] = useState(false);
 
   const update = useCallback((patch: Partial<typeof form>): void => {
@@ -115,6 +118,7 @@ export default function CheckIn(): JSX.Element {
           sector: user.sector || '',
           email: user.email || '',
           gender: user.gender || '',
+          age: user.age || undefined,
           organization: user.organization || '',
           designation: user.designation || '',
           creative_domain: user.creative_domain || '',
@@ -129,6 +133,7 @@ export default function CheckIn(): JSX.Element {
           designation: user.designation || '',
           email: user.email || '',
           gender: user.gender || '',
+          age: user.age?.toString() || '',
         }));
         setStep('identify');
       } else {
@@ -275,6 +280,7 @@ export default function CheckIn(): JSX.Element {
         if (form.designation) updateData.designation = form.designation;
         if (form.email) updateData.email = form.email;
         if (form.gender) updateData.gender = form.gender;
+        if (form.age) updateData.age = parseInt(form.age);
 
         const { error: updateError } = await supabase
           .from('hub_attendance')
@@ -296,6 +302,7 @@ export default function CheckIn(): JSX.Element {
         designation: form.designation || foundUser?.designation || null,
         email: form.email || foundUser?.email || null,
         gender: form.gender || foundUser?.gender || null,
+        age: form.age ? parseInt(form.age) : (foundUser?.age || null),
         event_id: selectedEventId || null, // Include selected event if any
         status: 'pending_entrance',
         privacy_consented: true,
@@ -527,26 +534,109 @@ export default function CheckIn(): JSX.Element {
                     <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
                     
                     {/* Additional details */}
-                    {(foundUser?.sector || foundUser?.organization) && (
-                      <div className="space-y-1 text-left text-sm">
+                    {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age) && (
+                      <div className="space-y-2 text-left text-sm">
                         {foundUser?.sector && (
                           <div className="flex items-center gap-2 text-white/70">
                             <Building2 className="h-4 w-4" />
-                            <span>{foundUser.sector}</span>
+                            {editingSector ? (
+                              <select
+                                value={form.sector}
+                                onChange={e => update({ sector: e.target.value })}
+                                onBlur={() => setEditingSector(false)}
+                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                              >
+                                <option value="" className="bg-slate-900">Select sector</option>
+                                {SECTOR_OPTIONS.map(opt => (
+                                  <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>{foundUser.sector}</span>
+                            )}
                           </div>
                         )}
                         {foundUser?.organization && (
                           <div className="flex items-center gap-2 text-white/70">
                             <Building className="h-4 w-4" />
-                            <span>{foundUser.organization}</span>
+                            {editingOrganization ? (
+                              <input
+                                type="text"
+                                value={form.organization}
+                                onChange={e => update({ organization: e.target.value })}
+                                onBlur={() => setEditingOrganization(false)}
+                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                              />
+                            ) : (
+                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>{foundUser.organization}</span>
+                            )}
                           </div>
                         )}
                         {foundUser?.designation && (
                           <div className="flex items-center gap-2 text-white/70">
                             <BadgeCheck className="h-4 w-4" />
-                            <span>{foundUser.designation}</span>
+                            {editingDesignation ? (
+                              <input
+                                type="text"
+                                value={form.designation}
+                                onChange={e => update({ designation: e.target.value })}
+                                onBlur={() => setEditingDesignation(false)}
+                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                              />
+                            ) : (
+                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>{foundUser.designation}</span>
+                            )}
                           </div>
                         )}
+                        <div className="flex items-center gap-2 text-white/70">
+                          <Mail className="h-4 w-4" />
+                          {editingEmail ? (
+                            <input
+                              type="email"
+                              value={form.email}
+                              onChange={e => update({ email: e.target.value })}
+                              onBlur={() => setEditingEmail(false)}
+                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                            />
+                          ) : (
+                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>{form.email || foundUser?.email || 'Add email'}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-white/70">
+                          <User className="h-4 w-4" />
+                          {editingGender ? (
+                            <select
+                              value={form.gender}
+                              onChange={e => update({ gender: e.target.value })}
+                              onBlur={() => setEditingGender(false)}
+                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                            >
+                              <option value="" className="bg-slate-900">Select gender</option>
+                              {GENDER_OPTIONS.map(opt => (
+                                <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>{form.gender || foundUser?.gender || 'Add gender'}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-white/70">
+                          <CalendarClock className="h-4 w-4" />
+                          {editingAge ? (
+                            <input
+                              type="number"
+                              value={form.age}
+                              onChange={e => update({ age: e.target.value })}
+                              onBlur={() => setEditingAge(false)}
+                              placeholder="Age"
+                              min="1"
+                              max="120"
+                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                            />
+                          ) : (
+                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>{form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}</span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -726,6 +816,47 @@ export default function CheckIn(): JSX.Element {
                   onChange={e => update({ name: e.target.value })}
                   placeholder="Juan Dela Cruz"
                   autoFocus
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={e => update({ email: e.target.value })}
+                  placeholder="juan@example.com"
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Gender</label>
+                <div className="relative">
+                  <select
+                    value={form.gender}
+                    onChange={e => update({ gender: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white text-sm appearance-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900">Select gender</option>
+                    {GENDER_OPTIONS.map(opt => (
+                      <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Age</label>
+                <input
+                  type="number"
+                  value={form.age}
+                  onChange={e => update({ age: e.target.value })}
+                  placeholder="25"
+                  min="1"
+                  max="120"
                   className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
               </div>
