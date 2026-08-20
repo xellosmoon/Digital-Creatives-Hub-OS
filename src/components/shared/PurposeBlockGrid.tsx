@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { PURPOSE_OPTIONS } from '../../types/hub';
 import type { Purpose } from '../../types/hub';
 
 interface PurposeBlockGridProps {
@@ -22,8 +23,6 @@ export default function PurposeBlockGrid({
   gridCols = 2,
   className = '',
 }: PurposeBlockGridProps): JSX.Element {
-  // Import PURPOSE_OPTIONS dynamically to avoid circular dependency
-  const { PURPOSE_OPTIONS } = require('../../types/hub');
   const purposeOptions = options || PURPOSE_OPTIONS;
 
   const togglePurpose = (purpose: Purpose): void => {
