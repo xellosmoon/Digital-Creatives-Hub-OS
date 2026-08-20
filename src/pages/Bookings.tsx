@@ -67,10 +67,17 @@ const STEP_META: { key: Step; label: string }[] = [
 
 type BookingType = 'individual' | 'group' | 'event';
 
+const GATHERING_TYPES = ['Meeting', 'Workshop', 'Seminar', 'Other'] as const;
+
 // ── Extended package type ──────────────────────────────────────────
 interface PkgExtra extends RentalPackage {
   bundleAvailable: boolean;
   requiredAssets: PackageRequiredAsset[];
+}
+
+interface SelectedEquipment {
+  asset: Asset;
+  quantity: number;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -92,10 +99,11 @@ export default function Bookings(): JSX.Element {
   const [assets, setAssets] = useState<AssetAvailability[]>([]);
   const [allPricing, setAllPricing] = useState<PricingTier[]>([]);
   const [allItems, setAllItems] = useState<Item[]>([]);
-  const [selectedEquipment, setSelectedEquipment] = useState<Asset[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<SelectedEquipment[]>([]);
   const [equipmentTotal, setEquipmentTotal] = useState(0);
 
   const [form, setForm] = useState({
+    gathering_type: '',
     date: preselected.preselectedDate
       ? format(new Date(preselected.preselectedDate), 'yyyy-MM-dd')
       : format(new Date(), 'yyyy-MM-dd'),
@@ -233,12 +241,12 @@ export default function Bookings(): JSX.Element {
 
     // Calculate equipment total
     let equipmentTotal = 0;
-    selectedEquipment.forEach((asset) => {
+    selectedEquipment.forEach(({ asset, quantity }) => {
       const assetPricing = allPricing.filter((p) => p.asset_id === asset.id);
       if (assetPricing.length > 0) {
         const priceEstimate = calculateTotalRate(assetPricing, asset, 'inside', s, e);
         if (priceEstimate) {
-          equipmentTotal += priceEstimate.totalPrice;
+          equipmentTotal += priceEstimate.totalPrice * quantity;
         }
       }
     });
@@ -253,9 +261,9 @@ export default function Bookings(): JSX.Element {
       case 'bookingType': return !!bookingType;
       case 'package': return !!pkg;
       case 'datetime': return !!form.date && !!form.start && !!form.end;
-      case 'details': 
+      case 'details':
         if (bookingType === 'group') {
-          return !!form.name.trim() && !!form.email.trim() && groupSize > 0 && form.purposes.length > 0;
+          return !!form.name.trim() && !!form.email.trim() && groupSize >= 2 && !!form.gathering_type && form.purposes.length > 0;
         }
         return !!form.name.trim() && !!form.email.trim() && form.purposes.length > 0;
       case 'equipment': return true;
@@ -274,20 +282,27 @@ export default function Bookings(): JSX.Element {
   };
 
   const handleAddEquipment = (asset: Asset): void => {
-    if (!selectedEquipment.find((e) => e.id === asset.id)) {
-      setSelectedEquipment([...selectedEquipment, asset]);
+    if (!selectedEquipment.find((e) => e.asset.id === asset.id)) {
+      setSelectedEquipment([...selectedEquipment, { asset, quantity: 1 }]);
     }
   };
 
   const handleRemoveEquipment = (assetId: string): void => {
-    setSelectedEquipment(selectedEquipment.filter((e) => e.id !== assetId));
+    setSelectedEquipment(selectedEquipment.filter((e) => e.asset.id !== assetId));
+  };
+
+  const handleSetEquipmentQuantity = (assetId: string, quantity: number): void => {
+    const availableItems = assets.find((a) => a.asset.id === assetId)?.availableItems ?? 1;
+    const clamped = Math.max(1, Math.min(quantity, availableItems));
+    setSelectedEquipment(selectedEquipment.map((e) => e.asset.id === assetId ? { ...e, quantity: clamped } : e));
   };
 
   const handleSubmit = async (): Promise<void> => {
     if (!pkg || !estimate) return;
+    const seatsNeeded = bookingType === 'group' ? pkg.seats_consumed * groupSize : pkg.seats_consumed;
     if (availSeats !== null && availSeats <= 0) {
       toast.error('Fully Booked for this date. Your request will be queued for admin review.');
-    } else if (availSeats !== null && availSeats < pkg.seats_consumed) {
+    } else if (availSeats !== null && availSeats < seatsNeeded) {
       toast.error(`Only ${availSeats} seat(s) left — your booking will be queued for admin review.`);
     }
     setSubmitting(true);
@@ -313,6 +328,7 @@ export default function Bookings(): JSX.Element {
         purpose: form.purposes.length > 0 ? form.purposes : null,
         booking_type: bookingType || 'individual',
         group_size: bookingType === 'group' ? groupSize : null,
+        gathering_type: bookingType === 'group' ? form.gathering_type || null : null,
         notes: agreementNotes || null,
         gender: form.gender || null,
         sector: form.sector || null,
@@ -324,21 +340,27 @@ export default function Bookings(): JSX.Element {
 
       if (bookingError) throw bookingError;
 
-      // Create borrowings for selected equipment
+      // Create borrowings for selected equipment (one row per unit requested)
       if (selectedEquipment.length > 0 && booking) {
-        for (const asset of selectedEquipment) {
+        const usedItemIds = new Set<string>();
+        for (const { asset, quantity } of selectedEquipment) {
           const assetPricing = allPricing.filter((p) => p.asset_id === asset.id);
           const priceEstimate = calculateTotalRate(assetPricing, asset, 'inside', startISO, endISO);
-          
-          // Find available item for this asset
-          const availableItem = allItems.find(
-            (i) => i.asset_id === asset.id && i.status === 'available'
+          if (!priceEstimate) continue;
+
+          const availableItems = allItems.filter(
+            (i) => i.asset_id === asset.id && i.status === 'available' && !usedItemIds.has(i.id)
           );
 
-          if (availableItem && priceEstimate) {
-            await supabase.from('borrowings').insert({
+          if (availableItems.length < quantity) {
+            toast.error(`Only ${availableItems.length} of ${quantity} requested ${asset.name} unit(s) were available and reserved.`);
+          }
+
+          for (const item of availableItems.slice(0, quantity)) {
+            usedItemIds.add(item.id);
+            const { error: borrowError } = await supabase.from('borrowings').insert({
               user_id: userId,
-              item_id: availableItem.id,
+              item_id: item.id,
               asset_id: asset.id,
               booking_id: booking.id,
               location: 'inside',
@@ -350,6 +372,7 @@ export default function Bookings(): JSX.Element {
               status: 'pending',
               purpose: form.purposes.length > 0 ? form.purposes : null,
             });
+            if (borrowError) console.error('Failed to reserve equipment unit:', borrowError);
           }
         }
       }
@@ -359,7 +382,7 @@ export default function Bookings(): JSX.Element {
       setSelectedEquipment([]);
       setEquipmentTotal(0);
       setStep('package');
-      setForm({ date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
+      setForm({ gathering_type: '', date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Booking failed';
       toast.error(errorMessage);
@@ -840,6 +863,30 @@ export default function Bookings(): JSX.Element {
                         <p className="text-xs text-gray-500 mt-1">Pricing will be calculated per person (₱{estimate?.totalPrice.toFixed(2)} × {groupSize} = ₱{((estimate?.totalPrice || 0) * groupSize).toFixed(2)})</p>
                       </div>
                     )}
+                    {bookingType === 'group' && (
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                          <Info className="h-4 w-4 text-[#0C2340]" /> What kind of gathering is this? *
+                        </label>
+                        <p className="text-xs text-gray-500 mb-2">Helps admin know what to call this on the calendar (e.g. "{form.organization || 'Your Organization'} {form.gathering_type || 'Meeting'}")</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {GATHERING_TYPES.map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => update({ gathering_type: type })}
+                              className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                                form.gathering_type === type
+                                  ? 'bg-[#0C2340] text-white shadow-md'
+                                  : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-violet-300'
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <PurposeBlockGrid
                         selectedValues={form.purposes as any}
@@ -973,19 +1020,40 @@ export default function Bookings(): JSX.Element {
                     {selectedEquipment.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-gray-700">Selected Equipment:</p>
-                        {selectedEquipment.map((asset) => (
+                        {selectedEquipment.map(({ asset, quantity }) => (
                           <div key={asset.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
                               <p className="text-sm font-medium text-gray-900">{asset.name}</p>
                               <p className="text-xs text-gray-500">Inside Hub usage</p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveEquipment(asset.id)}
-                              className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                              {bookingType === 'group' && (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetEquipmentQuantity(asset.id, quantity - 1)}
+                                    className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="text-sm font-semibold text-gray-900 w-4 text-center">{quantity}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetEquipmentQuantity(asset.id, quantity + 1)}
+                                    className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveEquipment(asset.id)}
+                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                         <div className="text-right text-sm font-medium text-gray-700">
@@ -1130,9 +1198,9 @@ export default function Bookings(): JSX.Element {
                           <p className="font-semibold text-gray-900 text-sm">Equipment Reserved</p>
                         </div>
                         <div className="space-y-2">
-                          {selectedEquipment.map((asset) => (
+                          {selectedEquipment.map(({ asset, quantity }) => (
                             <div key={asset.id} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-700">{asset.name}</span>
+                              <span className="text-gray-700">{asset.name}{quantity > 1 ? ` × ${quantity}` : ''}</span>
                               <span className="text-gray-500">Inside Hub</span>
                             </div>
                           ))}

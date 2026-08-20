@@ -23,6 +23,10 @@ interface HubBookingRow {
   created_at: string;
   admin_contacted: boolean;
   admin_contacted_at: string | null;
+  booking_type: string | null;
+  group_size: number | null;
+  organization: string | null;
+  gathering_type: string | null;
   package?: {
     id: string;
     slug: string;
@@ -55,6 +59,13 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
   });
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
+
+  const suggestedEventTitle = [booking.organization, booking.gathering_type].filter(Boolean).join(' ');
+
+  const openPromoteModal = (): void => {
+    setEventTitle(suggestedEventTitle);
+    setShowPromoteModal(true);
+  };
 
   const formatDate = (dateString: string | null | undefined, formatStr: string): string => {
     if (!dateString) return 'No date';
@@ -132,11 +143,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           title: eventTitle.trim(),
           description: booking.notes || `Promoted from booking ${booking.booking_reference}`,
           organizer: booking.guest_name || 'Unknown',
-          organization: (booking as any).organization || null,
+          organization: booking.organization || null,
           contact_email: booking.guest_email || null,
           contact_phone: booking.guest_phone || null,
           start_time: booking.start_time,
           end_time: booking.end_time,
+          expected_guests: booking.group_size || booking.seats_used || null,
           promoted_booking_id: booking.id,
           status: 'published',
           created_by: session?.session?.user?.id || null,
@@ -252,6 +264,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                 Workshop
               </span>
             )}
+            {booking.booking_type === 'group' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700">
+                <Users className="h-3 w-3 mr-1" />
+                Group Booking{booking.gathering_type ? ` · ${booking.gathering_type}` : ''}
+              </span>
+            )}
             {booking.admin_contacted && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
                 <PhoneCall className="h-3 w-3 mr-1" />
@@ -268,6 +286,15 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Bundle</span>
             )}
           </h3>
+
+          {/* Group booking details */}
+          {booking.booking_type === 'group' && (booking.organization || booking.group_size) && (
+            <p className="text-sm text-gray-600 mb-3">
+              {booking.organization && <span className="font-medium text-gray-900">{booking.organization}</span>}
+              {booking.organization && booking.group_size && ' · '}
+              {booking.group_size && `${booking.group_size} people`}
+            </p>
+          )}
 
           {/* Date & Time */}
           <div className="flex items-center text-sm text-gray-600 mb-3">
@@ -374,7 +401,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             Override & Approve (Ignore Capacity)
           </button>
           <button
-            onClick={() => setShowPromoteModal(true)}
+            onClick={openPromoteModal}
             className="w-full inline-flex items-center justify-center px-4 py-2 border border-violet-300 text-sm font-medium rounded-md text-violet-700 bg-violet-50 hover:bg-violet-100 transition-colors"
           >
             <Calendar className="h-4 w-4 mr-2" />
