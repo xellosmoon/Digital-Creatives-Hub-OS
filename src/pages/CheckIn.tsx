@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
   UserCheck, Sparkles, X, CalendarClock, Building, Coffee, Palette,
   Film, Camera, BookOpen, Monitor, CheckCircle, Plus, ArrowRight as ArrowRightIcon,
-  Building2, BadgeCheck, Edit2, Loader2, PartyPopper,
+  Building2, BadgeCheck, Edit2, Loader2, PartyPopper, Mail, User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -147,6 +147,7 @@ export default function CheckIn(): JSX.Element {
           designation: '',
           email: '',
           gender: '',
+          age: '',
         }));
         setStep('newUser');
       }
@@ -161,6 +162,7 @@ export default function CheckIn(): JSX.Element {
         designation: '',
         email: '',
         gender: '',
+        age: '',
       }));
       setStep('newUser');
     }
@@ -215,6 +217,7 @@ export default function CheckIn(): JSX.Element {
         designation: '',
         email: '',
         gender: '',
+        age: '',
       });
       setFoundUser(null);
       setStep('mobile');
@@ -232,6 +235,7 @@ export default function CheckIn(): JSX.Element {
         designation: '',
         email: '',
         gender: '',
+        age: '',
       });
       setFoundUser(null);
       setStep('mobile');
@@ -255,6 +259,7 @@ export default function CheckIn(): JSX.Element {
       designation: '',
       email: '',
       gender: '',
+      age: '',
     }));
     setStep('newUser');
   };
@@ -364,6 +369,7 @@ export default function CheckIn(): JSX.Element {
           designation: '',
           email: '',
           gender: '',
+          age: '',
         });
         setFoundUser(null);
         setStep('privacy');
