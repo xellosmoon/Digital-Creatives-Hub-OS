@@ -340,7 +340,7 @@ export default function PublicCalendar(): JSX.Element {
                       setShowTimelineModal(true);
                     }}
                     className={`
-                      bg-white dark:bg-slate-900 p-2 min-h-[110px] relative group border
+                      bg-white dark:bg-slate-900 p-2 min-h-[110px] relative group border overflow-hidden
                       ${heatmapClass}
                       ${!isCurrentMonth ? 'text-gray-400 dark:text-gray-500' : ''}
                       ${isToday ? 'bg-primary-50 dark:bg-primary-900/20' : ''}
@@ -490,7 +490,7 @@ export default function PublicCalendar(): JSX.Element {
                               e.stopPropagation();
                               navigate(`/events/${ev.id}`);
                             }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border ${bgColor} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border min-w-0 max-w-full ${bgColor} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
                             title={ev.title}
                           >
                             {category === 'Workshops' ? (
@@ -500,7 +500,7 @@ export default function PublicCalendar(): JSX.Element {
                             ) : (
                               <Calendar className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
                             )}
-                            <span className={`text-xs font-medium ${textColor} truncate max-w-[100px]`}>
+                            <span className={`text-xs font-medium ${textColor} truncate min-w-0`}>
                               {ev.title}
                             </span>
                           </div>
