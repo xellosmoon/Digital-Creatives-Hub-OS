@@ -29,6 +29,32 @@ const SECTOR_OPTIONS = [
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
+// Shared per-item color treatment for chip/tile grids (purposes, creative domains)
+const CHIP_GRADIENTS = [
+  'from-pink-500 to-rose-500',
+  'from-purple-500 to-indigo-500',
+  'from-blue-500 to-cyan-500',
+  'from-teal-500 to-emerald-500',
+  'from-green-500 to-lime-500',
+  'from-yellow-500 to-amber-500',
+  'from-orange-500 to-red-500',
+  'from-red-500 to-pink-500',
+  'from-indigo-500 to-purple-500',
+  'from-violet-500 to-fuchsia-500',
+];
+const CHIP_TINTS = [
+  'bg-pink-500/10 border-pink-400/30 text-pink-100 hover:bg-pink-500/20',
+  'bg-purple-500/10 border-purple-400/30 text-purple-100 hover:bg-purple-500/20',
+  'bg-blue-500/10 border-blue-400/30 text-blue-100 hover:bg-blue-500/20',
+  'bg-teal-500/10 border-teal-400/30 text-teal-100 hover:bg-teal-500/20',
+  'bg-green-500/10 border-green-400/30 text-green-100 hover:bg-green-500/20',
+  'bg-yellow-500/10 border-yellow-400/30 text-yellow-100 hover:bg-yellow-500/20',
+  'bg-orange-500/10 border-orange-400/30 text-orange-100 hover:bg-orange-500/20',
+  'bg-red-500/10 border-red-400/30 text-red-100 hover:bg-red-500/20',
+  'bg-indigo-500/10 border-indigo-400/30 text-indigo-100 hover:bg-indigo-500/20',
+  'bg-violet-500/10 border-violet-400/30 text-violet-100 hover:bg-violet-500/20',
+];
+
 // ══════════════════════════════════════════════════════════════════
 export default function CheckIn(): JSX.Element {
   const navigate = useNavigate();
@@ -563,156 +589,8 @@ export default function CheckIn(): JSX.Element {
                       </p>
                     )}
                     <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
-
-                    {/* Additional details */}
-                    {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age || foundUser?.creative_domain || (foundUser?.creative_domains && foundUser.creative_domains.length > 0)) && (
-                      <div className="space-y-2 text-left text-sm">
-                        {foundUser?.sector && (
-                          <div className="flex items-center gap-2 text-white/70">
-                            <Building2 className="h-4 w-4" />
-                            {editingSector ? (
-                              <select
-                                value={form.sector}
-                                onChange={e => update({ sector: e.target.value })}
-                                onBlur={() => setEditingSector(false)}
-                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                              >
-                                <option value="" className="bg-slate-900">Select sector</option>
-                                {SECTOR_OPTIONS.map(opt => (
-                                  <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>{foundUser.sector}</span>
-                            )}
-                          </div>
-                        )}
-                        {foundUser?.organization && (
-                          <div className="flex items-center gap-2 text-white/70">
-                            <Building className="h-4 w-4" />
-                            {editingOrganization ? (
-                              <input
-                                type="text"
-                                value={form.organization}
-                                onChange={e => update({ organization: e.target.value })}
-                                onBlur={() => setEditingOrganization(false)}
-                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                              />
-                            ) : (
-                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>{foundUser.organization}</span>
-                            )}
-                          </div>
-                        )}
-                        {foundUser?.designation && (
-                          <div className="flex items-center gap-2 text-white/70">
-                            <BadgeCheck className="h-4 w-4" />
-                            {editingDesignation ? (
-                              <input
-                                type="text"
-                                value={form.designation}
-                                onChange={e => update({ designation: e.target.value })}
-                                onBlur={() => setEditingDesignation(false)}
-                                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                              />
-                            ) : (
-                              <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>{foundUser.designation}</span>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-white/70">
-                          <Mail className="h-4 w-4" />
-                          {editingEmail ? (
-                            <input
-                              type="email"
-                              value={form.email}
-                              onChange={e => update({ email: e.target.value })}
-                              onBlur={() => setEditingEmail(false)}
-                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                            />
-                          ) : (
-                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>{form.email || foundUser?.email || 'Add email'}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-white/70">
-                          <User className="h-4 w-4" />
-                          {editingGender ? (
-                            <select
-                              value={form.gender}
-                              onChange={e => update({ gender: e.target.value })}
-                              onBlur={() => setEditingGender(false)}
-                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                            >
-                              <option value="" className="bg-slate-900">Select gender</option>
-                              {GENDER_OPTIONS.map(opt => (
-                                <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>{form.gender || foundUser?.gender || 'Add gender'}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-white/70">
-                          <CalendarClock className="h-4 w-4" />
-                          {editingAge ? (
-                            <input
-                              type="number"
-                              value={form.age}
-                              onChange={e => update({ age: e.target.value })}
-                              onBlur={() => setEditingAge(false)}
-                              placeholder="Age"
-                              min="1"
-                              max="120"
-                              className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                            />
-                          ) : (
-                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>{form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}</span>
-                          )}
-                        </div>
-                        <div className="flex items-start gap-2 text-white/70">
-                          <Palette className="h-4 w-4 mt-0.5" />
-                          {editingCreativeDomains ? (
-                            <div className="flex-1 flex flex-wrap gap-1.5">
-                              {PCIDA_DOMAINS.map(domain => {
-                                const isSelected = form.creative_domains.includes(domain);
-                                return (
-                                  <button
-                                    key={domain}
-                                    type="button"
-                                    onClick={() => update({
-                                      creative_domains: isSelected
-                                        ? form.creative_domains.filter(d => d !== domain)
-                                        : [...form.creative_domains, domain]
-                                    })}
-                                    className={`px-2 py-1 rounded-lg text-[11px] transition-all ${
-                                      isSelected
-                                        ? 'bg-violet-500/30 border border-violet-400/60 text-violet-200'
-                                        : 'bg-white/10 border border-white/20 text-white/60 hover:bg-white/20'
-                                    }`}
-                                  >
-                                    {domain}
-                                  </button>
-                                );
-                              })}
-                              <button
-                                type="button"
-                                onClick={() => setEditingCreativeDomains(false)}
-                                className="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
-                              >
-                                Done
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
-                              {form.creative_domains.length > 0
-                                ? form.creative_domains.join(', ')
-                                : (foundUser?.creative_domains?.length ? foundUser.creative_domains.join(', ') : (foundUser?.creative_domain || 'Add creative domain'))}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                  
+
                   <div className="flex gap-3 justify-center">
                     <button
                       type="button"
@@ -743,6 +621,157 @@ export default function CheckIn(): JSX.Element {
           {/* ═══ STEP: PURPOSE OF VISIT (Colorful selection) ═══ */}
           {step === 'purpose' && (
             <div className="space-y-4">
+              {/* Your details (shown only now that identity is confirmed) */}
+              {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age || foundUser?.creative_domain || (foundUser?.creative_domains && foundUser.creative_domains.length > 0)) && (
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Your Details</p>
+                  <div className="space-y-2 text-left text-sm">
+                    {foundUser?.sector && (
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Building2 className="h-4 w-4" />
+                        {editingSector ? (
+                          <select
+                            value={form.sector}
+                            onChange={e => update({ sector: e.target.value })}
+                            onBlur={() => setEditingSector(false)}
+                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          >
+                            <option value="" className="bg-slate-900">Select sector</option>
+                            {SECTOR_OPTIONS.map(opt => (
+                              <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>{foundUser.sector}</span>
+                        )}
+                      </div>
+                    )}
+                    {foundUser?.organization && (
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Building className="h-4 w-4" />
+                        {editingOrganization ? (
+                          <input
+                            type="text"
+                            value={form.organization}
+                            onChange={e => update({ organization: e.target.value })}
+                            onBlur={() => setEditingOrganization(false)}
+                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          />
+                        ) : (
+                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>{foundUser.organization}</span>
+                        )}
+                      </div>
+                    )}
+                    {foundUser?.designation && (
+                      <div className="flex items-center gap-2 text-white/70">
+                        <BadgeCheck className="h-4 w-4" />
+                        {editingDesignation ? (
+                          <input
+                            type="text"
+                            value={form.designation}
+                            onChange={e => update({ designation: e.target.value })}
+                            onBlur={() => setEditingDesignation(false)}
+                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          />
+                        ) : (
+                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>{foundUser.designation}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-white/70">
+                      <Mail className="h-4 w-4" />
+                      {editingEmail ? (
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={e => update({ email: e.target.value })}
+                          onBlur={() => setEditingEmail(false)}
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>{form.email || foundUser?.email || 'Add email'}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-white/70">
+                      <User className="h-4 w-4" />
+                      {editingGender ? (
+                        <select
+                          value={form.gender}
+                          onChange={e => update({ gender: e.target.value })}
+                          onBlur={() => setEditingGender(false)}
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        >
+                          <option value="" className="bg-slate-900">Select gender</option>
+                          {GENDER_OPTIONS.map(opt => (
+                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>{form.gender || foundUser?.gender || 'Add gender'}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-white/70">
+                      <CalendarClock className="h-4 w-4" />
+                      {editingAge ? (
+                        <input
+                          type="number"
+                          value={form.age}
+                          onChange={e => update({ age: e.target.value })}
+                          onBlur={() => setEditingAge(false)}
+                          placeholder="Age"
+                          min="1"
+                          max="120"
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>{form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}</span>
+                      )}
+                    </div>
+                    <div className="flex items-start gap-2 text-white/70">
+                      <Palette className="h-4 w-4 mt-0.5" />
+                      {editingCreativeDomains ? (
+                        <div className="flex-1 flex flex-wrap gap-1.5">
+                          {PCIDA_DOMAINS.map(domain => {
+                            const isSelected = form.creative_domains.includes(domain);
+                            return (
+                              <button
+                                key={domain}
+                                type="button"
+                                onClick={() => update({
+                                  creative_domains: isSelected
+                                    ? form.creative_domains.filter(d => d !== domain)
+                                    : [...form.creative_domains, domain]
+                                })}
+                                className={`px-2 py-1 rounded-lg text-[11px] transition-all ${
+                                  isSelected
+                                    ? 'bg-violet-500/30 border border-violet-400/60 text-violet-200'
+                                    : 'bg-white/10 border border-white/20 text-white/60 hover:bg-white/20'
+                                }`}
+                              >
+                                {domain}
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            onClick={() => setEditingCreativeDomains(false)}
+                            className="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
+                          {form.creative_domains.length > 0
+                            ? form.creative_domains.join(', ')
+                            : (foundUser?.creative_domains?.length ? foundUser.creative_domains.join(', ') : (foundUser?.creative_domain || 'Add creative domain'))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Event Selection (if events are happening today) */}
               {todayEvents.length > 0 && (
                 <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-400/30 rounded-2xl p-4">
@@ -804,20 +833,9 @@ export default function CheckIn(): JSX.Element {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
                   const isSelected = form.purpose_of_visit.includes(purpose);
-                  const colors = [
-                    'from-pink-500 to-rose-500',
-                    'from-purple-500 to-indigo-500',
-                    'from-blue-500 to-cyan-500',
-                    'from-teal-500 to-emerald-500',
-                    'from-green-500 to-lime-500',
-                    'from-yellow-500 to-amber-500',
-                    'from-orange-500 to-red-500',
-                    'from-red-500 to-pink-500',
-                    'from-indigo-500 to-purple-500',
-                    'from-violet-500 to-fuchsia-500',
-                  ];
-                  const colorClass = colors[index % colors.length];
-                  
+                  const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+                  const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
+
                   return (
                     <button
                       key={purpose}
@@ -829,10 +847,10 @@ export default function CheckIn(): JSX.Element {
                         update({ purpose_of_visit: newSelection });
                       }}
                       className={`
-                        relative px-4 py-4 rounded-2xl text-left transition-all duration-200
+                        relative px-4 py-4 rounded-2xl text-left transition-all duration-200 border-2
                         ${isSelected
-                          ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02]`
-                          : 'bg-white/10 border-2 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30'
+                          ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
+                          : tintClass
                         }
                       `}
                     >
@@ -842,7 +860,7 @@ export default function CheckIn(): JSX.Element {
                         }`}>
                           {isSelected && <Check className="h-4 w-4 text-white" />}
                         </div>
-                        <span className="font-semibold text-sm">{purpose}</span>
+                        <span className="font-semibold text-sm break-words">{purpose}</span>
                       </div>
                     </button>
                   );
@@ -954,32 +972,36 @@ export default function CheckIn(): JSX.Element {
                 <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Creative Domains *</label>
                 <p className="text-xs text-white/40 mb-2">Select all that apply (PCIDA RA 11904)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {PCIDA_DOMAINS.map((domain) => (
-                    <button
-                      key={domain}
-                      type="button"
-                      onClick={() => {
-                        const isSelected = form.creative_domains.includes(domain);
-                        update({
-                          creative_domains: isSelected
-                            ? form.creative_domains.filter(d => d !== domain)
-                            : [...form.creative_domains, domain]
-                        });
-                      }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-all ${
-                        form.creative_domains.includes(domain)
-                          ? 'bg-violet-500/20 border border-violet-400/50 text-violet-200'
-                          : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className={`h-4 w-4 rounded flex items-center justify-center flex-shrink-0 ${
-                        form.creative_domains.includes(domain) ? 'bg-violet-500' : 'bg-white/10'
-                      }`}>
-                        {form.creative_domains.includes(domain) && <Check className="h-3 w-3 text-white" />}
-                      </div>
-                      {domain}
-                    </button>
-                  ))}
+                  {PCIDA_DOMAINS.map((domain, index) => {
+                    const isSelected = form.creative_domains.includes(domain);
+                    const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+                    const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
+                    return (
+                      <button
+                        key={domain}
+                        type="button"
+                        onClick={() => {
+                          update({
+                            creative_domains: isSelected
+                              ? form.creative_domains.filter(d => d !== domain)
+                              : [...form.creative_domains, domain]
+                          });
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-all border ${
+                          isSelected
+                            ? `bg-gradient-to-r ${colorClass} border-transparent text-white shadow-md`
+                            : tintClass
+                        }`}
+                      >
+                        <div className={`h-4 w-4 rounded flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-white/20' : 'bg-white/10'
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <span className="break-words">{domain}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -989,20 +1011,9 @@ export default function CheckIn(): JSX.Element {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
                     const isSelected = form.purpose_of_visit.includes(purpose);
-                    const colors = [
-                      'from-pink-500 to-rose-500',
-                      'from-purple-500 to-indigo-500',
-                      'from-blue-500 to-cyan-500',
-                      'from-teal-500 to-emerald-500',
-                      'from-green-500 to-lime-500',
-                      'from-yellow-500 to-amber-500',
-                      'from-orange-500 to-red-500',
-                      'from-red-500 to-pink-500',
-                      'from-indigo-500 to-purple-500',
-                      'from-violet-500 to-fuchsia-500',
-                    ];
-                    const colorClass = colors[index % colors.length];
-                    
+                    const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+                    const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
+
                     return (
                       <button
                         key={purpose}
@@ -1014,10 +1025,10 @@ export default function CheckIn(): JSX.Element {
                           update({ purpose_of_visit: newSelection });
                         }}
                         className={`
-                          relative px-4 py-3 rounded-2xl text-left transition-all duration-200
+                          relative px-4 py-3 rounded-2xl text-left transition-all duration-200 border-2
                           ${isSelected
-                            ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02]`
-                            : 'bg-white/10 border-2 border-white/20 text-white/70 hover:bg-white/20 hover:border-white/30'
+                            ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
+                            : tintClass
                           }
                         `}
                       >
@@ -1027,7 +1038,7 @@ export default function CheckIn(): JSX.Element {
                           }`}>
                             {isSelected && <Check className="h-3 w-3 text-white" />}
                           </div>
-                          <span className="font-semibold text-xs">{purpose}</span>
+                          <span className="font-semibold text-xs break-words">{purpose}</span>
                         </div>
                       </button>
                     );
