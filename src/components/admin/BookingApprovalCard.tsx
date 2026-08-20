@@ -37,6 +37,7 @@ interface HubBookingRow {
     seats_consumed: number;
     is_bundle: boolean;
   } | null;
+  borrowings?: { id: string; asset: { name: string } | null }[];
 }
 
 interface BookingApprovalCardProps {
@@ -66,6 +67,14 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     setEventTitle(suggestedEventTitle);
     setShowPromoteModal(true);
   };
+
+  const equipmentSummary: { name: string; quantity: number }[] = [];
+  for (const b of booking.borrowings ?? []) {
+    const name = b.asset?.name || 'Unknown item';
+    const existing = equipmentSummary.find((e) => e.name === name);
+    if (existing) existing.quantity += 1;
+    else equipmentSummary.push({ name, quantity: 1 });
+  }
 
   const formatDate = (dateString: string | null | undefined, formatStr: string): string => {
     if (!dateString) return 'No date';
@@ -137,11 +146,16 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     try {
       // Create event from booking
       const { data: session } = await supabase.auth.getSession();
+      const equipmentLine = equipmentSummary.length > 0
+        ? `Equipment: ${equipmentSummary.map((e) => `${e.name}${e.quantity > 1 ? ` ×${e.quantity}` : ''}`).join(', ')}`
+        : null;
+      const description = [booking.notes, equipmentLine].filter(Boolean).join('\n\n')
+        || `Promoted from booking ${booking.booking_reference}`;
       const { error: eventError } = await supabase
         .from('events')
         .insert({
           title: eventTitle.trim(),
-          description: booking.notes || `Promoted from booking ${booking.booking_reference}`,
+          description,
           organizer: booking.guest_name || 'Unknown',
           organization: booking.organization || null,
           contact_email: booking.guest_email || null,
@@ -349,6 +363,16 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                 ) : (
                   booking.purpose
                 )}
+              </p>
+            </div>
+          )}
+
+          {/* Equipment Requested */}
+          {equipmentSummary.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700 mb-0.5">Equipment Requested:</p>
+              <p className="text-sm text-gray-600">
+                {equipmentSummary.map((e) => `${e.name}${e.quantity > 1 ? ` ×${e.quantity}` : ''}`).join(', ')}
               </p>
             </div>
           )}

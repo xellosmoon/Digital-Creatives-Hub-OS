@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Calendar, Clock,
-  User, Mail, Phone, FileText, Users, Info,
+  User, Mail, Phone, FileText, Users, Info, Building2,
   Package, Star, Laptop, X,
   Coffee, Palette, Film, Camera, CheckCircle, AlertCircle,
   Zap, Shield, Monitor, Sparkles, BookOpen, PartyPopper,
@@ -173,6 +173,17 @@ export default function Bookings(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Group bookings don't pick a package (no group pricing yet) —
+  //    auto-assign a placeholder so seats/pricing plumbing still works ──
+  useEffect(() => {
+    if (bookingType === 'group' && !pkg && packages.length > 0) {
+      const fallback = packages.find(p => p.slug === 'coworking_hourly')
+        || packages.find(p => !p.is_bundle && !p.requires_student_flag)
+        || packages[0];
+      setPkg(fallback);
+    }
+  }, [bookingType, packages, pkg]);
+
   // ── Fetch equipment ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
@@ -259,11 +270,11 @@ export default function Bookings(): JSX.Element {
   const canProceed = (): boolean => {
     switch (step) {
       case 'bookingType': return !!bookingType;
-      case 'package': return !!pkg;
+      case 'package': return bookingType === 'group' ? !!form.gathering_type : !!pkg;
       case 'datetime': return !!form.date && !!form.start && !!form.end;
       case 'details':
         if (bookingType === 'group') {
-          return !!form.name.trim() && !!form.email.trim() && groupSize >= 2 && !!form.gathering_type && form.purposes.length > 0;
+          return !!form.name.trim() && !!form.email.trim() && !!form.phone.trim() && !!form.organization.trim() && !!form.facebook_link.trim() && groupSize >= 2 && form.purposes.length > 0;
         }
         return !!form.name.trim() && !!form.email.trim() && form.purposes.length > 0;
       case 'equipment': return true;
@@ -445,7 +456,7 @@ export default function Bookings(): JSX.Element {
                       {done ? <Check className="h-4 w-4" /> : i + 1}
                     </span>
                     <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-[#F59E0B]' : done ? 'text-[#0C2340]' : 'text-gray-400 dark:text-gray-500'}`}>
-                      {s.label}
+                      {s.key === 'package' && bookingType === 'group' ? 'Meeting Type' : s.label}
                     </span>
                   </div>
                 </div>
@@ -525,8 +536,38 @@ export default function Bookings(): JSX.Element {
                 </div>
               )}
 
+              {/* ═══ STEP: MEETING TYPE (Group Booking) ═══ */}
+              {step === 'package' && bookingType === 'group' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">What kind of gathering is this?</h2>
+                  <p className="text-sm text-gray-500 mb-6">This helps admin know what to call it on the calendar</p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {GATHERING_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => update({ gathering_type: type })}
+                        className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
+                          form.gathering_type === type
+                            ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
+                            : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
+                        }`}
+                      >
+                        <h3 className="font-bold text-gray-900 text-base">{type}</h3>
+                        {form.gathering_type === type && (
+                          <div className="absolute top-3 right-3">
+                            <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* ═══ STEP: PACKAGE ═══ */}
-              {step === 'package' && (
+              {step === 'package' && bookingType !== 'group' && (
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Experience</h2>
                   <p className="text-sm text-gray-500 mb-6">Select the package that fits your vibe</p>
@@ -835,16 +876,47 @@ export default function Bookings(): JSX.Element {
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <Phone className="h-4 w-4 text-[#0C2340]" /> Phone (optional)
+                        <Phone className="h-4 w-4 text-[#0C2340]" /> Phone {bookingType === 'group' ? '*' : '(optional)'}
                       </label>
                       <input
                         type="tel"
+                        required={bookingType === 'group'}
                         value={form.phone}
                         onChange={e => update({ phone: e.target.value })}
                         placeholder="+63 917 123 4567"
                         className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                       />
                     </div>
+                    {bookingType === 'group' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Organization *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={form.organization}
+                            onChange={e => update({ organization: e.target.value })}
+                            placeholder="Company or school name"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Facebook Page *
+                          </label>
+                          <input
+                            type="url"
+                            required
+                            value={form.facebook_link}
+                            onChange={e => update({ facebook_link: e.target.value })}
+                            placeholder="https://facebook.com/yourorgpage"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+                      </div>
+                    )}
                     {bookingType === 'group' && (
                       <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
@@ -861,30 +933,6 @@ export default function Bookings(): JSX.Element {
                           className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                         />
                         <p className="text-xs text-gray-500 mt-1">Pricing will be calculated per person (₱{estimate?.totalPrice.toFixed(2)} × {groupSize} = ₱{((estimate?.totalPrice || 0) * groupSize).toFixed(2)})</p>
-                      </div>
-                    )}
-                    {bookingType === 'group' && (
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                          <Info className="h-4 w-4 text-[#0C2340]" /> What kind of gathering is this? *
-                        </label>
-                        <p className="text-xs text-gray-500 mb-2">Helps admin know what to call this on the calendar (e.g. "{form.organization || 'Your Organization'} {form.gathering_type || 'Meeting'}")</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {GATHERING_TYPES.map((type) => (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => update({ gathering_type: type })}
-                              className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                                form.gathering_type === type
-                                  ? 'bg-[#0C2340] text-white shadow-md'
-                                  : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-violet-300'
-                              }`}
-                            >
-                              {type}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                     )}
                     <div>
@@ -932,18 +980,20 @@ export default function Bookings(): JSX.Element {
                           />
                         </div>
 
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Organization
-                          </label>
-                          <input
-                            type="text"
-                            value={form.organization}
-                            onChange={e => update({ organization: e.target.value })}
-                            placeholder="Company or school name"
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
-                          />
-                        </div>
+                        {bookingType !== 'group' && (
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                              Organization
+                            </label>
+                            <input
+                              type="text"
+                              value={form.organization}
+                              onChange={e => update({ organization: e.target.value })}
+                              placeholder="Company or school name"
+                              className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                            />
+                          </div>
+                        )}
 
                         <div>
                           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
@@ -971,18 +1021,20 @@ export default function Bookings(): JSX.Element {
                           />
                         </div>
 
-                        <div className="sm:col-span-2">
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Facebook Profile Link
-                          </label>
-                          <input
-                            type="url"
-                            value={form.facebook_link}
-                            onChange={e => update({ facebook_link: e.target.value })}
-                            placeholder="https://facebook.com/your.profile"
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
-                          />
-                        </div>
+                        {bookingType !== 'group' && (
+                          <div className="sm:col-span-2">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                              Facebook Profile Link
+                            </label>
+                            <input
+                              type="url"
+                              value={form.facebook_link}
+                              onChange={e => update({ facebook_link: e.target.value })}
+                              placeholder="https://facebook.com/your.profile"
+                              className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1137,16 +1189,28 @@ export default function Bookings(): JSX.Element {
                   <p className="text-sm text-gray-500 mb-6">Make sure everything looks good</p>
 
                   <div className="space-y-4">
-                    {/* Package summary */}
-                    <div className="rounded-2xl bg-gray-50/80 p-4 flex items-center gap-4">
-                      <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${PKG_GRAD[pkg.slug] || 'from-gray-500 to-gray-600'} text-white flex items-center justify-center shadow-sm`}>
-                        {(() => { const I = PKG_ICON[pkg.slug] || Laptop; return <I className="h-5 w-5" />; })()}
+                    {/* Package summary (or gathering type for group bookings) */}
+                    {bookingType === 'group' ? (
+                      <div className="rounded-2xl bg-gray-50/80 p-4 flex items-center gap-4">
+                        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#0C2340] to-indigo-600 text-white flex items-center justify-center shadow-sm">
+                          <Users className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{form.gathering_type ? `Group ${form.gathering_type}` : 'Group Booking'}</p>
+                          <p className="text-xs text-gray-500">{groupSize} {groupSize === 1 ? 'person' : 'people'}{form.organization ? ` · ${form.organization}` : ''}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{pkg.name}</p>
-                        <p className="text-xs text-gray-500">{pkg.seats_consumed} seat{pkg.seats_consumed > 1 ? 's' : ''}</p>
+                    ) : (
+                      <div className="rounded-2xl bg-gray-50/80 p-4 flex items-center gap-4">
+                        <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${PKG_GRAD[pkg.slug] || 'from-gray-500 to-gray-600'} text-white flex items-center justify-center shadow-sm`}>
+                          {(() => { const I = PKG_ICON[pkg.slug] || Laptop; return <I className="h-5 w-5" />; })()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{pkg.name}</p>
+                          <p className="text-xs text-gray-500">{pkg.seats_consumed} seat{pkg.seats_consumed > 1 ? 's' : ''}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Date & Time */}
                     <div className="rounded-2xl bg-gray-50/80 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
@@ -1180,6 +1244,12 @@ export default function Bookings(): JSX.Element {
                       <div className="flex items-center gap-2"><User className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.name}</span></div>
                       <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.email}</span></div>
                       {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.phone}</span></div>}
+                      {bookingType === 'group' && form.organization && (
+                        <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.organization}</span></div>
+                      )}
+                      {bookingType === 'group' && form.facebook_link && (
+                        <div className="flex items-center gap-2"><Info className="h-4 w-4 text-[#0C2340] flex-shrink-0" /><a href={form.facebook_link} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline truncate">{form.facebook_link}</a></div>
+                      )}
                       {form.purposes && form.purposes.length > 0 && (
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-[#0C2340]" />
@@ -1284,16 +1354,28 @@ export default function Bookings(): JSX.Element {
 
                 {pkg ? (
                   <div className="space-y-4">
-                    {/* Package icon + name */}
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${PKG_GRAD[pkg.slug] || 'from-gray-500 to-gray-600'} text-white flex items-center justify-center shadow-sm`}>
-                        {(() => { const I = PKG_ICON[pkg.slug] || Laptop; return <I className="h-5 w-5" />; })()}
+                    {/* Package icon + name (or gathering type for group bookings) */}
+                    {bookingType === 'group' ? (
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0C2340] to-indigo-600 text-white flex items-center justify-center shadow-sm">
+                          <Users className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-gray-900">{form.gathering_type ? `Group ${form.gathering_type}` : 'Group Booking'}</p>
+                          <p className="text-[11px] text-gray-400">{groupSize} {groupSize === 1 ? 'person' : 'people'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-sm text-gray-900">{pkg.name}</p>
-                        <p className="text-[11px] text-gray-400">{pkg.seats_consumed} seat{pkg.seats_consumed > 1 ? 's' : ''}</p>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${PKG_GRAD[pkg.slug] || 'from-gray-500 to-gray-600'} text-white flex items-center justify-center shadow-sm`}>
+                          {(() => { const I = PKG_ICON[pkg.slug] || Laptop; return <I className="h-5 w-5" />; })()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-gray-900">{pkg.name}</p>
+                          <p className="text-[11px] text-gray-400">{pkg.seats_consumed} seat{pkg.seats_consumed > 1 ? 's' : ''}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Line items */}
                     <div className="space-y-3">
@@ -1356,6 +1438,24 @@ export default function Bookings(): JSX.Element {
                         <div className="flex justify-between text-gray-500">
                           <span>Rate</span>
                           <span className="text-xs text-gray-400">{estimate.breakdown}</span>
+                        </div>
+                      )}
+                      {bookingType === 'group' && form.organization && (
+                        <div className="flex justify-between text-gray-500 gap-3">
+                          <span className="flex-shrink-0">Organization</span>
+                          <span className="font-medium text-gray-900 text-right truncate">{form.organization}</span>
+                        </div>
+                      )}
+                      {bookingType === 'group' && form.phone && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>Phone</span>
+                          <span className="font-medium text-gray-900">{form.phone}</span>
+                        </div>
+                      )}
+                      {bookingType === 'group' && form.facebook_link && (
+                        <div className="flex justify-between text-gray-500 gap-3">
+                          <span className="flex-shrink-0">Facebook Page</span>
+                          <span className="font-medium text-gray-900 text-right truncate">{form.facebook_link}</span>
                         </div>
                       )}
                     </div>
