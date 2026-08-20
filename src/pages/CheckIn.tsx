@@ -4,9 +4,8 @@ import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
-  UserCheck, Sparkles, X, CalendarClock, Building, Coffee, Palette,
-  Film, Camera, BookOpen, Monitor, CheckCircle, Plus, ArrowRight as ArrowRightIcon,
-  Building2, BadgeCheck, Edit2, Loader2, PartyPopper, Mail, User,
+  UserCheck, Sparkles, X, CalendarClock, Building, Palette,
+  CheckCircle, Building2, BadgeCheck, Loader2, PartyPopper, Mail, User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -276,7 +275,17 @@ export default function CheckIn(): JSX.Element {
     try {
       // If returning user made edits, update their most recent record first
       if (foundUser && hasEdits) {
-        const updateData: any = {};
+        const updateData: {
+          full_name?: string;
+          sector?: string;
+          creative_domains?: string[];
+          purpose_of_visit?: string[];
+          organization?: string;
+          designation?: string;
+          email?: string;
+          gender?: string;
+          age?: number;
+        } = {};
         if (form.name) updateData.full_name = form.name;
         if (form.sector) updateData.sector = form.sector;
         if (form.creative_domains.length > 0) updateData.creative_domains = form.creative_domains;
@@ -334,7 +343,7 @@ export default function CheckIn(): JSX.Element {
       const duration = 3000;
       const end = Date.now() + duration;
 
-      const frame = () => {
+      const frame = (): void => {
         confetti({
           particleCount: 5,
           angle: 60,
@@ -536,11 +545,27 @@ export default function CheckIn(): JSX.Element {
                   
                   {/* User info card */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-5 border border-white/20">
-                    <p className="text-3xl font-bold text-white mb-2">{form.name || foundUser?.full_name}</p>
+                    {editingName ? (
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={e => update({ name: e.target.value })}
+                        onBlur={() => setEditingName(false)}
+                        autoFocus
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-3xl font-bold text-white text-center mb-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                    ) : (
+                      <p
+                        className="text-3xl font-bold text-white mb-2 cursor-pointer hover:text-violet-200 transition-colors"
+                        onClick={() => setEditingName(true)}
+                      >
+                        {form.name || foundUser?.full_name}
+                      </p>
+                    )}
                     <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
-                    
+
                     {/* Additional details */}
-                    {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age) && (
+                    {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age || foundUser?.creative_domain || (foundUser?.creative_domains && foundUser.creative_domains.length > 0)) && (
                       <div className="space-y-2 text-left text-sm">
                         {foundUser?.sector && (
                           <div className="flex items-center gap-2 text-white/70">
@@ -641,6 +666,47 @@ export default function CheckIn(): JSX.Element {
                             />
                           ) : (
                             <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>{form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}</span>
+                          )}
+                        </div>
+                        <div className="flex items-start gap-2 text-white/70">
+                          <Palette className="h-4 w-4 mt-0.5" />
+                          {editingCreativeDomains ? (
+                            <div className="flex-1 flex flex-wrap gap-1.5">
+                              {PCIDA_DOMAINS.map(domain => {
+                                const isSelected = form.creative_domains.includes(domain);
+                                return (
+                                  <button
+                                    key={domain}
+                                    type="button"
+                                    onClick={() => update({
+                                      creative_domains: isSelected
+                                        ? form.creative_domains.filter(d => d !== domain)
+                                        : [...form.creative_domains, domain]
+                                    })}
+                                    className={`px-2 py-1 rounded-lg text-[11px] transition-all ${
+                                      isSelected
+                                        ? 'bg-violet-500/30 border border-violet-400/60 text-violet-200'
+                                        : 'bg-white/10 border border-white/20 text-white/60 hover:bg-white/20'
+                                    }`}
+                                  >
+                                    {domain}
+                                  </button>
+                                );
+                              })}
+                              <button
+                                type="button"
+                                onClick={() => setEditingCreativeDomains(false)}
+                                className="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                              >
+                                Done
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
+                              {form.creative_domains.length > 0
+                                ? form.creative_domains.join(', ')
+                                : (foundUser?.creative_domains?.length ? foundUser.creative_domains.join(', ') : (foundUser?.creative_domain || 'Add creative domain'))}
+                            </span>
                           )}
                         </div>
                       </div>
