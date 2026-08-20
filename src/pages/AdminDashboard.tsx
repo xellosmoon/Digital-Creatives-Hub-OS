@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
-  CheckCircle, X, LogOut, Trash2, Timer, Building2,
+  CheckCircle, X, LogOut, Timer, Building2,
   CreditCard, XCircle, Calendar, Image
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -229,8 +229,8 @@ export default function AdminDashboard(): JSX.Element {
     }
   };
 
-  // ── Clear All Active ───────────────────────────────────────────
-  const handleClearAll = async (): Promise<void> => {
+  // ── Check Out Everyone (bulk end-of-day) ────────────────────────
+  const handleCheckOutEveryone = async (): Promise<void> => {
     if (!window.confirm('Check out ALL active and pending users? This cannot be undone.')) return;
     try {
       const { data, error } = await supabase.rpc('clear_all_active');
@@ -238,7 +238,7 @@ export default function AdminDashboard(): JSX.Element {
       toast.success(`${data} user(s) checked out.`);
       fetchAttendance();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Clear all failed';
+      const errorMessage = err instanceof Error ? err.message : 'Check out everyone failed';
       toast.error(errorMessage);
     }
   };
@@ -559,11 +559,11 @@ export default function AdminDashboard(): JSX.Element {
           Force Book (Override)
         </button>
         <button
-          onClick={handleClearAll}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-white border border-red-200 hover:bg-red-50 shadow-sm transition-all"
+          onClick={handleCheckOutEveryone}
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-white border border-blue-200 hover:bg-blue-50 shadow-sm transition-all"
         >
-          <Trash2 className="h-4 w-4 mr-2 text-red-400" />
-          Clear All
+          <LogOut className="h-4 w-4 mr-2 text-blue-500" />
+          Check Out Everyone
         </button>
         <button
           onClick={handleExportDTI}
