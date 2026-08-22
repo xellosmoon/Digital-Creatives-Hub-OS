@@ -79,7 +79,7 @@ export default function DayTimelineModal({
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-3xl bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl overflow-hidden transition-all"
+        className="relative w-full max-w-3xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-2xl rounded-3xl overflow-hidden transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -110,7 +110,7 @@ export default function DayTimelineModal({
             {/* Time slots */}
             <div className="absolute left-0 top-0 bottom-0 w-16 space-y-0">
               {hours.map(hour => (
-                <div key={hour} className="h-[60px] flex items-center justify-end pr-3 text-xs text-gray-400 font-medium">
+                <div key={hour} className="h-[60px] flex items-center justify-end pr-3 text-xs text-gray-400 dark:text-slate-500 font-medium">
                   {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                 </div>
               ))}
@@ -120,7 +120,7 @@ export default function DayTimelineModal({
             <div className="ml-16 relative h-[1020px]">
               {/* Hour lines */}
               {hours.map(hour => (
-                <div key={hour} className="absolute w-full border-t border-gray-100" style={{ top: `${(hour - 6) * 60}px` }} />
+                <div key={hour} className="absolute w-full border-t border-gray-100 dark:border-slate-700/50" style={{ top: `${(hour - 6) * 60}px` }} />
               ))}
 
               {/* Events */}
@@ -211,7 +211,7 @@ export default function DayTimelineModal({
               {/* Empty state */}
               {events.length === 0 && bookings.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-gray-400">
+                  <div className="text-center text-gray-400 dark:text-slate-500">
                     <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm font-medium">No events or bookings</p>
                     <p className="text-xs mt-1">This day is free</p>

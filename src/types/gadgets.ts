@@ -16,6 +16,8 @@ export type LocationMode = 'inside_only' | 'outside_only' | 'both';
 export type BorrowLocation = 'inside' | 'outside';
 export type ItemStatus = 'available' | 'borrowed' | 'maintenance' | 'broken' | 'retired';
 export type BorrowingStatus = 'pending' | 'approved' | 'active' | 'returned' | 'overdue' | 'cancelled';
+export type LateFeeUnit = 'hour' | 'day';
+export type ReturnCondition = 'good' | 'minor_issues' | 'damaged_missing';
 
 // ----- Database Row Types -----
 
@@ -30,6 +32,9 @@ export interface Asset {
   location_mode: LocationMode;
   requires_notice: string | null;
   is_active: boolean;
+  included_items: string[];
+  default_late_fee_rate: number | null;
+  default_late_fee_unit: LateFeeUnit | null;
   created_at: string;
   updated_at: string;
   /** Joined from items table (virtual) */
@@ -80,6 +85,15 @@ export interface Borrowing {
   purpose: string | null;
   notes: string | null;
   approved_by: string | null;
+  borrower_name: string | null;
+  borrower_office: string | null;
+  borrower_contact: string | null;
+  device_operator_name: string | null;
+  late_fee_rate: number | null;
+  late_fee_unit: LateFeeUnit | null;
+  return_condition: ReturnCondition | null;
+  return_remarks: string | null;
+  received_by: string | null;
   created_at: string;
   updated_at: string;
   /** Joined */
@@ -109,12 +123,23 @@ export interface PriceEstimate {
 export interface BorrowingFormData {
   assetId: string;
   usageType: BorrowLocation;          // pricing driver
-  destinationLocation: string;        // mandatory text: where the item goes
+  destinationLocation: string;        // mandatory text: where the item goes (Receiving Form "Venue")
   startTime: string;   // ISO string
   endTime: string;     // ISO string
   purpose: string;
   notes: string;
+  quantity: number;
+  borrowerName: string;
+  borrowerOffice: string;
+  borrowerContact: string;
+  deviceOperatorName: string;
 }
+
+export const RETURN_CONDITION_LABELS: Record<ReturnCondition, string> = {
+  good: 'Good Condition',
+  minor_issues: 'Minor Issues',
+  damaged_missing: 'Damaged / Missing Item(s)',
+};
 
 // Category metadata for display
 export const CATEGORY_LABELS: Record<AssetCategory, string> = {

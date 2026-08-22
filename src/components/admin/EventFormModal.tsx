@@ -367,13 +367,13 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
   // ── JSX ─────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {isEditing ? 'Edit Event' : 'Create New Event'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -383,27 +383,27 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           {/* ── Load from Approved Proposal (only for new events) ──────── */}
           {!isEditing && approvedProposals.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <Sparkles className="inline w-4 h-4 mr-1 text-amber-500" />
                 Load from Approved Proposal
               </label>
               <select
                 value={selectedProposal}
                 onChange={(e) => handleProposalSelect(e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
                 <option value="">— Select a proposal —</option>
                 {approvedProposals.map(p => (
                   <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">Select an approved proposal to pre-fill the form data</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select an approved proposal to pre-fill the form data</p>
             </div>
           )}
 
           {/* ── Title ─────────────────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Event Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -411,16 +411,16 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               value={form.title}
               onChange={(e) => updateField('title', e.target.value)}
               placeholder="e.g., Vibe Coding Workshop"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               required
             />
           </div>
 
           {/* ── Expected Guests ─────────────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <Users className="inline w-4 h-4 mr-1" />
-              Expected Guests <span className="text-gray-400 font-normal">(for seat reservation)</span>
+              Expected Guests <span className="text-gray-400 dark:text-gray-500 font-normal">(for seat reservation)</span>
             </label>
             <input
               type="number"
@@ -428,48 +428,48 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               value={form.expected_guests}
               onChange={(e) => updateField('expected_guests', parseInt(e.target.value) || 0)}
               placeholder="0"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
-            <p className="text-xs text-gray-500 mt-1">Number of expected attendees. This will reserve seats in the calendar.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Number of expected attendees. This will reserve seats in the calendar.</p>
           </div>
 
           {/* ── Event Dates & Times (Multiple) ──────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Calendar className="inline w-4 h-4 mr-1" />
               Event Dates & Times <span className="text-red-500">*</span>
             </label>
             <div className="space-y-3">
               {form.eventDates.map((eventDate: EventDate, index: number) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date</label>
                     <input
                       type="date"
                       value={eventDate.date}
                       onChange={(e) => updateEventDate(index, 'date', e.target.value)}
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                      className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Start Time</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start Time</label>
                     <input
                       type="time"
                       value={eventDate.start_time}
                       onChange={(e) => updateEventDate(index, 'start_time', e.target.value)}
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                      className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
                       required
                     />
                   </div>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">End Time</label>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">End Time</label>
                       <input
                         type="time"
                         value={eventDate.end_time}
                         onChange={(e) => updateEventDate(index, 'end_time', e.target.value)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                        className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
                         required
                       />
                     </div>
@@ -499,7 +499,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           {/* ── Organizer + contact row ───────────────────────── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <User className="inline w-4 h-4 mr-1" />
                 Organizer Name
               </label>
@@ -508,11 +508,11 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 value={form.organizer}
                 onChange={(e) => updateField('organizer', e.target.value)}
                 placeholder="John Doe"
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <Building2 className="inline w-4 h-4 mr-1" />
                 Organization
               </label>
@@ -521,13 +521,13 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 value={form.organization}
                 onChange={(e) => updateField('organization', e.target.value)}
                 placeholder="Your organization name"
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <Mail className="inline w-4 h-4 mr-1" />
                 Contact Email
               </label>
@@ -536,11 +536,11 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 value={form.contact_email}
                 onChange={(e) => updateField('contact_email', e.target.value)}
                 placeholder="hello@example.com"
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <Phone className="inline w-4 h-4 mr-1" />
                 Contact Phone
               </label>
@@ -549,14 +549,14 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 value={form.contact_phone}
                 onChange={(e) => updateField('contact_phone', e.target.value)}
                 placeholder="+63 XXX XXX XXXX"
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
           </div>
 
           {/* ── Description ───────────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
@@ -564,13 +564,13 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               onChange={(e) => updateField('description', e.target.value)}
               rows={4}
               placeholder="Describe the event, what attendees will experience..."
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
           </div>
 
           {/* ── Poster URL + preview ──────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <Image className="inline w-4 h-4 mr-1" />
               Event Poster
             </label>
@@ -584,9 +584,9 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                   value="url"
                   checked={posterSource === 'url'}
                   onChange={() => handlePosterSourceChange('url')}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-slate-600 dark:bg-slate-900"
                 />
-                <span className="text-sm text-gray-700">External URL</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">External URL</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -595,9 +595,9 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                   value="upload"
                   checked={posterSource === 'upload'}
                   onChange={() => handlePosterSourceChange('upload')}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-slate-600 dark:bg-slate-900"
                 />
-                <span className="text-sm text-gray-700">Upload to Supabase</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Upload to Supabase</span>
               </label>
             </div>
 
@@ -609,9 +609,9 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                   value={form.poster_url}
                   onChange={(e) => updateField('poster_url', e.target.value)}
                   placeholder="https://example.com/poster.jpg"
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">Link to an image hosted elsewhere (Facebook, Google Drive, etc.)</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Link to an image hosted elsewhere (Facebook, Google Drive, etc.)</p>
               </>
             )}
 
@@ -627,14 +627,14 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                       if (file) handleImageUpload(file);
                     }}
                     disabled={uploadingImage}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 disabled:opacity-50"
+                    className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/50 disabled:opacity-50"
                   />
-                  <p className="text-xs text-gray-500 mt-1">JPEG, PNG, WebP, or GIF (max 5MB)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPEG, PNG, WebP, or GIF (max 5MB)</p>
                 </div>
                 
                 {/* Upload progress */}
                 {uploadingImage && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Uploading... {uploadProgress}%</span>
                   </div>
@@ -648,14 +648,14 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 src={form.poster_url}
                 alt="Poster preview"
                 onError={() => setPosterPreviewError(true)}
-                className="mt-2 w-full max-h-48 object-cover rounded-md border border-gray-200"
+                className="mt-2 w-full max-h-48 object-cover rounded-md border border-gray-200 dark:border-slate-600"
               />
             )}
           </div>
 
           {/* ── Registration link ─────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <Link2 className="inline w-4 h-4 mr-1" />
               Registration Link
             </label>
@@ -664,13 +664,13 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               value={form.registration_link}
               onChange={(e) => updateField('registration_link', e.target.value)}
               placeholder="Google Form, Eventbrite, or Facebook event link"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
           </div>
 
           {/* ── Facebook Post URL ─────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <Link2 className="inline w-4 h-4 mr-1 text-blue-600" />
               Facebook Post URL
             </label>
@@ -679,14 +679,14 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               value={form.facebook_post_url}
               onChange={(e) => updateField('facebook_post_url', e.target.value)}
               placeholder="https://www.facebook.com/yourpage/posts/..."
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
-            <p className="text-xs text-gray-500 mt-1">Link to the Facebook post for this event</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Link to the Facebook post for this event</p>
           </div>
 
           {/* ── Facebook Page Name ─────────────────────────────── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <Link2 className="inline w-4 h-4 mr-1 text-blue-600" />
               Facebook Page/Profile Name
             </label>
@@ -695,9 +695,9 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
               value={form.facebook_page}
               onChange={(e) => updateField('facebook_page', e.target.value)}
               placeholder="Digital Creatives Hub"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
-            <p className="text-xs text-gray-500 mt-1">Facebook page or profile name for easier contact</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Facebook page or profile name for easier contact</p>
           </div>
 
           {/* ── Toggles row ───────────────────────────────────── */}
@@ -708,18 +708,18 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
                 type="checkbox"
                 checked={form.is_featured}
                 onChange={(e) => updateField('is_featured', e.target.checked)}
-                className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded"
               />
-              <span className="text-sm font-medium text-gray-700">Feature this event</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Feature this event</span>
             </label>
 
             {/* Status */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Status:</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
               <select
                 value={form.status}
                 onChange={(e) => updateField('status', e.target.value as typeof form.status)}
-                className="rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500"
+                className="rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500"
               >
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
@@ -730,11 +730,11 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-between flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
           >
             Cancel
           </button>

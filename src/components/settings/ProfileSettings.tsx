@@ -73,27 +73,27 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500 dark:text-primary-400" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-        <User className="h-5 w-5 mr-2 text-primary-500" />
+    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+        <User className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" />
         Profile Information
       </h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
           <div className="sm:col-span-4">
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Full Name
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-4 w-4 text-gray-400" />
+                <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="text"
@@ -101,7 +101,7 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 placeholder="Your full name"
                 required
               />
@@ -109,12 +109,12 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
           </div>
 
           <div className="sm:col-span-4">
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Phone Number
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-4 w-4 text-gray-400" />
+                <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="tel"
@@ -122,7 +122,7 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 placeholder="+1 (555) 000-0000"
               />
             </div>
@@ -133,7 +133,7 @@ export default function ProfileSettings({ userId }: ProfileSettingsProps): JSX.E
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 dark:bg-primary-700 hover:bg-primary-700 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
           >
             {saving ? (
               <>

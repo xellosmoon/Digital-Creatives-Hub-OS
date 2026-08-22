@@ -33,17 +33,17 @@ export default function EventChip({ event, onClick, onHover, onHoverEnd }: Event
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onHoverEnd}
-      className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100
-                 hover:bg-amber-200 transition-all cursor-pointer
+      className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30
+                 hover:bg-amber-200 dark:hover:bg-amber-800/40 transition-all cursor-pointer
                  hover:scale-105 active:scale-95"
       title={event.title}
       aria-label={`View event: ${event.title}`}
     >
       {/* Featured events get a star indicator */}
       {event.is_featured ? (
-        <Star className="w-3 h-3 flex-shrink-0 fill-amber-500 text-amber-500" />
+        <Star className="w-3 h-3 flex-shrink-0 fill-amber-500 dark:fill-amber-400 text-amber-500 dark:text-amber-400" />
       ) : (
-        <CalendarIcon className="w-3 h-3 flex-shrink-0 text-amber-600" />
+        <CalendarIcon className="w-3 h-3 flex-shrink-0 text-amber-600 dark:text-amber-400" />
       )}
     </button>
   );

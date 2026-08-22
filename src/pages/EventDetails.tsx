@@ -35,7 +35,7 @@ export default function EventDetails(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center dark:bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-500"></div>
       </div>
     );
@@ -43,12 +43,12 @@ export default function EventDetails(): JSX.Element {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center dark:bg-slate-900">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Event not found</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Event not found</p>
           <button
             onClick={() => navigate('/calendar')}
-            className="text-violet-600 hover:text-violet-700 font-medium"
+            className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium"
           >
             Back to Calendar
           </button>
@@ -82,13 +82,13 @@ export default function EventDetails(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <button
             onClick={() => navigate('/calendar')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to Calendar
@@ -98,7 +98,7 @@ export default function EventDetails(): JSX.Element {
 
       {/* Event Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden">
           {/* Event Hero */}
           {event.poster_url && (
             <div className="h-64 bg-gradient-to-br from-violet-500 to-purple-600 relative">
@@ -114,39 +114,39 @@ export default function EventDetails(): JSX.Element {
             {/* Title and Status */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{event.title}</h1>
                 {event.is_featured && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium">
                     <CalendarIcon className="h-4 w-4" />
                     Featured Event
                   </span>
                 )}
               </div>
-              <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Share2 className="h-5 w-5 text-gray-600" />
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <Share2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
             {/* Event Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-violet-100 rounded-lg">
-                  <Calendar className="h-5 w-5 text-violet-600" />
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                  <Calendar className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Date</p>
-                  <p className="font-medium text-gray-900">{getEventDate()}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Date</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{getEventDate()}</p>
                 </div>
               </div>
 
               {event.event_dates && event.event_dates.length > 0 && (
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-violet-100 rounded-lg">
-                    <Clock className="h-5 w-5 text-violet-600" />
+                  <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                    <Clock className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Time</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Time</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
                       {formatTime(event.event_dates[0].start_time)} - {formatTime(event.event_dates[0].end_time)}
                     </p>
                   </div>
@@ -154,23 +154,23 @@ export default function EventDetails(): JSX.Element {
               )}
 
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-violet-100 rounded-lg">
-                  <MapPin className="h-5 w-5 text-violet-600" />
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                  <MapPin className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Location</p>
-                  <p className="font-medium text-gray-900">Digital Creatives Hub</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                  <p className="font-medium text-gray-900 dark:text-white">Digital Creatives Hub</p>
                 </div>
               </div>
 
               {(event.organizer || event.organization) && (
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-violet-100 rounded-lg">
-                    <User className="h-5 w-5 text-violet-600" />
+                  <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                    <User className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Hosted By</p>
-                    <p className="font-medium text-gray-900">{event.organizer || event.organization}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Hosted By</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{event.organizer || event.organization}</p>
                   </div>
                 </div>
               )}
@@ -178,9 +178,9 @@ export default function EventDetails(): JSX.Element {
 
             {/* Description */}
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">About This Event</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">About This Event</h2>
               <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{event.description}</p>
               </div>
             </div>
 
@@ -191,7 +191,7 @@ export default function EventDetails(): JSX.Element {
                   href={event.registration_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-violet-600 hover:text-violet-700 font-medium"
+                  className="inline-flex items-center gap-2 text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium"
                 >
                   Register for this event →
                 </a>

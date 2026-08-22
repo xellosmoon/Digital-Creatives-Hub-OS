@@ -97,7 +97,7 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
       {/* Notification Bell */}
       <button
         onClick={() => setShowNotifications(!showNotifications)}
-        className="relative p-2 text-gray-600 hover:text-gray-900"
+        className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
       >
         <Bell className="h-6 w-6" />
         {unreadCount > 0 && (
@@ -109,22 +109,22 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
 
       {/* Notifications Dropdown */}
       {showNotifications && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg z-50">
-          <div className="p-4 border-b border-gray-200">
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-slate-800 rounded-lg shadow-lg dark:border dark:border-slate-700 z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Notifications</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
               <div className="flex items-center space-x-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-primary-600 hover:text-primary-700"
+                    className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                   >
                     Mark all as read
                   </button>
                 )}
                 <button
                   onClick={() => setShowNotifications(false)}
-                  className="text-gray-400 hover:text-gray-500"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -134,43 +134,43 @@ export default function RealtimeNotifications({ userEmail }: { userEmail: string
 
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-slate-600" />
                 <p>No notifications yet</p>
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                    !notification.read_at ? 'bg-blue-50' : ''
+                  className={`p-4 border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer ${
+                    !notification.read_at ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                   onClick={() => !notification.read_at && markAsRead(notification.id)}
                 >
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
                       {notification.type === 'booking_approved' ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                        <Check className="h-5 w-5 text-green-500 dark:text-green-400" />
                       ) : notification.type === 'booking_rejected' ? (
-                        <X className="h-5 w-5 text-red-500" />
+                        <X className="h-5 w-5 text-red-500 dark:text-red-400" />
                       ) : (
-                        <AlertCircle className="h-5 w-5 text-primary-500" />
+                        <AlertCircle className="h-5 w-5 text-primary-500 dark:text-primary-400" />
                       )}
                     </div>
                     <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {notification.subject}
                       </p>
-                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
                         {notification.body.replace(/<[^>]*>/g, '')}
                       </p>
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                         {format(new Date(notification.sent_at), 'MMM d, h:mm a')}
                       </p>
                     </div>
                     {!notification.read_at && (
                       <div className="ml-2">
-                        <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
+                        <span className="inline-block w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></span>
                       </div>
                     )}
                   </div>

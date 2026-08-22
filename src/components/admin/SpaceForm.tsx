@@ -111,16 +111,16 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-slate-950 dark:bg-opacity-75 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-gray-900">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
               {space ? 'Edit Space' : 'Add New Space'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
             >
               <X className="h-6 w-6" />
             </button>
@@ -130,10 +130,10 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-4">Basic Information</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Space Name *
                 </label>
                 <input
@@ -141,21 +141,21 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Space Type *
                   </label>
                   <select
                     id="type"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"
                     required
                   >
                     <option value="meeting_room">Meeting Room</option>
@@ -167,7 +167,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                 </div>
 
                 <div>
-                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Capacity *
                   </label>
                   <input
@@ -177,7 +177,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                     onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
                     min="1"
                     max="100"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                     required
                   />
                 </div>
@@ -185,7 +185,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="hourly_rate" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="hourly_rate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Hourly Rate (₱) *
                   </label>
                   <input
@@ -195,13 +195,13 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                     onChange={(e) => setFormData({ ...formData, hourly_rate: parseFloat(e.target.value) })}
                     min="0"
                     step="0.01"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Location
                   </label>
                   <input
@@ -210,7 +210,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     placeholder="e.g., Building A, 2nd Floor"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   />
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Description
             </label>
             <textarea
@@ -227,14 +227,14 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
               placeholder="Describe the space, its features, and ideal use cases..."
             />
           </div>
 
           {/* Amenities */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Amenities
             </label>
             <div className="flex gap-2 mb-2">
@@ -244,12 +244,12 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                 onChange={(e) => setAmenityInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAmenity())}
                 placeholder="Add amenity (e.g., WiFi, Projector)"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
               />
               <button
                 type="button"
                 onClick={addAmenity}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -258,13 +258,13 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
               {formData.amenities.map((amenity, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-200"
                 >
                   {amenity}
                   <button
                     type="button"
                     onClick={() => removeAmenity(amenity)}
-                    className="ml-2 text-gray-500 hover:text-gray-700"
+                    className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -275,17 +275,17 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
 
           {/* Privacy & Status */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-4">Privacy & Status</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Privacy & Status</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="privacy_level" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="privacy_level" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Privacy Level
                 </label>
                 <select
                   id="privacy_level"
                   value={formData.privacy_level}
                   onChange={(e) => setFormData({ ...formData, privacy_level: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"
                 >
                   <option value="public">Public - Show all details</option>
                   <option value="members_only">Members Only - Show to logged-in users</option>
@@ -294,7 +294,7 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status
                 </label>
                 <label className="inline-flex items-center">
@@ -302,20 +302,20 @@ export default function SpaceForm({ space, onClose, onSuccess }: SpaceFormProps)
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-600"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Active (available for booking)</span>
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Active (available for booking)</span>
                 </label>
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-slate-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700"
             >
               Cancel
             </button>

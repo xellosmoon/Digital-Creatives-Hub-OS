@@ -39,12 +39,12 @@ export default function PurposeBlockGrid({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {label} {required && <span className="text-red-500 dark:text-red-400">*</span>}
         </label>
       )}
       {description && (
-        <p className="text-xs text-gray-500 mb-2">{description}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{description}</p>
       )}
       <div className={`grid ${gridColsClass} gap-3`}>
         {purposeOptions.map((purpose: Purpose) => {
@@ -54,8 +54,8 @@ export default function PurposeBlockGrid({
               key={purpose}
               className={`group relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
                 isSelected
-                  ? 'border-amber-500 bg-amber-50/80 shadow-md shadow-amber-100/50'
-                  : 'border-gray-200 bg-gray-50/50 hover:border-amber-300 hover:bg-amber-50/30'
+                  ? 'border-amber-500 dark:border-amber-400 bg-amber-50/80 dark:bg-amber-900/30 shadow-md shadow-amber-100/50 dark:shadow-none'
+                  : 'border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-900/50 hover:border-amber-300 dark:hover:border-amber-500 hover:bg-amber-50/30 dark:hover:bg-amber-900/10'
               }`}
             >
               <input
@@ -66,12 +66,12 @@ export default function PurposeBlockGrid({
               />
               <div className="flex items-start gap-3">
                 <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  isSelected ? 'border-amber-500 bg-amber-500' : 'border-gray-300 bg-white group-hover:border-amber-400'
+                  isSelected ? 'border-amber-500 dark:border-amber-400 bg-amber-500 dark:bg-amber-400' : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-amber-400'
                 }`}>
                   {isSelected && <Check className="w-3 h-3 text-white" />}
                 </div>
                 <div className="flex-1">
-                  <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                  <span className={`text-sm font-medium ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                     {purpose}
                   </span>
                 </div>
@@ -81,7 +81,7 @@ export default function PurposeBlockGrid({
         })}
       </div>
       {selectedValues.length > 0 && (
-        <div className="mt-3 text-xs text-gray-500">
+        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           Selected: {selectedValues.length} purpose{selectedValues.length !== 1 ? 's' : ''}
         </div>
       )}

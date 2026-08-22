@@ -14,16 +14,16 @@ import type { Item, ItemStatus, Borrowing } from '../../types/gadgets';
 
 interface AdminItemStatusTableProps {
   items: (Item & { asset?: { name: string; slug: string; requires_notice?: string | null } })[];
-  activeBorrowings: (Borrowing & { destination_location?: string | null; usage_type?: string })[];
+  activeBorrowings: (Borrowing & { destination_location?: string | null; usage_type?: string; location?: string })[];
   onRefresh: () => void;
 }
 
 const STATUS_BADGE: Record<ItemStatus, { icon: React.ElementType; cls: string; label: string }> = {
-  available:   { icon: CheckCircle,  cls: 'bg-green-50 text-green-700 border-green-200',   label: 'Available' },
-  borrowed:    { icon: ExternalLink, cls: 'bg-blue-50 text-blue-700 border-blue-200',       label: 'Borrowed' },
-  maintenance: { icon: Wrench,       cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', label: 'Maintenance' },
-  broken:      { icon: AlertOctagon, cls: 'bg-red-50 text-red-700 border-red-200',          label: 'Broken' },
-  retired:     { icon: Archive,      cls: 'bg-gray-50 text-gray-500 border-gray-200',       label: 'Retired' },
+  available:   { icon: CheckCircle,  cls: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',     label: 'Available' },
+  borrowed:    { icon: ExternalLink, cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',             label: 'Borrowed' },
+  maintenance: { icon: Wrench,       cls: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800', label: 'Maintenance' },
+  broken:      { icon: AlertOctagon, cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',                   label: 'Broken' },
+  retired:     { icon: Archive,      cls: 'bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-slate-700',            label: 'Retired' },
 };
 
 export default function AdminItemStatusTable({ items, activeBorrowings, onRefresh }: AdminItemStatusTableProps): JSX.Element {
@@ -81,7 +81,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
               className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${
                 active
                   ? 'bg-primary-500 text-white border-primary-500'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
               }`}
             >
               {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)} ({count})
@@ -94,7 +94,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <tr className="border-b border-gray-200 dark:border-slate-700 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <th className="px-4 py-3">Asset Tag</th>
               <th className="px-4 py-3">Asset</th>
               <th className="px-4 py-3">Serial #</th>
@@ -104,10 +104,10 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
               <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                   No items matching filter.
                 </td>
               </tr>
@@ -121,17 +121,17 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                 const notice = item.asset?.requires_notice;
 
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs font-medium text-gray-900">
+                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                    <td className="px-4 py-3 font-mono text-xs font-medium text-gray-900 dark:text-white">
                       {item.asset_tag ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-gray-900">{assetName}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{assetName}</span>
                       {notice && (
-                        <span className="block text-xs text-amber-600 mt-0.5">{notice}</span>
+                        <span className="block text-xs text-amber-600 dark:text-amber-400 mt-0.5">{notice}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{item.serial_number ?? '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{item.serial_number ?? '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium border ${badge.cls}`}>
                         <BadgeIcon className="h-3.5 w-3.5" />
@@ -140,26 +140,26 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-gray-900">
+                        <span className="text-xs font-medium text-gray-900 dark:text-white">
                           {item.current_location || 'DCIH Storage'}
                         </span>
                         {activeBorrow && activeBorrow.destination_location && (
                           <span className={`inline-flex items-center gap-1 text-xs ${
-                            activeBorrow.usage_type === 'inside'
-                              ? 'text-blue-600'
-                              : 'text-purple-600'
+                            (activeBorrow.usage_type || activeBorrow.location) === 'inside'
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-purple-600 dark:text-purple-400'
                           }`}>
-                            {activeBorrow.usage_type === 'inside' ? (
+                            {(activeBorrow.usage_type || activeBorrow.location) === 'inside' ? (
                               <Building2 className="h-3 w-3" />
                             ) : (
                               <ExternalLink className="h-3 w-3" />
                             )}
-                            {activeBorrow.usage_type === 'inside' ? 'Inside' : 'Outside'}
+                            {(activeBorrow.usage_type || activeBorrow.location) === 'inside' ? 'Inside' : 'Outside'}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 max-w-[160px] truncate">
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[160px] truncate">
                       {item.condition_notes ?? '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -169,7 +169,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                           <button
                             disabled={isUpdating}
                             onClick={() => setItemStatus(item.id, 'available')}
-                            className="p-1.5 rounded-lg hover:bg-green-50 text-green-600"
+                            className="p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400"
                             title="Restore to Available"
                           >
                             <RotateCcw className="h-4 w-4" />
@@ -180,7 +180,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                           <button
                             disabled={isUpdating}
                             onClick={() => setItemStatus(item.id, 'maintenance')}
-                            className="p-1.5 rounded-lg hover:bg-yellow-50 text-yellow-600"
+                            className="p-1.5 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400"
                             title="Set to Maintenance"
                           >
                             <Wrench className="h-4 w-4" />
@@ -191,7 +191,7 @@ export default function AdminItemStatusTable({ items, activeBorrowings, onRefres
                           <button
                             disabled={isUpdating}
                             onClick={() => setItemStatus(item.id, 'broken')}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-600"
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
                             title="Mark as Broken"
                           >
                             <AlertOctagon className="h-4 w-4" />

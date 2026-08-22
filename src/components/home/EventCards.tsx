@@ -73,11 +73,11 @@ export default function EventCards(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="py-20 bg-gradient-to-b from-white to-gray-50">
+      <div className="py-20 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+            <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-4 dark:bg-slate-700"></div>
+            <div className="h-4 bg-gray-200 rounded w-64 mx-auto dark:bg-slate-700"></div>
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function EventCards(): JSX.Element {
 
   return (
     <>
-      <div className="py-20 bg-gradient-to-b from-white via-violet-50/30 to-white relative overflow-hidden">
+      <div className="py-20 bg-white dark:bg-slate-900 relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute top-10 left-10 w-64 h-64 bg-[#F59E0B]/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
@@ -101,15 +101,15 @@ export default function EventCards(): JSX.Element {
           {/* Section Header */}
           <div className="text-center mb-12">
             <div className="flex justify-center mb-4">
-              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-[#F59E0B]/10 to-[#0C2340]/10 text-[#0C2340] border border-[#F59E0B]/20">
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-[#F59E0B]/10 to-[#0C2340]/10 text-[#0C2340] border border-[#F59E0B]/20 dark:text-white dark:border-[#F59E0B]/30">
                 <Sparkles className="w-4 h-4 mr-2 text-[#F59E0B]" />
                 Events at the Hub
               </span>
             </div>
-            <h2 className="text-4xl font-bold text-[#0C2340] mb-4">
+            <h2 className="text-4xl font-bold text-[#0C2340] mb-4 dark:text-white">
               Our Event Catalog
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto dark:text-gray-300">
               Workshops, deliberations, and collaborative sessions hosted at the Digital Creatives Hub
             </p>
           </div>
@@ -117,12 +117,12 @@ export default function EventCards(): JSX.Element {
           {/* ═══ ONGOING EVENTS — horizontal scroll ═══ */}
           {ongoingEvents.length > 0 && (
             <div className="mb-16">
-              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3">
+              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3 dark:text-white">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-violet-500 text-white animate-pulse">
                   <Calendar className="w-4 h-4" />
                 </span>
                 Happening Now
-                <span className="text-sm font-medium text-violet-600 bg-violet-50 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-violet-600 bg-violet-50 px-3 py-1 rounded-full dark:text-violet-300 dark:bg-violet-900/30">
                   {ongoingEvents.length} event{ongoingEvents.length > 1 ? 's' : ''}
                 </span>
               </h3>
@@ -131,19 +131,19 @@ export default function EventCards(): JSX.Element {
                 {/* Left Arrow */}
                 <button
                   onClick={() => scrollOngoing('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll left"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronLeft className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Right Arrow */}
                 <button
                   onClick={() => scrollOngoing('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll right"
                 >
-                  <ChevronRight className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronRight className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Scrollable Ongoing Events */}
@@ -163,12 +163,12 @@ export default function EventCards(): JSX.Element {
           {/* ═══ UPCOMING EVENTS — horizontal scroll ═══ */}
           {upcomingEvents.length > 0 && (
             <div className="mb-16">
-              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3">
+              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3 dark:text-white">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white">
                   <Calendar className="w-4 h-4" />
                 </span>
                 Upcoming Events
-                <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full dark:text-emerald-300 dark:bg-emerald-900/30">
                   {upcomingEvents.length} event{upcomingEvents.length > 1 ? 's' : ''}
                 </span>
               </h3>
@@ -177,19 +177,19 @@ export default function EventCards(): JSX.Element {
                 {/* Left Arrow */}
                 <button
                   onClick={() => scrollUpcoming('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll left"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronLeft className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Right Arrow */}
                 <button
                   onClick={() => scrollUpcoming('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll right"
                 >
-                  <ChevronRight className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronRight className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Scrollable Upcoming Events */}
@@ -209,12 +209,12 @@ export default function EventCards(): JSX.Element {
           {/* ═══ PAST EVENTS — horizontal scroll catalog ═══ */}
           {pastEvents.length > 0 && (
             <div>
-              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3">
+              <h3 className="text-2xl font-bold text-[#0C2340] mb-6 flex items-center gap-3 dark:text-white">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-500 text-white">
                   <Clock className="w-4 h-4" />
                 </span>
                 Past Events
-                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full dark:text-gray-300 dark:bg-slate-700">
                   {pastEvents.length} event{pastEvents.length > 1 ? 's' : ''}
                 </span>
               </h3>
@@ -223,19 +223,19 @@ export default function EventCards(): JSX.Element {
                 {/* Left Arrow */}
                 <button
                   onClick={() => scrollPast('left')}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll left"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronLeft className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Right Arrow */}
                 <button
                   onClick={() => scrollPast('right')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl rounded-full p-3 transition-all duration-300 hover:scale-110 border border-gray-200 opacity-0 group-hover/scroll:opacity-100 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:border-slate-700"
                   aria-label="Scroll right"
                 >
-                  <ChevronRight className="w-5 h-5 text-[#0C2340]" />
+                  <ChevronRight className="w-5 h-5 text-[#0C2340] dark:text-white" />
                 </button>
 
                 {/* Scrollable Past Events */}
@@ -256,7 +256,7 @@ export default function EventCards(): JSX.Element {
           <div className="text-center mt-10">
             <a
               href="/calendar"
-              className="inline-flex items-center gap-2 text-[#0C2340] hover:text-[#F59E0B] font-semibold transition-colors group"
+              className="inline-flex items-center gap-2 text-[#0C2340] hover:text-[#F59E0B] font-semibold transition-colors group dark:text-white dark:hover:text-[#F59E0B]"
             >
               View Full Calendar
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -306,14 +306,14 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
       onClick={onClick}
       className="flex-shrink-0 w-[420px] snap-start cursor-pointer group"
     >
-      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 border-violet-200 hover:border-violet-400 hover:-translate-y-2">
+      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 border-violet-200 hover:border-violet-400 hover:-translate-y-2 dark:bg-slate-800 dark:border-violet-800 dark:hover:border-violet-600">
         {/* Poster Image */}
         <div className="relative h-64 overflow-hidden">
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700"
+              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700 dark:bg-slate-700"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
@@ -354,28 +354,28 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
           </div>
 
           {/* Date on image */}
-          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow">
-            <p className="text-sm font-bold text-[#0C2340]">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
-            <p className="text-xs text-gray-600">{format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}</p>
+          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow dark:bg-slate-800/90">
+            <p className="text-sm font-bold text-[#0C2340] dark:text-white">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}</p>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-violet-600 transition-colors">
+          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-violet-600 transition-colors dark:text-white dark:group-hover:text-violet-400">
             {event.title}
           </h3>
           {event.description && (
-            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed">
+            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed dark:text-gray-400">
               {event.description}
             </p>
           )}
           {(event.organizer || event.organization) && (
-            <p className="text-xs text-gray-500">
-              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Hosted by <span className="font-semibold text-gray-700 dark:text-gray-300">{event.organization || event.organizer}</span>
             </p>
           )}
-          <p className="text-xs text-violet-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>
+          <p className="text-xs text-violet-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity dark:text-violet-400">Click to view details →</p>
         </div>
       </div>
     </div>
@@ -418,14 +418,14 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
       onClick={onClick}
       className="flex-shrink-0 w-[420px] snap-start cursor-pointer group"
     >
-      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 border-emerald-100 hover:border-emerald-300 hover:-translate-y-2">
+      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 border-emerald-100 hover:border-emerald-300 hover:-translate-y-2 dark:bg-slate-800 dark:border-emerald-800 dark:hover:border-emerald-600">
         {/* Poster Image */}
         <div className="relative h-64 overflow-hidden">
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700"
+              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700 dark:bg-slate-700"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
@@ -466,28 +466,28 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
           </div>
 
           {/* Date on image */}
-          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow">
-            <p className="text-sm font-bold text-[#0C2340]">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
-            <p className="text-xs text-gray-600">{format(new Date(event.start_time), 'h:mm a')}</p>
+          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow dark:bg-slate-800/90">
+            <p className="text-sm font-bold text-[#0C2340] dark:text-white">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{format(new Date(event.start_time), 'h:mm a')}</p>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-emerald-600 transition-colors">
+          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-emerald-600 transition-colors dark:text-white dark:group-hover:text-emerald-400">
             {event.title}
           </h3>
           {event.description && (
-            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed">
+            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed dark:text-gray-400">
               {event.description}
             </p>
           )}
           {(event.organizer || event.organization) && (
-            <p className="text-xs text-gray-500">
-              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Hosted by <span className="font-semibold text-gray-700 dark:text-gray-300">{event.organization || event.organizer}</span>
             </p>
           )}
-          <p className="text-xs text-emerald-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view full details →</p>
+          <p className="text-xs text-emerald-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity dark:text-emerald-400">Click to view full details →</p>
         </div>
       </div>
     </div>
@@ -539,14 +539,14 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
       onClick={handleCardClick}
       className="flex-shrink-0 w-[420px] snap-start cursor-pointer group"
     >
-      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-[#F59E0B]/30 hover:-translate-y-2">
+      <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-[#F59E0B]/30 hover:-translate-y-2 dark:bg-slate-800 dark:border-slate-700">
         {/* Poster Image — taller */}
         <div className="relative h-64 overflow-hidden">
           {event.poster_url ? (
             <img
               src={event.poster_url}
               alt={event.title}
-              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700"
+              className="w-full h-full object-contain bg-gray-50 group-hover:scale-105 transition-transform duration-700 dark:bg-slate-700"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
@@ -587,24 +587,24 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
           </div>
 
           {/* Date on image */}
-          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow">
-            <p className="text-sm font-bold text-[#0C2340]">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
+          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow dark:bg-slate-800/90">
+            <p className="text-sm font-bold text-[#0C2340] dark:text-white">{format(new Date(event.start_time), 'MMM d, yyyy')}</p>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-[#F59E0B] transition-colors">
+          <h3 className="text-lg font-bold text-[#0C2340] mb-1 line-clamp-2 group-hover:text-[#F59E0B] transition-colors dark:text-white">
             {event.title}
           </h3>
           {event.description && (
-            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed">
+            <p className="text-gray-600 text-sm line-clamp-2 mb-2 leading-relaxed dark:text-gray-400">
               {event.description}
             </p>
           )}
           {(event.organizer || event.organization) && (
-            <p className="text-xs text-gray-500">
-              Hosted by <span className="font-semibold text-gray-700">{event.organization || event.organizer}</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Hosted by <span className="font-semibold text-gray-700 dark:text-gray-300">{event.organization || event.organizer}</span>
             </p>
           )}
           {event.facebook_post_url ? (
@@ -612,7 +612,7 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
               <Facebook className="w-3.5 h-3.5" /> View Facebook Post →
             </p>
           ) : (
-            <p className="text-xs text-[#0C2340] font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to read more →</p>
+            <p className="text-xs text-[#0C2340] font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity dark:text-white">Click to read more →</p>
           )}
         </div>
       </div>
@@ -634,21 +634,21 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
       <div
-        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl dark:bg-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg transition-all hover:scale-110"
+          className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg transition-all hover:scale-110 dark:bg-slate-700/90 dark:hover:bg-slate-700"
         >
-          <X className="w-5 h-5 text-gray-700" />
+          <X className="w-5 h-5 text-gray-700 dark:text-gray-200" />
         </button>
 
         <div className="overflow-y-auto max-h-[90vh]">
           {/* Poster */}
           {event.poster_url && (
-            <div className="w-full bg-gray-100">
+            <div className="w-full bg-gray-100 dark:bg-slate-900">
               <img
                 src={event.poster_url}
                 alt={event.title}
@@ -663,16 +663,16 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
             {/* Status + Date */}
             <div className="flex items-center gap-3 mb-4 flex-wrap">
               {isPast ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300">
                   Concluded
                 </span>
               ) : (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                   Upcoming
                 </span>
               )}
               {event.is_featured && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                   <Sparkles className="w-3 h-3 mr-1" />
                   Featured
                 </span>
@@ -680,18 +680,18 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
             </div>
 
             {/* Title */}
-            <h2 className="text-2xl md:text-3xl font-bold text-[#0C2340] mb-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#0C2340] mb-4 dark:text-white">
               {event.title}
             </h2>
 
             {/* Meta info */}
-            <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600">
+            <div className="flex flex-wrap gap-4 mb-6 text-sm text-gray-600 dark:text-gray-400">
               <span className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#F59E0B]" />
                 {format(new Date(event.start_time), 'EEEE, MMMM d, yyyy')}
               </span>
               <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#0C2340]" />
+                <Clock className="w-4 h-4 text-[#0C2340] dark:text-white" />
                 {format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}
               </span>
               <span className="flex items-center gap-2">
@@ -702,23 +702,23 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
 
             {/* Organizer */}
             {(event.organization || event.organizer) && (
-              <p className="text-sm text-gray-600 mb-6">
-                Hosted by <span className="font-bold text-[#0C2340]">{event.organization || event.organizer}</span>
+              <p className="text-sm text-gray-600 mb-6 dark:text-gray-400">
+                Hosted by <span className="font-bold text-[#0C2340] dark:text-white">{event.organization || event.organizer}</span>
               </p>
             )}
 
             {/* Description */}
             {event.description && (
               <div className="mb-8">
-                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">About this Event</h4>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 dark:text-gray-400">About this Event</h4>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line dark:text-gray-300">
                   {event.description}
                 </p>
               </div>
             )}
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
               {(event as ExtendedCalendarEvent).facebook_post_url && (
                 <a
                   href={(event as ExtendedCalendarEvent).facebook_post_url}
@@ -745,7 +745,7 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
               )}
               <button
                 onClick={onClose}
-                className="inline-flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl font-semibold text-sm transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl font-semibold text-sm transition-all dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-700"
               >
                 Close
               </button>

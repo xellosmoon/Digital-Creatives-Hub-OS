@@ -186,7 +186,7 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
   if (loading) {
     return (
       <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
         </div>
       </div>
@@ -195,15 +195,15 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Availability Settings - {spaceName}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
             >
               <X className="h-6 w-6" />
             </button>
@@ -211,24 +211,24 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
 
           {/* Weekly Schedule */}
           <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
               <Clock className="h-5 w-5 mr-2" />
               Weekly Schedule
             </h3>
             <div className="space-y-3">
               {schedules.map((schedule, index) => (
-                <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                   <div className="w-32">
-                    <span className="font-medium text-gray-700">{DAYS_OF_WEEK[schedule.day_of_week]}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{DAYS_OF_WEEK[schedule.day_of_week]}</span>
                   </div>
                   <label className="flex items-center">
                     <input
                       type="checkbox"
                       checked={schedule.is_available}
                       onChange={(e) => handleScheduleChange(index, 'is_available', e.target.checked)}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Available</span>
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Available</span>
                   </label>
                   {schedule.is_available && (
                     <>
@@ -236,14 +236,14 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
                         type="time"
                         value={schedule.start_time}
                         onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value)}
-                        className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                        className="px-3 py-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md text-sm"
                       />
-                      <span className="text-gray-500">to</span>
+                      <span className="text-gray-500 dark:text-gray-400">to</span>
                       <input
                         type="time"
                         value={schedule.end_time}
                         onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value)}
-                        className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                        className="px-3 py-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md text-sm"
                       />
                     </>
                   )}
@@ -254,31 +254,31 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
 
           {/* Blackout Dates */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
               <Calendar className="h-5 w-5 mr-2" />
               Blackout Dates
             </h3>
-            
+
             {/* Add new blackout date */}
             <div className="flex items-end space-x-3 mb-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
                 <input
                   type="date"
                   value={newBlackoutDate}
                   onChange={(e) => setNewBlackoutDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason (optional)</label>
                 <input
                   type="text"
                   value={newBlackoutReason}
                   onChange={(e) => setNewBlackoutReason(e.target.value)}
                   placeholder="e.g., Holiday, Maintenance"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 rounded-md"
                 />
               </div>
               <button
@@ -293,18 +293,18 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
             {blackoutDates.length > 0 ? (
               <div className="space-y-2">
                 {blackoutDates.map((blackout, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
                         {format(parseISO(blackout.date), 'MMMM d, yyyy')}
                       </span>
                       {blackout.reason && (
-                        <span className="ml-2 text-sm text-gray-500">- {blackout.reason}</span>
+                        <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">- {blackout.reason}</span>
                       )}
                     </div>
                     <button
                       onClick={() => handleRemoveBlackoutDate(index)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -312,15 +312,15 @@ export default function SpaceAvailability({ spaceId, spaceName, onClose }: Space
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No blackout dates set</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No blackout dates set</p>
             )}
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-slate-700">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
             >
               Cancel
             </button>

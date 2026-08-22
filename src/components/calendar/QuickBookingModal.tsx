@@ -125,17 +125,17 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Quick Book a Seat</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quick Book a Seat</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               <Calendar className="inline w-4 h-4 mr-1" />
               {format(date, 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button onClick={onClose} className="text-gray-400 dark:text-slate-500 hover:text-gray-500 dark:hover:text-slate-300">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -145,14 +145,14 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto" />
-              <p className="mt-2 text-gray-600">Checking availability…</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Checking availability…</p>
             </div>
           ) : (
             <div className="space-y-6">
               {/* Seat availability banner */}
               {availableSeats !== null && (
                 <div className={`flex items-center gap-3 rounded-lg p-3 text-sm font-medium ${
-                  isSoldOut ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                  isSoldOut ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                 }`}>
                   {isSoldOut ? (
                     <>
@@ -170,7 +170,7 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
 
               {/* Package Selection */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Choose a Package</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Choose a Package</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {packages.map((pkg) => {
                     const notEnoughSeats = availableSeats !== null && pkg.seats_consumed > availableSeats;
@@ -181,27 +181,27 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
                         onClick={() => setSelectedPackage(pkg.id)}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           selectedPackage === pkg.id
-                            ? 'border-primary-500 bg-primary-50'
+                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                             : notEnoughSeats
-                            ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 opacity-50 cursor-not-allowed'
+                            : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
                         }`}
                       >
-                        <h4 className="font-medium text-gray-900">{pkg.name}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-white">{pkg.name}</h4>
                         {pkg.description && (
-                          <p className="text-xs text-gray-500 mt-0.5">{pkg.description}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{pkg.description}</p>
                         )}
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             <Users className="inline w-3.5 h-3.5 mr-0.5" />
                             {pkg.seats_consumed} seat{pkg.seats_consumed > 1 ? 's' : ''}
                           </span>
-                          <span className="font-medium text-primary-600 text-sm">
+                          <span className="font-medium text-primary-600 dark:text-primary-400 text-sm">
                             {priceLabel(pkg)}
                           </span>
                         </div>
                         {pkg.is_bundle && (
-                          <span className="mt-1 inline-block text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+                          <span className="mt-1 inline-block text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">
                             Bundle
                           </span>
                         )}
@@ -213,7 +213,7 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
 
               {/* Time Selection */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
                   <Clock className="inline w-5 h-5 mr-1" />
                   Preferred Start Time (Optional)
                 </h3>
@@ -225,7 +225,7 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         selectedTime === time
                           ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                       }`}
                     >
                       {time}
@@ -238,17 +238,17 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-between">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
           >
             Cancel
           </button>
           <button
             onClick={handleQuickBook}
             disabled={!selectedPackage || isSoldOut}
-            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
           >
             Continue Booking
           </button>

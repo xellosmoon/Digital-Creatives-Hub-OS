@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  Users, Zap, Shield, Building2, Clock, Star, ArrowRight,
+  Users, Zap, Shield, Building2, Clock, ArrowRight,
   Sparkles, Coffee, Wifi, Monitor, Package, Camera, Smartphone, PenTool, Cpu,
   Video, Navigation, Webcam, PartyPopper, ClipboardCheck, Briefcase, Lightbulb,
   Layers, Presentation, Armchair
@@ -49,20 +49,20 @@ const EQUIP_ICONS: Record<string, React.ElementType> = {
 };
 
 function OfferCard({ icon: Icon, title, description, iconColor }: { icon: React.ElementType, title: string, description: string, iconColor?: string }): JSX.Element {
-  const getIconContainer = () => {
-    if (iconColor === 'teal') return 'bg-teal-50 text-teal-600';
-    if (iconColor === 'slate') return 'bg-slate-100 text-slate-800';
-    if (iconColor === 'orange') return 'bg-orange-50 text-orange-600';
-    return 'bg-[#0C2340]/5 text-[#0C2340]';
+  const getIconContainer = (): string => {
+    if (iconColor === 'teal') return 'bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300';
+    if (iconColor === 'slate') return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200';
+    if (iconColor === 'orange') return 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-300';
+    return 'bg-[#0C2340]/5 text-[#0C2340] dark:bg-white/10 dark:text-white';
   };
 
   return (
-    <div className="group p-6 rounded-2xl bg-white/60 backdrop-blur-lg border border-white/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="group p-6 rounded-2xl bg-white/60 backdrop-blur-lg border border-white/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 dark:bg-slate-800/60 dark:border-slate-700/80">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${getIconContainer()}`}>
         <Icon className="w-6 h-6" />
       </div>
-      <h3 className="text-lg font-bold text-[#0C2340] mb-2">{title}</h3>
-      <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
+      <h3 className="text-lg font-bold text-[#0C2340] mb-2 dark:text-white">{title}</h3>
+      <p className="text-gray-600 leading-relaxed text-sm dark:text-gray-400">{description}</p>
     </div>
   );
 }
@@ -163,10 +163,10 @@ export default function Home(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#F59E0B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#0C2340] font-semibold">Loading...</p>
+          <p className="text-[#0C2340] font-semibold dark:text-white">Loading...</p>
         </div>
       </div>
     );
@@ -174,9 +174,9 @@ export default function Home(): JSX.Element {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
         <div className="text-center p-8">
-          <p className="text-red-600 font-semibold mb-4">{error}</p>
+          <p className="text-red-600 font-semibold mb-4 dark:text-red-400">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2 bg-[#0C2340] text-white rounded-lg hover:bg-[#0C2340]/90 transition-colors"
@@ -196,7 +196,7 @@ export default function Home(): JSX.Element {
       </Helmet>
       <div className="relative overflow-hidden">
       {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 -z-10">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40 -z-10">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute -top-4 -right-4 w-72 h-72 bg-[#0C2340]/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
           <div className="absolute -bottom-8 -left-4 w-72 h-72 bg-[#F59E0B]/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -215,7 +215,7 @@ export default function Home(): JSX.Element {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative z-10">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:border-[#F59E0B]/30">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Creative As One, Iligan
               </span>
@@ -223,7 +223,7 @@ export default function Home(): JSX.Element {
             <h1 className="text-5xl font-extrabold text-[#0C2340] dark:bg-gradient-to-r dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] dark:bg-clip-text dark:text-transparent sm:text-6xl md:text-7xl mb-6 dark:filter dark:drop-shadow-[0_0_25px_rgba(245,158,11,0.8)]">
               Digital Creatives Hub Iligan
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
+            <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed dark:text-gray-300">
               Your 24/7 innovation, collaboration, and co-working space designed to fuel imagination, spark ideas, and build community.
             </p>
 
@@ -231,7 +231,7 @@ export default function Home(): JSX.Element {
             <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Track 1: Immediate Attendance (Primary) */}
               <div className="flex flex-col items-center text-center">
-                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Walk-In Check-In</p>
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider dark:text-gray-400">Walk-In Check-In</p>
                 <Link
                   to="/check-in"
                   className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-200/50 transition-all duration-300 hover:scale-105 hover:shadow-emerald-300/60"
@@ -243,12 +243,12 @@ export default function Home(): JSX.Element {
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
-                <p className="mt-3 text-sm text-gray-500">For visitors at the entrance</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">For visitors at the entrance</p>
               </div>
 
               {/* Track 2: Future Reservations (Secondary) */}
               <div className="flex flex-col items-center text-center">
-                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Advanced Booking</p>
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider dark:text-gray-400">Advanced Booking</p>
                 <Link
                   to="/bookings"
                   className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl overflow-hidden shadow-xl shadow-blue-900/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-900/60"
@@ -259,12 +259,12 @@ export default function Home(): JSX.Element {
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-[#0C2340] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
-                <p className="mt-3 text-sm text-gray-500">Individual or group bookings</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Individual or group bookings</p>
               </div>
 
               {/* Track 3: Host an Event (New) */}
               <div className="flex flex-col items-center text-center">
-                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Event Hosting</p>
+                <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider dark:text-gray-400">Event Hosting</p>
                 <Link
                   to="/propose-event"
                   className="group relative inline-flex items-center justify-center w-full px-8 py-6 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl overflow-hidden shadow-2xl shadow-orange-200/50 transition-all duration-300 hover:scale-105 hover:shadow-orange-300/60"
@@ -276,7 +276,7 @@ export default function Home(): JSX.Element {
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
-                <p className="mt-3 text-sm text-gray-500">Bring workshops & meetups</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Bring workshops & meetups</p>
               </div>
             </div>
           </div>
@@ -284,10 +284,10 @@ export default function Home(): JSX.Element {
       </div>
 
       {/* What We Offer Section */}
-      <div className="py-24 bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative overflow-hidden">
+      <div className="py-24 bg-gradient-to-br from-[#0C2340]/[0.03] via-white to-[#F59E0B]/[0.05] dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-[#0C2340] sm:text-4xl">What We Offer</h2>
+            <h2 className="text-3xl font-bold text-[#0C2340] sm:text-4xl dark:text-white">What We Offer</h2>
             <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto mt-2"></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -310,95 +310,95 @@ export default function Home(): JSX.Element {
       <HubGalleryMarquee />
 
       {/* Stats Section */}
-      <div className="relative py-16 bg-gradient-to-r from-teal-50 via-cyan-50 to-blue-50">
+      <div className="relative py-16 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 transition-colors">
+                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-colors">
                   <Building2 className="w-8 h-8 text-[#F59E0B]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340]">{stats.totalSpaces}+</div>
-              <div className="text-gray-600 mt-1">Creative Spaces</div>
+              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.totalSpaces}+</div>
+              <div className="text-gray-600 mt-1 dark:text-gray-400">Creative Spaces</div>
             </div>
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#0C2340]/10 rounded-full group-hover:bg-[#0C2340]/20 transition-colors">
-                  <Users className="w-8 h-8 text-[#0C2340]" />
+                <div className="p-3 bg-[#0C2340]/10 rounded-full group-hover:bg-[#0C2340]/20 dark:bg-white/10 dark:group-hover:bg-white/20 transition-colors">
+                  <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340]">{stats.happyUsers}+</div>
-              <div className="text-gray-600 mt-1">Happy Creatives</div>
+              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.happyUsers}+</div>
+              <div className="text-gray-600 mt-1 dark:text-gray-400">Happy Creatives</div>
             </div>
             <div className="group">
               <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 transition-colors">
+                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-colors">
                   <ClipboardCheck className="w-8 h-8 text-[#F59E0B]" />
                 </div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340]">{stats.totalBookings}</div>
-              <div className="text-gray-600 mt-1">Bookings Made</div>
+              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.totalBookings}</div>
+              <div className="text-gray-600 mt-1 dark:text-gray-400">Bookings Made</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="py-20 bg-gradient-to-br from-rose-50 via-white to-amber-50">
+      <div className="py-20 bg-gradient-to-br from-[#0C2340]/[0.03] via-white to-[#F59E0B]/[0.05] dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 dark:text-white">
               Why Creatives Choose Us
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto dark:text-gray-300">
               Everything you need to focus on what matters most - your creative work
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Feature Cards */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            {/* Feature Cards — alternating the two brand hues instead of a rainbow */}
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6">
                   <Clock className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Instant Booking</h3>
-                <p className="text-gray-600">No account needed. Book your perfect space in under 2 minutes.</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Instant Booking</h3>
+                <p className="text-gray-600 dark:text-gray-400">No account needed. Book your perfect space in under 2 minutes.</p>
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Premium Spaces</h3>
-                <p className="text-gray-600">Studios, meeting rooms, and event spaces designed for creativity.</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Premium Spaces</h3>
+                <p className="text-gray-600 dark:text-gray-400">Studios, meeting rooms, and event spaces designed for creativity.</p>
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-orange-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6">
                   <Zap className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Fast Approval</h3>
-                <p className="text-gray-600">Real-time notifications and quick booking confirmations.</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Fast Approval</h3>
+                <p className="text-gray-600 dark:text-gray-400">Real-time notifications and quick booking confirmations.</p>
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
                   <Shield className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Secure & Private</h3>
-                <p className="text-gray-600">Your data is protected with enterprise-grade security.</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Secure & Private</h3>
+                <p className="text-gray-600 dark:text-gray-400">Your data is protected with enterprise-grade security.</p>
               </div>
             </div>
           </div>
@@ -407,23 +407,23 @@ export default function Home(): JSX.Element {
 
       {/* Available Zones Preview */}
       {zones.length > 0 && (
-        <div className="py-20 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50">
+        <div className="py-20 bg-white dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Hub Zones</h2>
-              <p className="text-xl text-gray-600">Explore our creative quadrants</p>
+              <h2 className="text-4xl font-bold text-[#0C2340] mb-4 dark:text-white">Hub Zones</h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300">Explore our creative quadrants</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {zones.map((zone) => (
-                <div key={zone.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
-                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center">
-                    <Building2 className="w-16 h-16 text-primary-300" />
+                <div key={zone.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 dark:bg-slate-800">
+                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-purple-100 dark:from-primary-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                    <Building2 className="w-16 h-16 text-primary-300 dark:text-primary-400" />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{zone.label}</h3>
-                    <p className="text-gray-600 mb-4">{zone.description || zone.name}</p>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2 dark:text-white">{zone.label}</h3>
+                    <p className="text-gray-600 mb-4 dark:text-gray-400">{zone.description || zone.name}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-primary-600">{zone.seats} seats</span>
+                      <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{zone.seats} seats</span>
                     </div>
                   </div>
                 </div>
@@ -435,17 +435,17 @@ export default function Home(): JSX.Element {
 
       {/* Borrow Gear Section */}
       {equipment.length > 0 && (
-        <div className="py-20 bg-gradient-to-br from-purple-100 via-white to-pink-50">
+        <div className="py-20 bg-gradient-to-br from-[#0C2340]/[0.03] via-white to-[#F59E0B]/[0.05] dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <div className="flex justify-center mb-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                   <Package className="w-4 h-4 mr-1" />
                   Gadget Lending
                 </span>
               </div>
-              <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Creative Gadgets</h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <h2 className="text-4xl font-bold text-[#0C2340] mb-4 dark:text-white">Creative Gadgets</h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto dark:text-gray-300">
                 Level up your workflow with pro gear available for instant checkout
               </p>
             </div>
@@ -454,21 +454,21 @@ export default function Home(): JSX.Element {
                 const Icon = item.category && EQUIP_ICONS[item.category] ? EQUIP_ICONS[item.category] : Package;
                 const allOut = item.availableItems === 0;
                 return (
-                  <div key={item.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                  <div key={item.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-primary-500 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity" />
                     <div className="p-6 relative z-10">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4">
                         <Icon className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.name}</h3>
-                      <div className={`inline-flex items-center text-sm font-medium px-2.5 py-1 rounded-full mb-3 ${allOut ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1 dark:text-white">{item.name}</h3>
+                      <div className={`inline-flex items-center text-sm font-medium px-2.5 py-1 rounded-full mb-3 ${allOut ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                         }`}>
                         <span className="font-bold mr-1">{item.availableItems}</span> of {item.totalItems} available
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <Link
                           to="/gadgets"
-                          className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm"
+                          className="inline-flex items-center text-purple-600 hover:text-purple-700 font-medium text-sm dark:text-purple-400 dark:hover:text-purple-300"
                         >
                           {allOut ? 'View Details' : 'Borrow Now'}
                           <ArrowRight className="ml-1 w-4 h-4" />
@@ -482,7 +482,7 @@ export default function Home(): JSX.Element {
             <div className="text-center mt-12">
               <Link
                 to="/gadgets"
-                className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
+                className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium text-purple-600 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors dark:text-purple-300 dark:bg-purple-900/30 dark:hover:bg-purple-900/50"
               >
                 <Package className="mr-2 w-5 h-5" />
                 Browse All Gadgets
@@ -494,36 +494,36 @@ export default function Home(): JSX.Element {
       )}
 
       {/* Amenities Section */}
-      <div className="py-20 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50">
+      <div className="py-20 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0C2340] mb-4">Everything You Need</h2>
-            <p className="text-xl text-gray-600">All spaces come fully equipped with premium amenities</p>
+            <h2 className="text-4xl font-bold text-[#0C2340] mb-4 dark:text-white">Everything You Need</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">All spaces come fully equipped with premium amenities</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wifi className="w-8 h-8 text-primary-600" />
+              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30">
+                <Wifi className="w-8 h-8 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="font-semibold text-gray-900">High-Speed WiFi</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">High-Speed WiFi</h3>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Coffee className="w-8 h-8 text-purple-600" />
+              <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10">
+                <Coffee className="w-8 h-8 text-[#0C2340] dark:text-white" />
               </div>
-              <h3 className="font-semibold text-gray-900">Free Coffee</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Free Coffee</h3>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Monitor className="w-8 h-8 text-pink-600" />
+              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30">
+                <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="font-semibold text-gray-900">Modern Equipment</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Modern Equipment</h3>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-orange-600" />
+              <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10">
+                <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
               </div>
-              <h3 className="font-semibold text-gray-900">Community Events</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Community Events</h3>
             </div>
           </div>
         </div>

@@ -94,12 +94,12 @@ export default function SpaceManagement(): JSX.Element {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Link to="/admin" className="text-gray-400 hover:text-gray-600">
+              <Link to="/admin" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Space Management</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Space Management</h1>
             </div>
-            <p className="mt-1 text-gray-600 ml-8">Manage your spaces, pricing, and availability</p>
+            <p className="mt-1 text-gray-600 ml-8 dark:text-gray-400">Manage your spaces, pricing, and availability</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -117,10 +117,10 @@ export default function SpaceManagement(): JSX.Element {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
         </div>
       ) : spaces.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <MapPin className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No spaces</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new space.</p>
+        <div className="text-center py-12 bg-white rounded-lg shadow dark:bg-slate-800">
+          <MapPin className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No spaces</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new space.</p>
           <div className="mt-6">
             <button
               onClick={() => setShowAddModal(true)}
@@ -134,19 +134,19 @@ export default function SpaceManagement(): JSX.Element {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {spaces.map((space) => (
-            <div key={space.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div key={space.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden dark:bg-slate-800 dark:border-slate-700">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{space.name}</h3>
-                    <p className="text-sm text-gray-500 capitalize">{space.type.replace('_', ' ')}</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{space.name}</h3>
+                    <p className="text-sm text-gray-500 capitalize dark:text-gray-400">{space.type.replace('_', ' ')}</p>
                   </div>
                   <button
                     onClick={() => toggleSpaceStatus(space)}
                     className={`p-2 rounded-full ${
-                      space.is_active 
-                        ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      space.is_active
+                        ? 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-500 dark:hover:bg-slate-600'
                     }`}
                   >
                     {space.is_active ? (
@@ -158,16 +158,16 @@ export default function SpaceManagement(): JSX.Element {
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <DollarSign className="h-4 w-4 mr-2" />
                     ₱{space.hourly_rate}/hour
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Users className="h-4 w-4 mr-2" />
                     Capacity: {space.capacity} people
                   </div>
                   {space.location && (
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                       <MapPin className="h-4 w-4 mr-2" />
                       {space.location}
                     </div>
@@ -177,14 +177,14 @@ export default function SpaceManagement(): JSX.Element {
                 <div className="mb-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     space.is_active
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-300'
                   }`}>
                     {space.is_active ? 'Active' : 'Inactive'}
                   </span>
-                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {space.privacy_level === 'public' ? 'Public' : 
-                     space.privacy_level === 'members_only' ? 'Members Only' : 
+                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                    {space.privacy_level === 'public' ? 'Public' :
+                     space.privacy_level === 'members_only' ? 'Members Only' :
                      'Anonymous'}
                   </span>
                 </div>
@@ -193,21 +193,21 @@ export default function SpaceManagement(): JSX.Element {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setAvailabilitySpace(space)}
-                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700"
                   >
                     <Calendar className="h-4 w-4 mr-1" />
                     Availability
                   </button>
                   <button
                     onClick={() => setEditingSpace(space)}
-                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700"
                   >
                     <Edit2 className="h-4 w-4 mr-1" />
                     Edit
                   </button>
                   <button
                     onClick={() => deleteSpace(space.id)}
-                    className="inline-flex items-center px-3 py-1 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                    className="inline-flex items-center px-3 py-1 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 dark:border-red-800/60 dark:text-red-400 dark:bg-slate-800 dark:hover:bg-red-900/20"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete

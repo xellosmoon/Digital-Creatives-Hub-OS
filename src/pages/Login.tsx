@@ -59,22 +59,22 @@ export default function Login(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Or{' '}
             <Link
               to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500"
+              className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
             >
               create a new account
             </Link>
           </p>
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             Note: You can book spaces without an account. Creating an account gives you access to booking history and faster checkout.
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function Login(): JSX.Element {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   id="email"
@@ -96,7 +96,7 @@ export default function Login(): JSX.Element {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400"
                   placeholder="Email address"
                 />
               </div>
@@ -107,7 +107,7 @@ export default function Login(): JSX.Element {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   id="password"
@@ -117,7 +117,7 @@ export default function Login(): JSX.Element {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400"
                   placeholder="Password"
                 />
               </div>
@@ -128,7 +128,7 @@ export default function Login(): JSX.Element {
             <div className="text-sm">
               <Link
                 to="/forgot-password"
-                className="font-medium text-primary-600 hover:text-primary-500"
+                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
               >
                 Forgot your password?
               </Link>
@@ -146,11 +146,11 @@ export default function Login(): JSX.Element {
           </div>
 
           <div className="text-center">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
               Just want to book a space?{' '}
               <Link
                 to="/bookings"
-                className="font-medium text-primary-600 hover:text-primary-500"
+                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
               >
                 Book as guest
               </Link>
@@ -162,27 +162,27 @@ export default function Login(): JSX.Element {
       {/* Premium Access Modal */}
       {showPremiumModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
                 <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-3 rounded-full">
                   <Crown className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Premium Access Required</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Premium Access Required</h3>
               </div>
               <button
                 onClick={() => setShowPremiumModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <p className="text-amber-900 font-semibold text-sm mb-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 dark:bg-amber-900/30 dark:border-amber-800">
+              <p className="text-amber-900 font-semibold text-sm mb-2 dark:text-amber-300">
                 Accounts are exclusive to DCIH Members
               </p>
-              <p className="text-amber-800 text-xs leading-relaxed">
+              <p className="text-amber-800 text-xs leading-relaxed dark:text-amber-400">
                 Full account access with login, dashboard, and booking history is reserved for paid subscribers. Walk-in users can continue to book spaces as guests without creating an account.
               </p>
             </div>
@@ -199,13 +199,13 @@ export default function Login(): JSX.Element {
               </button>
               <button
                 onClick={() => setShowPremiumModal(false)}
-                className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                className="w-full py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
               >
                 Close
               </button>
             </div>
 
-            <p className="text-center text-xs text-gray-500 mt-4">
+            <p className="text-center text-xs text-gray-500 mt-4 dark:text-gray-400">
               Talk to the Secretariat to upgrade your tier and unlock full member benefits.
             </p>
           </div>

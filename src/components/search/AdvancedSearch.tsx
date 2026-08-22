@@ -65,30 +65,30 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 mb-6">
       {/* Basic Search */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search spaces by name or location..."
             value={filters.query}
             onChange={(e) => setFilters({ ...filters, query: e.target.value })}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
         </div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-700"
         >
           <Filter className="h-4 w-4 mr-2" />
           Advanced Filters
         </button>
         <button
           onClick={handleSearch}
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          className="inline-flex items-center px-4 py-2 bg-primary-600 dark:bg-primary-700 text-white rounded-md hover:bg-primary-700 dark:hover:bg-primary-600"
         >
           <Search className="h-4 w-4 mr-2" />
           Search
@@ -97,17 +97,17 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Space Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Space Type
               </label>
               <select
                 value={filters.spaceType}
                 onChange={(e) => setFilters({ ...filters, spaceType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">All Types</option>
                 {spaceTypes.map(type => (
@@ -120,7 +120,7 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
 
             {/* Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Calendar className="inline h-4 w-4 mr-1" />
                 Date
               </label>
@@ -128,13 +128,13 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
                 type="date"
                 value={filters.date}
                 onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             {/* Capacity Range */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Users className="inline h-4 w-4 mr-1" />
                 Capacity
               </label>
@@ -145,34 +145,34 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
                   placeholder="Min"
                   value={filters.minCapacity || ''}
                   onChange={(e) => setFilters({ ...filters, minCapacity: parseInt(e.target.value) || 0 })}
-                  className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                  className="w-1/2 px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500"
                 />
-                <span className="text-gray-500">-</span>
+                <span className="text-gray-500 dark:text-gray-400">-</span>
                 <input
                   type="number"
                   min="0"
                   placeholder="Max"
                   value={filters.maxCapacity || ''}
                   onChange={(e) => setFilters({ ...filters, maxCapacity: parseInt(e.target.value) || 100 })}
-                  className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                  className="w-1/2 px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
 
             {/* Max Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <DollarSign className="inline h-4 w-4 mr-1" />
                 Max Price per Hour
               </label>
               <div className="flex items-center space-x-2">
-                <span className="text-gray-500">₱</span>
+                <span className="text-gray-500 dark:text-gray-400">₱</span>
                 <input
                   type="number"
                   min="0"
                   value={filters.maxPrice}
                   onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) || 5000 })}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -180,7 +180,7 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
 
           {/* Amenities */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Amenities
             </label>
             <div className="flex flex-wrap gap-2">
@@ -190,9 +190,9 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
                   onClick={() => toggleAmenity(amenity)}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     filters.amenities.includes(amenity)
-                      ? 'bg-primary-100 text-primary-700 border-primary-300'
-                      : 'bg-gray-100 text-gray-700 border-gray-300'
-                  } border hover:bg-primary-50`}
+                      ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-700'
+                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600'
+                  } border hover:bg-primary-50 dark:hover:bg-primary-900/20`}
                 >
                   {amenity}
                 </button>
@@ -204,7 +204,7 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
           <div className="mt-6 flex justify-between">
             <button
               onClick={resetFilters}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+              className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             >
               <X className="h-4 w-4 mr-1" />
               Clear Filters
@@ -212,13 +212,13 @@ export default function AdvancedSearch({ onSearch, spaceTypes, availableAmenitie
             <div className="space-x-3">
               <button
                 onClick={() => setShowAdvanced(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-700"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSearch}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 dark:bg-primary-700 text-white rounded-md text-sm font-medium hover:bg-primary-700 dark:hover:bg-primary-600"
               >
                 Apply Filters
               </button>

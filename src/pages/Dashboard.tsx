@@ -104,64 +104,64 @@ export default function Dashboard(): JSX.Element {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Dashboard</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Welcome back{user?.email ? `, ${user.email}` : ''}! Manage your bookings and account here.
         </p>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <div className="flex items-center">
             <Calendar className="h-8 w-8 text-primary-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bookings</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <div className="flex items-center">
             <Clock className="h-8 w-8 text-green-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Upcoming</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.upcoming}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Upcoming</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.upcoming}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <div className="flex items-center">
             <Clock className="h-8 w-8 text-yellow-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.pending}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
           <div className="flex items-center">
             <Clock className="h-8 w-8 text-blue-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Approved</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.approved}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Approved</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.approved}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Bookings Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h2 className="text-lg font-medium text-gray-900">My Bookings</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">My Bookings</h2>
               <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-400" />
+                <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value as 'upcoming' | 'past' | 'all')}
-                  className="text-sm border-gray-300 rounded-md"
+                  className="text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 >
                   <option value="upcoming">Upcoming</option>
                   <option value="past">Past</option>
@@ -193,10 +193,10 @@ export default function Dashboard(): JSX.Element {
             </div>
           ) : bookings.length === 0 ? (
             <div className="text-center py-12">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {filter === 'upcoming' 
+              <Calendar className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No bookings</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {filter === 'upcoming'
                   ? "You don't have any upcoming bookings."
                   : filter === 'past'
                   ? "You don't have any past bookings."

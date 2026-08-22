@@ -171,13 +171,13 @@ export default function ProposeEvent(): JSX.Element {
   // ── Success state ──
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50/30 flex items-center justify-center px-4">
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/60 p-8 sm:p-12 max-w-lg text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-amber-50/30 dark:to-slate-900 flex items-center justify-center px-4">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/60 dark:border-slate-700/60 p-8 sm:p-12 max-w-lg text-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Proposal Submitted!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Proposal Submitted!</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Our team will review your event proposal and get back to you at <span className="font-semibold">{form.email}</span>.
             This usually takes 1–2 business days.
           </p>
@@ -196,7 +196,7 @@ export default function ProposeEvent(): JSX.Element {
 
   // ── Main form ──
   return (
-    <div className="min-h-screen bg-stone-50 relative overflow-hidden">
+    <div className="min-h-screen bg-stone-50 dark:bg-slate-900 relative overflow-hidden">
       {/* Dynamic Brand Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#0C2340] blur-3xl opacity-20 rounded-full" />
@@ -220,7 +220,7 @@ export default function ProposeEvent(): JSX.Element {
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 pb-16">
         {/* Step indicator */}
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/40 px-4 sm:px-6 py-4 mb-8">
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-2xl shadow-lg border border-white/40 dark:border-slate-700/40 px-4 sm:px-6 py-4 mb-8">
           <div className="flex items-center justify-between">
             {STEP_META.map((s, i) => {
               const done = i < stepIdx;
@@ -230,16 +230,16 @@ export default function ProposeEvent(): JSX.Element {
               return (
                 <div key={s.key} className="flex items-center flex-1">
                   {i > 0 && (
-                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-amber-500' : 'bg-gray-200'}`} />
+                    <div className={`hidden sm:block flex-1 h-0.5 mx-2 rounded transition-colors duration-500 ${done ? 'bg-amber-500' : 'bg-gray-200 dark:bg-slate-700'}`} />
                   )}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className={`
                       h-8 w-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300
-                      ${done ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30' : active ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-500/50' : 'bg-white/50 text-slate-400'}
+                      ${done ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30' : active ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/50' : 'bg-white/50 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500'}
                     `}>
                       {done ? <CheckCircle className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                     </span>
-                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-amber-700' : done ? 'text-amber-500' : 'text-slate-400'}`}>
+                    <span className={`hidden sm:inline text-sm font-medium transition-colors duration-300 ${active ? 'text-amber-700 dark:text-amber-400' : done ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -250,17 +250,17 @@ export default function ProposeEvent(): JSX.Element {
         </div>
 
         {/* Content card */}
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/40 p-5 sm:p-8 transition-all duration-300">
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-3xl shadow-xl border border-white/40 dark:border-slate-700/40 p-5 sm:p-8 transition-all duration-300">
 
           {/* ═══ STEP: ORGANIZER ═══ */}
           {step === 'organizer' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Organizer Details</h2>
-              <p className="text-sm text-gray-500 mb-6">Tell us about yourself or your organization</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Organizer Details</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Tell us about yourself or your organization</p>
 
               <div className="space-y-5">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <User className="h-4 w-4 text-amber-500" /> Full Name *
                   </label>
                   <input
@@ -269,13 +269,13 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.fullName}
                     onChange={e => update({ fullName: e.target.value })}
                     placeholder="Juan Dela Cruz"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                       <Mail className="h-4 w-4 text-amber-500" /> Email *
                     </label>
                     <input
@@ -284,11 +284,11 @@ export default function ProposeEvent(): JSX.Element {
                       value={form.email}
                       onChange={e => update({ email: e.target.value })}
                       placeholder="juan@example.com"
-                      className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                      className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                       <Phone className="h-4 w-4 text-amber-500" /> Phone *
                     </label>
                     <input
@@ -297,13 +297,13 @@ export default function ProposeEvent(): JSX.Element {
                       value={form.phone}
                       onChange={e => update({ phone: e.target.value })}
                       placeholder="+63 917 123 4567"
-                      className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                      className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <Building2 className="h-4 w-4 text-amber-500" /> School / Business / Organization
                   </label>
                   <input
@@ -311,12 +311,12 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.organization}
                     onChange={e => update({ organization: e.target.value })}
                     placeholder="Your organization name"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <User className="h-4 w-4 text-amber-500" /> Designation / Role
                   </label>
                   <input
@@ -324,12 +324,12 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.role}
                     onChange={e => update({ role: e.target.value })}
                     placeholder="e.g. Student, Teacher, Manager"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <PartyPopper className="h-4 w-4 text-amber-500" /> Facebook Page/Profile Name
                   </label>
                   <input
@@ -337,7 +337,7 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.facebook_page}
                     onChange={e => update({ facebook_page: e.target.value })}
                     placeholder="Digital Creatives Hub"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -347,12 +347,12 @@ export default function ProposeEvent(): JSX.Element {
           {/* ═══ STEP: LOGISTICS ═══ */}
           {step === 'logistics' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Event Logistics</h2>
-              <p className="text-sm text-gray-500 mb-6">Tell us about the event you'd like to host</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Event Logistics</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Tell us about the event you'd like to host</p>
 
               <div className="space-y-5">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <Sparkles className="h-4 w-4 text-amber-500" /> Event Title *
                   </label>
                   <input
@@ -361,12 +361,12 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.title}
                     onChange={e => update({ title: e.target.value })}
                     placeholder="e.g. Vibe Coding Workshop, Film Screening Night"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <FileText className="h-4 w-4 text-amber-500" /> Comprehensive Explanation / Description *
                   </label>
                   <textarea
@@ -374,12 +374,12 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.description}
                     onChange={e => update({ description: e.target.value })}
                     placeholder="What's the event about? What will attendees experience? What are the goals?"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 resize-none"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     <Users className="h-4 w-4 text-amber-500" /> Expected Number of Guests / Attendees *
                   </label>
                   <input
@@ -389,62 +389,62 @@ export default function ProposeEvent(): JSX.Element {
                     value={form.expectedGuests}
                     onChange={e => update({ expectedGuests: e.target.value })}
                     placeholder="e.g. 20"
-                    className="w-full rounded-xl border-gray-200 bg-stone-100/50 focus:bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400"
+                    className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                 </div>
 
-                <div className="border-t border-gray-200 pt-5">
+                <div className="border-t border-gray-200 dark:border-slate-700 pt-5">
                   <div className="flex items-center justify-between mb-4">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                       <Calendar className="h-4 w-4 text-amber-500" /> Event Dates & Times *
                     </label>
                     <button
                       type="button"
                       onClick={addEventDate}
-                      className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all"
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 transition-all"
                     >
                       + Add Date
                     </button>
                   </div>
 
                   {form.eventDates.map((eventDate, index) => (
-                    <div key={index} className="bg-gray-50 rounded-xl p-4 mb-3 relative">
+                    <div key={index} className="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-4 mb-3 relative">
                       {form.eventDates.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeEventDate(index)}
-                          className="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-all"
+                          className="absolute top-2 right-2 p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-all"
                         >
                           <X className="h-4 w-4" />
                         </button>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Date *</label>
+                          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Date *</label>
                           <input
                             type="date"
                             value={eventDate.date}
                             onChange={e => updateEventDate(index, 'date', e.target.value)}
                             min={format(addDays(new Date(), 3), 'yyyy-MM-dd')}
-                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">Start Time *</label>
+                          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Start Time *</label>
                           <input
                             type="time"
                             value={eventDate.startTime}
                             onChange={e => updateEventDate(index, 'startTime', e.target.value)}
-                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-600 mb-1 block">End Time *</label>
+                          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">End Time *</label>
                           <input
                             type="time"
                             value={eventDate.endTime}
                             onChange={e => updateEventDate(index, 'endTime', e.target.value)}
-                            className="w-full rounded-lg border-gray-200 bg-stone-100/50 focus:bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
                           />
                         </div>
                       </div>
@@ -458,8 +458,8 @@ export default function ProposeEvent(): JSX.Element {
           {/* ═══ STEP: DOMAINS ═══ */}
           {step === 'domains' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">PCIDA Domain Alignment</h2>
-              <p className="text-sm text-gray-500 mb-6">Which creative domains does this event support? (Select all that apply)</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">PCIDA Domain Alignment</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Which creative domains does this event support? (Select all that apply)</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {PCIDA_DOMAINS.map((domain) => {
@@ -470,8 +470,8 @@ export default function ProposeEvent(): JSX.Element {
                       key={domain}
                       className={`group relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-50/80 shadow-md shadow-amber-100/50'
-                          : 'border-gray-200 bg-gray-50/50 hover:border-amber-300 hover:bg-amber-50/30'
+                          ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-900/30 shadow-md shadow-amber-100/50 dark:shadow-amber-900/30'
+                          : 'border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-800/50 hover:border-amber-300 dark:hover:border-amber-600 hover:bg-amber-50/30 dark:hover:bg-amber-900/20'
                       }`}
                     >
                       <input
@@ -482,14 +482,14 @@ export default function ProposeEvent(): JSX.Element {
                       />
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                          isSelected ? 'border-amber-500 bg-amber-500' : 'border-gray-300 bg-white group-hover:border-amber-400'
+                          isSelected ? 'border-amber-500 bg-amber-500' : 'border-gray-300 dark:border-slate-500 bg-white dark:bg-slate-700 group-hover:border-amber-400 dark:group-hover:border-amber-500'
                         }`}>
                           {isSelected && <Check className="w-3 h-3 text-white" />}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             {Icon && <Icon className="h-4 w-4 text-amber-500" />}
-                            <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                            <span className={`text-sm font-medium ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                               {domain}
                             </span>
                           </div>
@@ -500,9 +500,9 @@ export default function ProposeEvent(): JSX.Element {
                 })}
               </div>
 
-              <div className="mt-4 p-3 rounded-xl bg-amber-50/50 border border-amber-100 text-xs text-amber-700">
+              <div className="mt-4 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
                 <p className="font-medium mb-1">Selected: {selectedDomains.length} domain{selectedDomains.length !== 1 ? 's' : ''}</p>
-                <p className="text-amber-600">Select at least one creative domain that best describes your event.</p>
+                <p className="text-amber-600 dark:text-amber-400">Select at least one creative domain that best describes your event.</p>
               </div>
             </div>
           )}
@@ -510,24 +510,24 @@ export default function ProposeEvent(): JSX.Element {
           {/* ═══ STEP: REVIEW ═══ */}
           {step === 'review' && (
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Review Your Proposal</h2>
-              <p className="text-sm text-gray-500 mb-6">Double-check everything before submitting</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Review Your Proposal</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Double-check everything before submitting</p>
 
               <div className="space-y-4">
                 {/* Organizer info */}
-                <div className="rounded-2xl bg-gray-50/80 p-4">
-                  <h3 className="font-bold text-gray-900 text-sm mb-2">Organizer Details</h3>
+                <div className="rounded-2xl bg-gray-50/80 dark:bg-slate-900/50 p-4">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-2">Organizer Details</h3>
                   <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.fullName}</span></div>
-                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.email}</span></div>
-                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.phone}</span></div>
-                    {form.organization && <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.organization}</span></div>}
-                    {form.role && <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900">{form.role}</span></div>}
+                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900 dark:text-white">{form.fullName}</span></div>
+                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-amber-500" /><span className="text-gray-900 dark:text-white">{form.email}</span></div>
+                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-amber-500" /><span className="text-gray-900 dark:text-white">{form.phone}</span></div>
+                    {form.organization && <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-amber-500" /><span className="text-gray-900 dark:text-white">{form.organization}</span></div>}
+                    {form.role && <div className="flex items-center gap-2"><User className="h-4 w-4 text-amber-500" /><span className="text-gray-900 dark:text-white">{form.role}</span></div>}
                   </div>
                 </div>
 
                 {/* Event info */}
-                <div className="rounded-2xl bg-gray-50/80 p-4">
+                <div className="rounded-2xl bg-gray-50/80 dark:bg-slate-900/50 p-4">
                   <h3 className="font-bold text-gray-900 text-lg mb-1">{form.title}</h3>
                   {form.description && <p className="text-sm text-gray-600 mb-2">{form.description}</p>}
                   <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -545,8 +545,8 @@ export default function ProposeEvent(): JSX.Element {
                 </div>
 
                 {/* PCIDA Domains */}
-                <div className="rounded-2xl bg-gray-50/80 p-4">
-                  <h3 className="font-bold text-gray-900 text-sm mb-2">Creative Domains</h3>
+                <div className="rounded-2xl bg-gray-50/80 dark:bg-slate-900/50 p-4">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-2">Creative Domains</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedDomains.map((domain) => {
                       const Icon = DOMAIN_ICONS[domain];

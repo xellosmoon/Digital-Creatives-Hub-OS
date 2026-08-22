@@ -107,8 +107,8 @@ export default function TeamManagement(): JSX.Element {
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Team Management</h1>
-            <p className="mt-1 text-gray-600">Manage team members displayed on the About Us page</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Team Management</h1>
+            <p className="mt-1 text-gray-600 dark:text-gray-400">Manage team members displayed on the About Us page</p>
           </div>
           <button
             onClick={handleAdd}
@@ -126,57 +126,57 @@ export default function TeamManagement(): JSX.Element {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
         </div>
       ) : team.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-2xl">
-          <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 mb-4">No team members yet</p>
+        <div className="text-center py-12 bg-gray-50 rounded-2xl dark:bg-slate-800">
+          <Users className="h-12 w-12 text-gray-300 mx-auto mb-3 dark:text-gray-600" />
+          <p className="text-gray-500 mb-4 dark:text-gray-400">No team members yet</p>
           <button
             onClick={handleAdd}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add your first team member
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <thead className="bg-gray-50 dark:bg-slate-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   Name & Position
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   Contact
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   Bio
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   <Star className="w-4 h-4 inline" />
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   <ArrowUpDown className="w-4 h-4 inline" />
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-800 dark:divide-slate-700">
               {team.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 transition-colors dark:hover:bg-slate-700/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                         {member.name.charAt(0)}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-semibold text-gray-900">{member.name}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{member.name}</div>
                         {member.designations.map((des, idx) => (
                           <div key={idx} className="mt-0.5">
                             <div className="text-sm text-[#F59E0B] font-medium">{des.position}</div>
                             {des.department && (
-                              <div className="text-xs text-gray-500">{des.department}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{des.department}</div>
                             )}
                           </div>
                         ))}
@@ -184,45 +184,45 @@ export default function TeamManagement(): JSX.Element {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {member.phone && (
-                        <div className="text-sm text-gray-600">{member.phone}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{member.phone}</div>
                       )}
                       {member.email && (
-                        <div className="text-sm text-gray-600 truncate max-w-xs">{member.email}</div>
+                        <div className="text-sm text-gray-600 truncate max-w-xs dark:text-gray-400">{member.email}</div>
                       )}
                       {!member.phone && !member.email && (
-                        <span className="text-gray-400 italic text-sm">No contact info</span>
+                        <span className="text-gray-400 italic text-sm dark:text-gray-500">No contact info</span>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 max-w-md truncate">
-                      {member.bio || <span className="text-gray-400 italic">No bio</span>}
+                    <div className="text-sm text-gray-600 max-w-md truncate dark:text-gray-400">
+                      {member.bio || <span className="text-gray-400 italic dark:text-gray-500">No bio</span>}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     {member.is_featured && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                         <Star className="w-3 h-3 mr-1" />
                         Featured
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-sm font-mono text-gray-600">{member.sort_order}</span>
+                    <span className="text-sm font-mono text-gray-600 dark:text-gray-400">{member.sort_order}</span>
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
                       onClick={() => handleEdit(member)}
-                      className="text-primary-600 hover:text-primary-900 mr-4"
+                      className="text-primary-600 hover:text-primary-900 mr-4 dark:text-primary-400 dark:hover:text-primary-300"
                       title="Edit"
                     >
                       <Edit2 className="w-4 h-4 inline" />
                     </button>
                     <button
                       onClick={() => handleDelete(member)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4 inline" />

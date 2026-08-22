@@ -28,7 +28,10 @@ export default function ManualBorrowModal({
 }: ManualBorrowModalProps): JSX.Element {
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
-  const [borrowerEmail, setBorrowerEmail] = useState('');
+  const [borrowerName, setBorrowerName] = useState('');
+  const [borrowerOffice, setBorrowerOffice] = useState('');
+  const [borrowerContact, setBorrowerContact] = useState('');
+  const [deviceOperatorName, setDeviceOperatorName] = useState('');
   const [location, setLocation] = useState<BorrowLocation>('inside');
   const [destinationLocation, setDestinationLocation] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -36,16 +39,51 @@ export default function ManualBorrowModal({
   const [purpose, setPurpose] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [liveAvailableIds, setLiveAvailableIds] = useState<string[] | null>(null);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
-  const availableItems = items.filter(
-    (i) => i.asset_id === selectedAssetId && i.status === 'available'
-  );
+  // Real-time, conflict-aware availability for the chosen window — replaces
+  // the old "any item with status='available'" snapshot, which never
+  // checked whether the unit was already pending/approved/active for an
+  // overlapping time range.
+  const availableItems = liveAvailableIds
+    ? items.filter((i) => liveAvailableIds.includes(i.id))
+    : [];
 
   // Reset item selection when asset changes
   useEffect(() => {
     setSelectedItemId('');
+    setLiveAvailableIds(null);
   }, [selectedAssetId]);
+
+  useEffect(() => {
+    if (!selectedAssetId || !startTime || !endTime) {
+      setLiveAvailableIds(null);
+      return;
+    }
+    const s = new Date(startTime);
+    const e = new Date(endTime);
+    if (e <= s) {
+      setLiveAvailableIds(null);
+      return;
+    }
+    setCheckingAvailability(true);
+    (async () => {
+      const { data, error } = await supabase.rpc('get_available_items', {
+        p_asset_id: selectedAssetId,
+        p_start: s.toISOString(),
+        p_end: e.toISOString(),
+      });
+      if (error) {
+        console.error('Availability check failed', error);
+        setLiveAvailableIds([]);
+      } else {
+        setLiveAvailableIds((data ?? []).map((r: { item_id: string }) => r.item_id));
+      }
+      setCheckingAvailability(false);
+    })();
+  }, [selectedAssetId, startTime, endTime]);
 
   // Auto-set location based on asset
   useEffect(() => {
@@ -103,25 +141,28 @@ export default function ManualBorrowModal({
       toast.error('Please specify the location/destination for this equipment.');
       return;
     }
+    if (!borrowerName.trim() || !borrowerContact.trim()) {
+      toast.error('Please enter the borrower\'s name and contact number.');
+      return;
+    }
     if (!estimate) {
       toast.error('Cannot calculate price. Adjust dates.');
+      return;
+    }
+    // The chosen unit may have just been taken while this form was open —
+    // re-verify against the live-checked list before submitting.
+    if (!liveAvailableIds?.includes(selectedItemId)) {
+      toast.error('That unit is no longer available for this time window. Please re-check availability.');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Resolve borrower user_id from email if provided
-      const userId: string | null = null;
-      if (borrowerEmail.trim()) {
-        // Try to find user by email in auth (admin can see via profiles join)
-        // Fallback: store null and record the email in notes
-      }
-
       // Get current admin user for approved_by
       const { data: { user: adminUser } } = await supabase.auth.getUser();
 
       const { error } = await supabase.from('borrowings').insert({
-        user_id: userId,
+        user_id: null,
         item_id: selectedItemId,
         asset_id: selectedAssetId,
         usage_type: resolvedLoc,
@@ -133,9 +174,13 @@ export default function ManualBorrowModal({
         total_price: estimate.totalPrice,
         status: 'active', // Manual borrow = immediately active
         purpose: purpose || null,
-        notes: borrowerEmail
-          ? `[Walk-in] Borrower: ${borrowerEmail}${notes ? ' | ' + notes : ''}`
-          : notes || null,
+        notes: notes || null,
+        borrower_name: borrowerName.trim(),
+        borrower_office: borrowerOffice.trim() || null,
+        borrower_contact: borrowerContact.trim(),
+        device_operator_name: deviceOperatorName.trim() || borrowerName.trim(),
+        late_fee_rate: selectedAsset?.default_late_fee_rate ?? null,
+        late_fee_unit: selectedAsset?.default_late_fee_unit ?? null,
         approved_by: adminUser?.id ?? null,
       });
 
@@ -153,41 +198,75 @@ export default function ManualBorrowModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-primary-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Manual Borrow (Walk-in)</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manual Borrow (Walk-in)</h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5 text-gray-500" />
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-5">
-          {/* Borrower email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <UserPlus className="inline h-4 w-4 mr-1 -mt-0.5" />
-              Borrower Email / Name
-            </label>
-            <input
-              type="text"
-              value={borrowerEmail}
-              onChange={(e) => setBorrowerEmail(e.target.value)}
-              placeholder="Walk-in borrower email or name"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+          {/* Borrower details */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <UserPlus className="inline h-4 w-4 mr-1 -mt-0.5" />
+                Borrower Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={borrowerName}
+                onChange={(e) => setBorrowerName(e.target.value)}
+                placeholder="Walk-in borrower's full name"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Office / Agency</label>
+              <input
+                type="text"
+                value={borrowerOffice}
+                onChange={(e) => setBorrowerOffice(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Contact Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={borrowerContact}
+                onChange={(e) => setBorrowerContact(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Device Operator (if different from borrower)
+              </label>
+              <input
+                type="text"
+                value={deviceOperatorName}
+                onChange={(e) => setDeviceOperatorName(e.target.value)}
+                placeholder={borrowerName || 'Same as borrower'}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
           </div>
 
           {/* Asset select */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Equipment</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Equipment</label>
             <select
               value={selectedAssetId}
               onChange={(e) => setSelectedAssetId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select equipment…</option>
               {assets.filter((a) => a.is_active).map((a) => (
@@ -196,27 +275,32 @@ export default function ManualBorrowModal({
                 </option>
               ))}
             </select>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Set the start/end time below, then pick the specific unit.</p>
           </div>
 
           {/* Mandatory notice */}
           {selectedAsset?.requires_notice && (
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
               <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-700 font-medium">{selectedAsset.requires_notice}</p>
+              <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">{selectedAsset.requires_notice}</p>
             </div>
           )}
 
           {/* Unit select */}
           {selectedAssetId && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Specific Unit</label>
-              {availableItems.length === 0 ? (
-                <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">No available units for this asset.</p>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Specific Unit</label>
+              {!startTime || !endTime ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded-lg">Set start/end time first.</p>
+              ) : checkingAvailability ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded-lg">Checking availability…</p>
+              ) : availableItems.length === 0 ? (
+                <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">No units free for this window.</p>
               ) : (
                 <select
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select unit…</option>
                   {availableItems.map((i) => (
@@ -232,7 +316,7 @@ export default function ManualBorrowModal({
           {/* Location toggle */}
           {selectedAsset && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <MapPin className="inline h-4 w-4 mr-1 -mt-0.5" />
                 Usage Location
               </label>
@@ -243,8 +327,8 @@ export default function ManualBorrowModal({
                     onClick={() => setLocation('inside')}
                     className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                       location === 'inside'
-                        ? 'bg-blue-50 border-blue-300 text-blue-700'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <Building2 className="h-4 w-4" />
@@ -255,8 +339,8 @@ export default function ManualBorrowModal({
                     onClick={() => setLocation('outside')}
                     className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                       location === 'outside'
-                        ? 'bg-purple-50 border-purple-300 text-purple-700'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300'
+                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -264,7 +348,7 @@ export default function ManualBorrowModal({
                   </button>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-slate-900 px-3 py-2 rounded-lg">
                   {selectedAsset.location_mode === 'inside_only'
                     ? 'This equipment is inside-only.'
                     : 'This equipment is for outside use.'}
@@ -276,7 +360,7 @@ export default function ManualBorrowModal({
           {/* Destination Location */}
           {selectedAsset && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <MapPin className="inline h-4 w-4 mr-1 -mt-0.5" />
                 Specific Location / Destination <span className="text-red-500">*</span>
               </label>
@@ -285,10 +369,10 @@ export default function ManualBorrowModal({
                 value={destinationLocation}
                 onChange={(e) => setDestinationLocation(e.target.value)}
                 placeholder={destinationPlaceholder}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 Where exactly is this equipment going?
               </p>
             </div>
@@ -297,30 +381,30 @@ export default function ManualBorrowModal({
           {/* Date / Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start</label>
               <input
                 type="datetime-local"
                 value={startTime}
                 min={nowISO}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End</label>
               <input
                 type="datetime-local"
                 value={endTime}
                 min={startTime || nowISO}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
 
           {/* Duration */}
           {durationText && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <Clock className="h-4 w-4" />
               Duration: <span className="font-medium">{durationText}</span>
             </div>
@@ -328,17 +412,17 @@ export default function ManualBorrowModal({
 
           {/* Price estimator */}
           {estimate && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-700">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                   <DollarSign className="h-5 w-5" />
                   <span className="text-sm font-medium">Total Fee</span>
                 </div>
-                <span className="text-xl font-bold text-green-700">
+                <span className="text-xl font-bold text-green-700 dark:text-green-300">
                   {formatPeso(estimate.totalPrice)}
                 </span>
               </div>
-              <p className="text-xs text-green-600 mt-1">
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                 Tier: {estimate.matchedTier.duration_label} @ {formatPeso(estimate.matchedTier.price)}
               </p>
             </div>
@@ -352,8 +436,8 @@ export default function ManualBorrowModal({
                   key={t.id}
                   className={`text-xs px-2.5 py-1 rounded-full border ${
                     estimate?.matchedTier.id === t.id
-                      ? 'bg-primary-100 border-primary-300 text-primary-700 font-semibold'
-                      : 'bg-gray-50 border-gray-200 text-gray-600'
+                      ? 'bg-primary-100 dark:bg-primary-900/30 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 font-semibold'
+                      : 'bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400'
                   }`}
                 >
                   {t.duration_label}: {formatPeso(t.price)}
@@ -364,34 +448,34 @@ export default function ManualBorrowModal({
 
           {/* Purpose */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purpose</label>
             <input
               type="text"
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               placeholder="e.g. Event coverage, Photo shoot"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Additional details…"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
           >
             Cancel
           </button>

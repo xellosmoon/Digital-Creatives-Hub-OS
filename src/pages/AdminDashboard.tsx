@@ -399,25 +399,25 @@ export default function AdminDashboard(): JSX.Element {
   const floorList = floorView === 'pending' ? pending : floorView === 'active' ? active : checkedOut;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 bg-slate-50/50 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 bg-slate-50/50 dark:bg-slate-900 min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="mt-1 text-gray-600">Secretariat Gatekeeper &amp; Booking Management</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+            <p className="mt-1 text-gray-600 dark:text-gray-400">Secretariat Gatekeeper &amp; Booking Management</p>
           </div>
           <div className="flex items-center flex-wrap gap-2">
             {pendingCounts.total > 0 && (
               <div className="relative">
-                <Bell className="h-6 w-6 text-amber-500 animate-bounce" />
+                <Bell className="h-6 w-6 text-amber-500 dark:text-amber-400 animate-bounce" />
                 <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
                   {pendingCounts.total > 99 ? '99+' : pendingCounts.total}
                 </span>
                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-ping"></span>
               </div>
             )}
-            <button onClick={handleRefresh} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <button onClick={handleRefresh} className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700">
               <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
             </button>
           </div>
@@ -425,12 +425,12 @@ export default function AdminDashboard(): JSX.Element {
         {pendingCounts.total > 0 && (
           <div className="mt-3 flex items-center gap-4 text-sm">
             {pendingCounts.bookings > 0 && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium">
                 {pendingCounts.bookings} pending booking{pendingCounts.bookings > 1 ? 's' : ''}
               </span>
             )}
             {pendingCounts.events > 0 && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">
                 {pendingCounts.events} event proposal{pendingCounts.events > 1 ? 's' : ''}
               </span>
             )}
@@ -440,104 +440,104 @@ export default function AdminDashboard(): JSX.Element {
 
       {/* Management Navigation Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
-        <Link to="/admin/bookings" className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+        <Link to="/admin/bookings" className="relative flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
           {pendingCounts.bookings > 0 && (
             <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
               {pendingCounts.bookings > 99 ? '99+' : pendingCounts.bookings}
             </span>
           )}
-          <div className="p-3 bg-cyan-50 rounded-xl group-hover:bg-cyan-100 transition-colors mb-3">
-            <CreditCard className="h-6 w-6 text-cyan-600" />
+          <div className="p-3 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/50 transition-colors mb-3">
+            <CreditCard className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Bookings</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Bookings</span>
         </Link>
-        <Link to="/admin/spaces" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors mb-3">
-            <Building2 className="h-6 w-6 text-blue-600" />
+        <Link to="/admin/spaces" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors mb-3">
+            <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Spaces</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Spaces</span>
         </Link>
-        <Link to="/admin/events" className="relative flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
+        <Link to="/admin/events" className="relative flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
           {pendingCounts.events > 0 && (
             <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center">
               {pendingCounts.events > 99 ? '99+' : pendingCounts.events}
             </span>
           )}
-          <div className="p-3 bg-purple-50 rounded-xl group-hover:bg-purple-100 transition-colors mb-3">
-            <CalendarDays className="h-6 w-6 text-purple-600" />
+          <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-colors mb-3">
+            <CalendarDays className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Events</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Events</span>
         </Link>
-        <Link to="/admin/seats" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors mb-3">
-            <Armchair className="h-6 w-6 text-emerald-600" />
+        <Link to="/admin/seats" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 transition-colors mb-3">
+            <Armchair className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Seats</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Seats</span>
         </Link>
-        <Link to="/admin/gadgets" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-amber-50 rounded-xl group-hover:bg-amber-100 transition-colors mb-3">
-            <Package className="h-6 w-6 text-amber-600" />
+        <Link to="/admin/gadgets" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors mb-3">
+            <Package className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Gadgets</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Gadgets</span>
         </Link>
-        <Link to="/admin/gallery" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-pink-50 rounded-xl group-hover:bg-pink-100 transition-colors mb-3">
-            <Image className="h-6 w-6 text-pink-600" />
+        <Link to="/admin/gallery" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded-xl group-hover:bg-pink-100 dark:group-hover:bg-pink-900/50 transition-colors mb-3">
+            <Image className="h-6 w-6 text-pink-600 dark:text-pink-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Gallery</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Gallery</span>
         </Link>
-        <Link to="/admin/analytics" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-rose-50 rounded-xl group-hover:bg-rose-100 transition-colors mb-3">
-            <BarChart3 className="h-6 w-6 text-rose-600" />
+        <Link to="/admin/analytics" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-xl group-hover:bg-rose-100 dark:group-hover:bg-rose-900/50 transition-colors mb-3">
+            <BarChart3 className="h-6 w-6 text-rose-600 dark:text-rose-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Analytics</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Analytics</span>
         </Link>
-        <Link to="/admin/team" className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition-all group">
-          <div className="p-3 bg-indigo-50 rounded-xl group-hover:bg-indigo-100 transition-colors mb-3">
-            <Users className="h-6 w-6 text-indigo-600" />
+        <Link to="/admin/team" className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all group">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors mb-3">
+            <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <span className="text-sm font-bold text-gray-700">Team</span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Team</span>
         </Link>
       </div>
 
       {/* ── Capacity & Floor Summary Row ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Capacity */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-500">Today's Seats</span>
-            <Users className="h-5 w-5 text-violet-500" />
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Today's Seats</span>
+            <Users className="h-5 w-5 text-violet-500 dark:text-violet-400" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className={`text-3xl font-extrabold ${actualOccupied >= 28 ? 'text-red-600' : 'text-gray-900'}`}>
+            <span className={`text-3xl font-extrabold ${actualOccupied >= 28 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
               {actualOccupied}
             </span>
-            <span className="text-lg text-gray-400">/ 28</span>
+            <span className="text-lg text-gray-400 dark:text-gray-500">/ 28</span>
           </div>
           {actualOccupied >= 28 && (
-            <p className="text-xs text-red-500 mt-1 font-medium">Capacity reached — Override available</p>
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1 font-medium">Capacity reached — Override available</p>
           )}
         </div>
 
         {/* Active on Floor */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 p-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-500">Active on Floor</span>
-            <Activity className="h-5 w-5 text-emerald-500" />
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Active on Floor</span>
+            <Activity className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
           </div>
-          <span className="text-3xl font-extrabold text-gray-900">{active.length}</span>
-          <p className="text-xs text-gray-400 mt-1">DTI logging — no limit</p>
+          <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{active.length}</span>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">DTI logging — no limit</p>
         </div>
 
         {/* Pending Entrance */}
-        <div className={`rounded-2xl shadow-sm border p-5 ${pending.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-2xl shadow-sm border p-5 ${pending.length > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700'}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-500">Pending Entrance</span>
-            <Clock className={`h-5 w-5 ${pending.length > 0 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}`} />
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Pending Entrance</span>
+            <Clock className={`h-5 w-5 ${pending.length > 0 ? 'text-amber-500 dark:text-amber-400 animate-pulse' : 'text-gray-400 dark:text-gray-500'}`} />
           </div>
-          <span className={`text-3xl font-extrabold ${pending.length > 0 ? 'text-amber-600' : 'text-gray-900'}`}>{pending.length}</span>
+          <span className={`text-3xl font-extrabold ${pending.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>{pending.length}</span>
           {pending.length > 0 && (
-            <p className="text-xs text-amber-600 mt-1 font-medium">Awaiting your confirmation</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">Awaiting your confirmation</p>
           )}
         </div>
       </div>
@@ -546,35 +546,35 @@ export default function AdminDashboard(): JSX.Element {
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           onClick={() => setShowManualCheckIn(true)}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-200 transition-all"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-200 dark:shadow-emerald-900/40 transition-all"
         >
           <UserPlus className="h-4 w-4 mr-2" />
           Manual Check-In
         </button>
         <button
           onClick={() => setShowForceBook(true)}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-md shadow-red-200 transition-all"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-md shadow-red-200 dark:shadow-red-900/40 transition-all"
         >
           <Zap className="h-4 w-4 mr-2" />
           Force Book (Override)
         </button>
         <button
           onClick={handleCheckOutEveryone}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-white border border-blue-200 hover:bg-blue-50 shadow-sm transition-all"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 shadow-sm transition-all"
         >
-          <LogOut className="h-4 w-4 mr-2 text-blue-500" />
+          <LogOut className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
           Check Out Everyone
         </button>
         <button
           onClick={handleExportDTI}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm transition-all"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 shadow-sm transition-all"
         >
           <Download className="h-4 w-4 mr-2" />
           DTI Export
         </button>
         <button
           onClick={handleExportBookings}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm transition-all"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 shadow-sm transition-all"
         >
           <Download className="h-4 w-4 mr-2" />
           Export Bookings
@@ -582,10 +582,10 @@ export default function AdminDashboard(): JSX.Element {
       </div>
 
       {/* ── Main Tab Switcher ── */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
         <button
           onClick={() => setActiveTab('floor')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'floor' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'floor' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
         >
           <Activity className="h-4 w-4 inline mr-1.5" />
           Live Floor ({active.length + pending.length})
@@ -593,7 +593,7 @@ export default function AdminDashboard(): JSX.Element {
         </button>
         <button
           onClick={() => setActiveTab('bookings')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'bookings' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'bookings' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
         >
           <CalendarDays className="h-4 w-4 inline mr-1.5" />Bookings ({bookings.length})
         </button>
@@ -614,8 +614,8 @@ export default function AdminDashboard(): JSX.Element {
                 onClick={() => setFloorView(tab.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   floorView === tab.key
-                    ? `bg-${tab.color}-100 text-${tab.color}-700 ring-1 ring-${tab.color}-300`
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    ? `bg-${tab.color}-100 dark:bg-${tab.color}-900/30 text-${tab.color}-700 dark:text-${tab.color}-300 ring-1 ring-${tab.color}-300 dark:ring-${tab.color}-700`
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
                 }`}
               >
                 {tab.label} ({tab.count})
@@ -626,16 +626,16 @@ export default function AdminDashboard(): JSX.Element {
           {/* Floor list */}
           <div className="space-y-3">
             {floorList.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl">
-                <Users className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">
+              <div className="text-center py-12 bg-gray-50 dark:bg-slate-800 rounded-2xl">
+                <Users className="h-10 w-10 text-gray-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-gray-500 dark:text-gray-400">
                   {floorView === 'pending' ? 'No one waiting for entrance' : floorView === 'active' ? 'No active users on floor' : 'No checkouts today'}
                 </p>
               </div>
             ) : (
               floorList.map((a) => (
                 <div key={a.id} className={`rounded-xl border p-4 flex items-center gap-4 transition-shadow hover:shadow-sm ${
-                  a.status === 'pending_entrance' ? 'bg-amber-50 border-amber-200' : a.status === 'active' ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-70'
+                  a.status === 'pending_entrance' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : a.status === 'active' ? 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700' : 'bg-gray-50 dark:bg-slate-800/60 border-gray-200 dark:border-slate-700 opacity-70'
                 }`}>
                   {/* Avatar */}
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
@@ -647,23 +647,23 @@ export default function AdminDashboard(): JSX.Element {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900 text-sm">{a.full_name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white text-sm">{a.full_name}</span>
                       {a.is_walk_in && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">Walk-in</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold">Walk-in</span>
                       )}
                       {a.event && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 font-semibold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-semibold">
                           {a.event.title || 'Event'}
                         </span>
                       )}
                       {a.status === 'active' && a.confirmed_at && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold inline-flex items-center gap-0.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-semibold inline-flex items-center gap-0.5">
                           <Timer className="h-2.5 w-2.5" />
                           {timeElapsed(a.confirmed_at)}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       <span>{a.creative_domains?.join(', ') || a.creative_domain || '-'}</span>
                       {a.organization && <span>&bull; {a.organization}</span>}
                     </div>
@@ -672,11 +672,11 @@ export default function AdminDashboard(): JSX.Element {
                   {/* Time + Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-right mr-1">
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         <Clock className="h-3 w-3 inline mr-0.5" />
                         {format(new Date(a.check_in_time), 'h:mm a')}
                       </div>
-                      <div className="text-[10px] text-gray-300 font-mono">{a.mobile_number}</div>
+                      <div className="text-[10px] text-gray-300 dark:text-gray-600 font-mono">{a.mobile_number}</div>
                     </div>
 
                     {a.status === 'pending_entrance' && (
@@ -712,7 +712,7 @@ export default function AdminDashboard(): JSX.Element {
                         </button>
                         <button
                           onClick={() => handleCheckout(a.id, a.full_name)}
-                          className="px-3 py-2 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all active:scale-95"
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-slate-600 transition-all active:scale-95"
                         >
                           <LogOut className="h-3.5 w-3.5 inline mr-1" />
                           Check Out
@@ -733,7 +733,7 @@ export default function AdminDashboard(): JSX.Element {
           {/* Filters */}
           <div className="mb-6">
             <div className="flex items-center space-x-4">
-              <Filter className="h-5 w-5 text-gray-400" />
+              <Filter className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               <nav className="flex space-x-4">
                 {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
                   <button
@@ -741,8 +741,8 @@ export default function AdminDashboard(): JSX.Element {
                     onClick={() => setFilter(status)}
                     className={`px-3 py-2 text-sm font-medium rounded-md ${
                       filter === status
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -759,8 +759,8 @@ export default function AdminDashboard(): JSX.Element {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
               </div>
             ) : bookings.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">No {filter !== 'all' ? filter : ''} bookings found</p>
+              <div className="text-center py-12 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <p className="text-gray-500 dark:text-gray-400">No {filter !== 'all' ? filter : ''} bookings found</p>
               </div>
             ) : (
               bookings.map((booking) => (
@@ -778,27 +778,27 @@ export default function AdminDashboard(): JSX.Element {
       {/* ═══ MANUAL CHECK-IN MODAL ═══ */}
       {showManualCheckIn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Manual Check-In</h2>
-                <p className="text-xs text-gray-500">Walk-in — skips kiosk, directly active</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Manual Check-In</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Walk-in — skips kiosk, directly active</p>
               </div>
-              <button onClick={() => setShowManualCheckIn(false)} className="p-1 rounded-lg hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-400" />
+              <button onClick={() => setShowManualCheckIn(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+                <X className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Mobile *</label>
-                <input type="tel" inputMode="numeric" value={manualForm.mobile} onChange={e => setManualForm(p => ({ ...p, mobile: e.target.value }))} placeholder="09171234567" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Mobile *</label>
+                <input type="tel" inputMode="numeric" value={manualForm.mobile} onChange={e => setManualForm(p => ({ ...p, mobile: e.target.value }))} placeholder="09171234567" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Full Name *</label>
-                <input type="text" value={manualForm.name} onChange={e => setManualForm(p => ({ ...p, name: e.target.value }))} placeholder="Juan Dela Cruz" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Full Name *</label>
+                <input type="text" value={manualForm.name} onChange={e => setManualForm(p => ({ ...p, name: e.target.value }))} placeholder="Juan Dela Cruz" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Creative Domains</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Creative Domains</label>
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                   {PCIDA_DOMAINS.map((domain) => (
                     <button
@@ -815,8 +815,8 @@ export default function AdminDashboard(): JSX.Element {
                       }}
                       className={`text-left px-2 py-1.5 rounded text-xs ${
                         manualForm.creative_domains.includes(domain)
-                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                          ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700'
+                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
                       }`}
                     >
                       {manualForm.creative_domains.includes(domain) && '✓ '} {domain}
@@ -825,11 +825,11 @@ export default function AdminDashboard(): JSX.Element {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Organization</label>
-                <input type="text" value={manualForm.organization} onChange={e => setManualForm(p => ({ ...p, organization: e.target.value }))} placeholder="Optional" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Organization</label>
+                <input type="text" value={manualForm.organization} onChange={e => setManualForm(p => ({ ...p, organization: e.target.value }))} placeholder="Optional" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Purpose of Visit</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Purpose of Visit</label>
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                   {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
                     <button
@@ -846,8 +846,8 @@ export default function AdminDashboard(): JSX.Element {
                       }}
                       className={`text-left px-2 py-1.5 rounded text-xs ${
                         manualForm.purpose_of_visit.includes(purpose)
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
                       }`}
                     >
                       {manualForm.purpose_of_visit.includes(purpose) && '✓ '} {purpose}
@@ -856,8 +856,8 @@ export default function AdminDashboard(): JSX.Element {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Event Attendance (Optional)</label>
-                <select value={manualForm.eventId} onChange={e => setManualForm(p => ({ ...p, eventId: e.target.value }))} className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Event Attendance (Optional)</label>
+                <select value={manualForm.eventId} onChange={e => setManualForm(p => ({ ...p, eventId: e.target.value }))} className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                   <option value="">None / General Coworking</option>
                   {todayEvents.map(event => (
                     <option key={event.id} value={event.id}>
@@ -878,24 +878,24 @@ export default function AdminDashboard(): JSX.Element {
       {/* ═══ ASSIGN EVENT MODAL ═══ */}
       {showAssignEvent && selectedAttendance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Assign Event</h2>
-                <p className="text-xs text-gray-500">{selectedAttendance.full_name}</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Assign Event</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{selectedAttendance.full_name}</p>
               </div>
-              <button onClick={() => { setShowAssignEvent(false); setSelectedAttendance(null); }} className="p-1 rounded-lg hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-400" />
+              <button onClick={() => { setShowAssignEvent(false); setSelectedAttendance(null); }} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+                <X className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Select Event</label>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Select Event</label>
                 <select
                   id="assign-event-select"
                   value={selectedAttendance?.event_id || ''}
                   onChange={(e) => handleAssignEvent(e.target.value || null)}
-                  className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   disabled={assigningEvent}
                 >
                   <option value="">None / General Coworking</option>
@@ -906,14 +906,14 @@ export default function AdminDashboard(): JSX.Element {
                   ))}
                 </select>
                 {todayEvents.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-2">No events scheduled for today</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">No events scheduled for today</p>
                 )}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAssignEvent(null)}
                   disabled={assigningEvent}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 border border-gray-200 dark:border-slate-600 transition-all disabled:opacity-50"
                 >
                   Remove Event
                 </button>
@@ -936,48 +936,48 @@ export default function AdminDashboard(): JSX.Element {
       {/* ═══ FORCE BOOK MODAL ═══ */}
       {showForceBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Force Book</h2>
-                <p className="text-xs text-red-500 font-medium">Ignores 28-seat capacity limit</p>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Force Book</h2>
+                <p className="text-xs text-red-500 dark:text-red-400 font-medium">Ignores 28-seat capacity limit</p>
               </div>
-              <button onClick={() => setShowForceBook(false)} className="p-1 rounded-lg hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-400" />
+              <button onClick={() => setShowForceBook(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+                <X className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Name *</label>
-                <input type="text" value={forceForm.name} onChange={e => setForceForm(p => ({ ...p, name: e.target.value }))} placeholder="Full name" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Name *</label>
+                <input type="text" value={forceForm.name} onChange={e => setForceForm(p => ({ ...p, name: e.target.value }))} placeholder="Full name" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Email *</label>
-                <input type="email" value={forceForm.email} onChange={e => setForceForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Email *</label>
+                <input type="email" value={forceForm.email} onChange={e => setForceForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Date</label>
-                  <input type="date" value={forceForm.date} onChange={e => setForceForm(p => ({ ...p, date: e.target.value }))} className="w-full rounded-xl border-gray-200 px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Date</label>
+                  <input type="date" value={forceForm.date} onChange={e => setForceForm(p => ({ ...p, date: e.target.value }))} className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Seats</label>
-                  <input type="number" min={1} max={28} value={forceForm.seats} onChange={e => setForceForm(p => ({ ...p, seats: parseInt(e.target.value) || 1 }))} className="w-full rounded-xl border-gray-200 px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Seats</label>
+                  <input type="number" min={1} max={28} value={forceForm.seats} onChange={e => setForceForm(p => ({ ...p, seats: parseInt(e.target.value) || 1 }))} className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Start</label>
-                  <input type="time" value={forceForm.start} onChange={e => setForceForm(p => ({ ...p, start: e.target.value }))} className="w-full rounded-xl border-gray-200 px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Start</label>
+                  <input type="time" value={forceForm.start} onChange={e => setForceForm(p => ({ ...p, start: e.target.value }))} className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">End</label>
-                  <input type="time" value={forceForm.end} onChange={e => setForceForm(p => ({ ...p, end: e.target.value }))} className="w-full rounded-xl border-gray-200 px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">End</label>
+                  <input type="time" value={forceForm.end} onChange={e => setForceForm(p => ({ ...p, end: e.target.value }))} className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-3 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Override Reason</label>
-                <input type="text" value={forceForm.reason} onChange={e => setForceForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g. VIP guest, special event" className="w-full rounded-xl border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Override Reason</label>
+                <input type="text" value={forceForm.reason} onChange={e => setForceForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g. VIP guest, special event" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" />
               </div>
               <button onClick={handleForceBook} className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-md transition-all">
                 <Zap className="h-4 w-4 inline mr-2" />

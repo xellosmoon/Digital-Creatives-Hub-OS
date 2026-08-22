@@ -113,18 +113,18 @@ export default function HubGalleryMarquee(): JSX.Element {
   const row2Images = [...images.slice().reverse(), ...images.slice().reverse()];
 
   return (
-    <section className="py-12 md:py-16 bg-gradient-to-br from-slate-50 via-white to-amber-50 relative overflow-hidden">
+    <section className="py-12 md:py-16 bg-gradient-to-br from-slate-50 via-white to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/20 relative overflow-hidden">
       {/* Section Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 text-center">
         <div className="flex justify-center mb-4">
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-amber-100 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
             📸 Life at the Hub
           </span>
         </div>
-        <h2 className="text-3xl md:text-4xl font-bold text-[#0C2340] mb-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-[#0C2340] dark:text-white mb-3">
           Where Iligan's Creatives Build & Connect
         </h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           A peek inside our coworking spaces, podcast rooms, and community workshops.
         </p>
       </div>
@@ -132,10 +132,10 @@ export default function HubGalleryMarquee(): JSX.Element {
       {/* Marquee Container */}
       <div className="relative">
         {/* Left Edge Fade */}
-        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent z-10 pointer-events-none" />
-        
+        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent dark:from-slate-900 dark:via-slate-900/80 z-10 pointer-events-none" />
+
         {/* Right Edge Fade */}
-        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-50 via-amber-50/80 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-50 via-amber-50/80 to-transparent dark:from-amber-950/20 dark:via-amber-950/10 z-10 pointer-events-none" />
 
         {/* Row 1 - Scrolls Right */}
         <div className="flex overflow-hidden mb-6 hover:[animation-play-state:paused]">
@@ -181,7 +181,7 @@ function ImageCard({ image, onClick }: { image: GalleryImage; onClick: () => voi
       onClick={onClick}
       className="flex-shrink-0 w-72 mx-3 cursor-pointer group"
     >
-      <div className="relative h-48 md:h-56 rounded-2xl border border-slate-200/80 shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300">
+      <div className="relative h-48 md:h-56 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300">
         {/* Cloudinary Image */}
         <img
           src={image.cloudinary_url}
@@ -189,21 +189,21 @@ function ImageCard({ image, onClick }: { image: GalleryImage; onClick: () => voi
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        
+
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
+
         {/* Badge */}
         <div className="absolute bottom-3 left-3 right-3">
-          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm">
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-gray-800 dark:text-gray-100 shadow-sm">
             {image.badge}
           </span>
         </div>
 
         {/* Zoom Icon on Hover */}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md">
-            <ZoomIn className="w-4 h-4 text-gray-700" />
+          <div className="p-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-md">
+            <ZoomIn className="w-4 h-4 text-gray-700 dark:text-gray-300" />
           </div>
         </div>
       </div>
@@ -218,15 +218,15 @@ function LightboxModal({ image, onClose }: { image: GalleryImage; onClose: () =>
       onClick={onClose}
     >
       <div
-        className="relative max-w-4xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl"
+        className="relative max-w-4xl w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white dark:hover:bg-slate-700 transition-colors"
         >
-          <X className="w-6 h-6 text-gray-700" />
+          <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </button>
 
         {/* Image */}
@@ -237,13 +237,13 @@ function LightboxModal({ image, onClose }: { image: GalleryImage; onClose: () =>
         />
 
         {/* Caption */}
-        <div className="p-6 bg-gradient-to-r from-slate-50 to-amber-50">
+        <div className="p-6 bg-gradient-to-r from-slate-50 to-amber-50 dark:from-slate-900 dark:to-amber-950/20">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-2xl font-bold text-[#0C2340] mb-2">{image.title}</h3>
-              <p className="text-gray-600">{image.category}</p>
+              <h3 className="text-2xl font-bold text-[#0C2340] dark:text-white mb-2">{image.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400">{image.category}</p>
             </div>
-            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
               {image.badge}
             </span>
           </div>

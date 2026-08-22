@@ -79,31 +79,31 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
         <div className="space-y-4">
-          <div className="h-16 bg-gray-200 rounded"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
+          <div className="h-16 bg-gray-200 dark:bg-slate-700 rounded"></div>
+          <div className="h-16 bg-gray-200 dark:bg-slate-700 rounded"></div>
+          <div className="h-16 bg-gray-200 dark:bg-slate-700 rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
       <div className="flex items-center mb-6">
-        <Bell className="h-6 w-6 text-primary-600 mr-2" />
-        <h2 className="text-xl font-semibold text-gray-900">Notification Preferences</h2>
+        <Bell className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" />
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Notification Preferences</h2>
       </div>
 
       <div className="space-y-6">
         {/* Email Notifications */}
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <Mail className="h-5 w-5 text-gray-400 mr-3" />
+            <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Email Notifications</p>
-              <p className="text-sm text-gray-500">Receive booking updates via email</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Email Notifications</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Receive booking updates via email</p>
             </div>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -113,17 +113,17 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
               onChange={(e) => setPreferences({ ...preferences, email_notifications: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-300 after:border-gray-300 dark:after:border-slate-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
           </label>
         </div>
 
         {/* SMS Notifications */}
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <MessageSquare className="h-5 w-5 text-gray-400 mr-3" />
+            <MessageSquare className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
             <div>
-              <p className="text-sm font-medium text-gray-900">SMS Notifications</p>
-              <p className="text-sm text-gray-500">Receive booking updates via SMS</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">SMS Notifications</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Receive booking updates via SMS</p>
             </div>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -133,18 +133,18 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
               onChange={(e) => setPreferences({ ...preferences, sms_notifications: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-300 after:border-gray-300 dark:after:border-slate-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
           </label>
         </div>
 
         {/* Booking Reminders */}
-        <div className="border-t pt-6">
+        <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <Clock className="h-5 w-5 text-gray-400 mr-3" />
+              <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
               <div>
-                <p className="text-sm font-medium text-gray-900">Booking Reminders</p>
-                <p className="text-sm text-gray-500">Get reminded before your bookings</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Booking Reminders</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Get reminded before your bookings</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -154,19 +154,19 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
                 onChange={(e) => setPreferences({ ...preferences, booking_reminders: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              <div className="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-slate-300 after:border-gray-300 dark:after:border-slate-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             </label>
           </div>
 
           {preferences.booking_reminders && (
             <div className="ml-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Remind me before
               </label>
               <select
                 value={preferences.reminder_hours}
                 onChange={(e) => setPreferences({ ...preferences, reminder_hours: parseInt(e.target.value) })}
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
               >
                 <option value={1}>1 hour</option>
                 <option value={2}>2 hours</option>
@@ -184,7 +184,7 @@ export default function NotificationPreferences({ userId }: NotificationPreferen
         <button
           onClick={savePreferences}
           disabled={saving}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+          className="px-4 py-2 bg-primary-600 dark:bg-primary-700 text-white rounded-md hover:bg-primary-700 dark:hover:bg-primary-600 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Preferences'}
         </button>

@@ -73,7 +73,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* ── Poster / Header ─────────────────────────────────────── */}
         <div className="relative flex-shrink-0">
@@ -116,7 +116,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
 
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100"
+            className="absolute top-4 right-4 p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-slate-700"
           >
             <X className="h-5 w-5" />
           </button>
@@ -126,9 +126,9 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
         <div className="p-6 overflow-y-auto">
           {/* Title & organizer */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{event.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{event.title}</h1>
             {(event.organization || event.organizer) && (
-              <p className="text-lg text-gray-600">Hosted by {event.organization || event.organizer}</p>
+              <p className="text-lg text-gray-600 dark:text-gray-400">Hosted by {event.organization || event.organizer}</p>
             )}
           </div>
 
@@ -137,7 +137,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
             <div className="flex items-start space-x-3">
               <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Date</p>
+                <p className="font-medium text-gray-900 dark:text-white">Date</p>
                 {event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 1 ? (
                   <div className="space-y-1.5 mt-1 max-h-36 overflow-y-auto pr-2">
                     {event.event_dates.map((d: EventDate, idx: number) => {
@@ -146,7 +146,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
                         const dateParts = d.date.split('-');
                         const localDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
                         return (
-                          <div key={idx} className="text-sm text-gray-600 bg-gray-50 rounded px-2.5 py-1 border border-gray-100">
+                          <div key={idx} className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-slate-700/50 rounded px-2.5 py-1 border border-gray-100 dark:border-slate-600">
                             {format(localDate, 'EEE, MMM d, yyyy')} • {d.start_time} – {d.end_time}
                           </div>
                         );
@@ -156,7 +156,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
                     })}
                   </div>
                 ) : (
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 dark:text-gray-400">
                     {format(new Date(event.start_time), 'EEEE, MMMM d, yyyy')}
                   </p>
                 )}
@@ -167,8 +167,8 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
               <div className="flex items-start space-x-3">
                 <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="font-medium text-gray-900">Time</p>
-                  <p className="text-gray-600">
+                  <p className="font-medium text-gray-900 dark:text-white">Time</p>
+                  <p className="text-gray-600 dark:text-gray-400">
                     {format(new Date(event.start_time), 'h:mm a')} –{' '}
                     {format(new Date(event.end_time), 'h:mm a')}
                   </p>
@@ -179,12 +179,12 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Venue</p>
-                <p className="text-gray-600">
+                <p className="font-medium text-gray-900 dark:text-white">Venue</p>
+                <p className="text-gray-600 dark:text-gray-400">
                   {event.space?.name || 'Digital Creatives Hub'}
                 </p>
                 {event.space?.location && (
-                  <p className="text-sm text-gray-500">{event.space.location}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{event.space.location}</p>
                 )}
               </div>
             </div>
@@ -192,17 +192,17 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
             <div className="flex items-start space-x-3">
               <Users className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Status</p>
-                <p className="text-gray-600 capitalize">{event.status}</p>
+                <p className="font-medium text-gray-900 dark:text-white">Status</p>
+                <p className="text-gray-600 dark:text-gray-400 capitalize">{event.status}</p>
               </div>
             </div>
           </div>
 
           {/* ── Registration call-to-action ──────────────────────── */}
           {event.registration_link && (
-            <div className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-lg">
-              <h3 className="font-semibold text-primary-900 mb-2">Registration</h3>
-              <p className="text-sm text-primary-700 mb-3">
+            <div className="mb-6 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg">
+              <h3 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">Registration</h3>
+              <p className="text-sm text-primary-700 dark:text-primary-400 mb-3">
                 Spots may be limited — register early to secure your place.
               </p>
               <a
@@ -222,20 +222,20 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
           {/* Description */}
           {event.description && (
             <div className="mb-6">
-              <h3 className="font-medium text-gray-900 mb-2">About this Event</h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{event.description}</p>
+              <h3 className="font-medium text-gray-900 dark:text-white mb-2">About this Event</h3>
+              <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{event.description}</p>
             </div>
           )}
 
           {/* Contact information */}
           {(event.contact_email || event.contact_phone) && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-3">Contact Information</h3>
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-3">Contact Information</h3>
               <div className="space-y-2">
                 {event.contact_email && (
                   <a
                     href={`mailto:${event.contact_email}`}
-                    className="flex items-center text-primary-600 hover:text-primary-700"
+                    className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                   >
                     <Mail className="h-4 w-4 mr-2" />
                     {event.contact_email}
@@ -244,7 +244,7 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
                 {event.contact_phone && (
                   <a
                     href={`tel:${event.contact_phone}`}
-                    className="flex items-center text-primary-600 hover:text-primary-700"
+                    className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                   >
                     <Phone className="h-4 w-4 mr-2" />
                     {event.contact_phone}
@@ -259,8 +259,8 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
             <button
               onClick={handleShare}
               className="flex-1 inline-flex items-center justify-center px-6 py-3
-                         border border-gray-300 text-base font-medium rounded-md
-                         text-gray-700 bg-white hover:bg-gray-50"
+                         border border-gray-300 dark:border-slate-600 text-base font-medium rounded-md
+                         text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
             >
               <Share2 className="h-5 w-5 mr-2" />
               Share Event
@@ -269,8 +269,8 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
             <button
               onClick={handleFacebookShare}
               className="inline-flex items-center justify-center px-4 py-3
-                         border border-gray-300 text-base font-medium rounded-md
-                         text-gray-700 bg-white hover:bg-gray-50"
+                         border border-gray-300 dark:border-slate-600 text-base font-medium rounded-md
+                         text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
             >
               <Facebook className="h-5 w-5" />
             </button>
@@ -278,11 +278,11 @@ export default function EventDetailsModal({ event, onClose, onBookSpace }: Event
 
           {/* Book Other Spaces Link */}
           {onBookSpace && (
-            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-              <p className="text-sm text-gray-600 mb-2">Need to book a space for your own event?</p>
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Need to book a space for your own event?</p>
               <button
                 onClick={onBookSpace}
-                className="text-primary-600 hover:text-primary-700 font-medium"
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
               >
                 Check available spaces →
               </button>

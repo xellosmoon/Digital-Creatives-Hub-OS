@@ -107,6 +107,15 @@ export default function AdminGadgets(): JSX.Element {
         toast.error('Cannot delete — some units are currently borrowed. Return them first.');
         return;
       }
+      // Also block on pending/approved requests — deleting now would cascade-delete
+      // those borrowings (and their history) before anyone acts on them.
+      const requested = borrowings.filter(
+        (b) => b.asset_id === assetId && (b.status === 'pending' || b.status === 'approved')
+      );
+      if (requested.length > 0) {
+        toast.error('Cannot delete — this asset has pending or approved requests. Resolve them first.');
+        return;
+      }
       const { error } = await supabase.from('assets').delete().eq('id', assetId);
       if (error) throw error;
       toast.success('Asset deleted');
@@ -202,20 +211,20 @@ export default function AdminGadgets(): JSX.Element {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Link to="/admin" className="text-gray-400 hover:text-gray-600">
+            <Link to="/admin" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <div className="h-10 w-10 rounded-lg bg-primary-100 flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary-600" />
+            <div className="h-10 w-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+              <Package className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Gadget Ops Center</h1>
-              <p className="text-sm text-gray-500">Manage gear, track borrowings, and maintain equipment</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gadget Ops Center</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Manage gear, track borrowings, and maintain equipment</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -228,14 +237,14 @@ export default function AdminGadgets(): JSX.Element {
             </button>
             <button
               onClick={handleExportBorrowings}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
             >
               <Download className="h-4 w-4" />
               Export
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-slate-800 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <Trash className="h-4 w-4" />
               Clear Data
@@ -243,7 +252,7 @@ export default function AdminGadgets(): JSX.Element {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -252,12 +261,12 @@ export default function AdminGadgets(): JSX.Element {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <KPI label="Total Items" value={items.length} color="text-gray-900" />
-          <KPI label="Available" value={items.filter((i) => i.status === 'available').length} color="text-green-600" />
-          <KPI label="Borrowed" value={items.filter((i) => i.status === 'borrowed').length} color="text-blue-600" />
-          <KPI label="Pending" value={pendingCount} color="text-yellow-600" />
-          <KPI label="Overdue" value={overdueCount} color="text-red-600" />
-          <KPI label="Revenue" value={formatPeso(totalCollected)} color="text-green-700" isText />
+          <KPI label="Total Items" value={items.length} color="text-gray-900 dark:text-white" />
+          <KPI label="Available" value={items.filter((i) => i.status === 'available').length} color="text-green-600 dark:text-green-400" />
+          <KPI label="Borrowed" value={items.filter((i) => i.status === 'borrowed').length} color="text-blue-600 dark:text-blue-400" />
+          <KPI label="Pending" value={pendingCount} color="text-yellow-600 dark:text-yellow-400" />
+          <KPI label="Overdue" value={overdueCount} color="text-red-600 dark:text-red-400" />
+          <KPI label="Revenue" value={formatPeso(totalCollected)} color="text-green-700 dark:text-green-400" isText />
         </div>
 
         {/* Tabs */}
@@ -271,14 +280,14 @@ export default function AdminGadgets(): JSX.Element {
                 onClick={() => setTab(t.key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active
                     ? 'bg-primary-500 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
                   }`}
               >
                 <Icon className="h-4 w-4" />
                 {t.label}
                 {t.count != null && t.count > 0 && (
                   <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${active ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'
+                    className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${active ? 'bg-white/20 text-white' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                       }`}
                   >
                     {t.count}
@@ -290,7 +299,7 @@ export default function AdminGadgets(): JSX.Element {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
           {loading ? (
             <div className="p-12 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
@@ -299,7 +308,7 @@ export default function AdminGadgets(): JSX.Element {
             <div className="p-6">
               {/* Add Asset button */}
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                   Gadget Catalogue ({assets.length})
                 </h3>
                 <button
@@ -312,10 +321,10 @@ export default function AdminGadgets(): JSX.Element {
               </div>
 
               {assets.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Package className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <Package className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                   <p className="font-medium">No assets yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Add your first piece of equipment above.</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Add your first piece of equipment above.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -326,28 +335,28 @@ export default function AdminGadgets(): JSX.Element {
                     return (
                       <div
                         key={asset.id}
-                        className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-shadow"
+                        className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm transition-shadow"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-gray-900">{asset.name}</h4>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{asset.name}</h4>
                             {!asset.is_active && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inactive</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400">Inactive</span>
                             )}
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
                               {CATEGORY_LABELS[asset.category]}
                             </span>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                             <span>{unitCount} unit{unitCount !== 1 ? 's' : ''} ({availCount} available)</span>
                             <span className="font-mono">{asset.slug}</span>
                             <span>{asset.location_mode === 'both' ? 'Inside & Outside' : asset.location_mode === 'inside_only' ? 'Inside Only' : 'Outside Only'}</span>
                             {asset.requires_notice && (
-                              <span className="text-amber-600">⚠ Notice required</span>
+                              <span className="text-amber-600 dark:text-amber-400">⚠ Notice required</span>
                             )}
                           </div>
                           {asset.description && (
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-1">{asset.description}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 line-clamp-1">{asset.description}</p>
                           )}
                         </div>
 
@@ -355,7 +364,7 @@ export default function AdminGadgets(): JSX.Element {
                           {/* Manage Units */}
                           <button
                             onClick={() => setManagingUnitsAsset(asset)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
                             title="Manage individual units"
                           >
                             <Settings2 className="h-3.5 w-3.5" />
@@ -364,7 +373,7 @@ export default function AdminGadgets(): JSX.Element {
                           {/* Edit */}
                           <button
                             onClick={() => { setEditingAsset(asset); setShowAssetForm(true); }}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                             title="Edit asset"
                           >
                             <Pencil className="h-4 w-4" />
@@ -381,7 +390,7 @@ export default function AdminGadgets(): JSX.Element {
                               </button>
                               <button
                                 onClick={() => setConfirmDeleteAssetId(null)}
-                                className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                                className="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                               >
                                 Cancel
                               </button>
@@ -389,7 +398,7 @@ export default function AdminGadgets(): JSX.Element {
                           ) : (
                             <button
                               onClick={() => setConfirmDeleteAssetId(asset.id)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                               title="Delete asset"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -410,8 +419,8 @@ export default function AdminGadgets(): JSX.Element {
             />
           ) : tab === 'queue' ? (
             pendingBorrowings.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                <CheckCircle className="h-10 w-10 mx-auto mb-3 text-green-400" />
+              <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+                <CheckCircle className="h-10 w-10 mx-auto mb-3 text-green-400 dark:text-green-500" />
                 <p className="font-medium">All clear — no pending requests.</p>
               </div>
             ) : (
@@ -462,15 +471,15 @@ export default function AdminGadgets(): JSX.Element {
       {/* Delete Borrowings Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Borrowing Data</h2>
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Delete Borrowing Data</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Choose how to delete borrowing records. This action cannot be undone!
             </p>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Delete by Date Range
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -478,13 +487,13 @@ export default function AdminGadgets(): JSX.Element {
                     type="date"
                     value={deleteStartDate}
                     onChange={(e) => setDeleteStartDate(e.target.value)}
-                    className="rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    className="rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
                   />
                   <input
                     type="date"
                     value={deleteEndDate}
                     onChange={(e) => setDeleteEndDate(e.target.value)}
-                    className="rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    className="rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
                   />
                 </div>
                 <button
@@ -496,7 +505,7 @@ export default function AdminGadgets(): JSX.Element {
                 </button>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
                 <button
                   onClick={() => handleDeleteBorrowings(true)}
                   disabled={deleting}
@@ -515,7 +524,7 @@ export default function AdminGadgets(): JSX.Element {
                   setDeleteEndDate('');
                 }}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -529,8 +538,8 @@ export default function AdminGadgets(): JSX.Element {
 
 function KPI({ label, value, color, isText }: { label: string; value: number | string; color: string; isText?: boolean }): JSX.Element {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 px-4 py-3">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
       <p className={`text-xl font-bold mt-1 ${color}`}>{isText ? value : value}</p>
     </div>
   );

@@ -38,7 +38,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
       case 'rejected':
         return <XCircle className="h-5 w-5 text-red-500" />;
       case 'cancelled':
-        return <XCircle className="h-5 w-5 text-gray-500" />;
+        return <XCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />;
       default:
         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
     }
@@ -96,44 +96,44 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{spaceData.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{spaceData.name}</h3>
             <div className="flex items-center mt-1 space-x-2">
               {getStatusIcon()}
               <span className={`text-sm font-medium ${
-                booking.status === 'approved' ? 'text-green-700' :
-                booking.status === 'rejected' ? 'text-red-700' :
-                booking.status === 'cancelled' ? 'text-gray-700' :
-                'text-yellow-700'
+                booking.status === 'approved' ? 'text-green-700 dark:text-green-400' :
+                booking.status === 'rejected' ? 'text-red-700 dark:text-red-400' :
+                booking.status === 'cancelled' ? 'text-gray-700 dark:text-gray-300' :
+                'text-yellow-700 dark:text-yellow-400'
               }`}>
                 {getStatusText()}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">Reference</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Reference</p>
             <p className="font-mono text-sm">{booking.booking_reference}</p>
           </div>
         </div>
 
         <div className="space-y-2 mb-4">
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Calendar className="h-4 w-4 mr-2" />
             {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')}
           </div>
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Clock className="h-4 w-4 mr-2" />
             {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
           </div>
           {spaceData.location && (
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
               <MapPin className="h-4 w-4 mr-2" />
               {spaceData.location}
             </div>
           )}
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Users className="h-4 w-4 mr-2" />
             {booking.attendees} {booking.attendees === 1 ? 'person' : 'people'}
           </div>
@@ -141,15 +141,15 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
 
         {booking.purpose && (
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700">Purpose</p>
-            <p className="text-sm text-gray-600 mt-1">{booking.purpose}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Purpose</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{booking.purpose}</p>
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
           <div>
-            <p className="text-sm text-gray-500">Total Cost</p>
-            <p className="text-lg font-semibold text-gray-900">₱{totalCost().toFixed(2)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Cost</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">₱{totalCost().toFixed(2)}</p>
           </div>
           
           {booking.status === 'approved' && (
@@ -157,7 +157,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
               {!isGuest && (
                 <button
                   onClick={() => setShowModifyModal(true)}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-slate-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
                 >
                   <Edit className="h-4 w-4 mr-1" />
                   Modify
@@ -166,7 +166,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
               {canCancel() && (
                 <button
                   onClick={() => setShowCancelModal(true)}
-                  className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                  className="inline-flex items-center px-3 py-2 border border-red-300 dark:border-red-800 text-sm font-medium rounded-md text-red-700 dark:text-red-400 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Cancel
@@ -177,7 +177,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
         </div>
 
         {booking.status === 'approved' && !canCancel() && (
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
             Cancellation not available within 24 hours of booking
           </p>
         )}
@@ -186,14 +186,14 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
       {/* Cancel Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Cancel Booking?</h3>
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Cancel Booking?</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Are you sure you want to cancel this booking? This action cannot be undone.
             </p>
-            <div className="bg-gray-50 rounded-md p-4 mb-6">
-              <p className="text-sm font-medium text-gray-900">{spaceData.name}</p>
-              <p className="text-sm text-gray-600">
+            <div className="bg-gray-50 dark:bg-slate-700/50 rounded-md p-4 mb-6">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{spaceData.name}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')} at{' '}
                 {format(new Date(booking.start_time), 'h:mm a')}
               </p>
@@ -202,7 +202,7 @@ export default function BookingCard({ booking, onUpdate, isGuest = false }: Book
               <button
                 onClick={() => setShowCancelModal(false)}
                 disabled={cancelling}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
               >
                 Keep Booking
               </button>

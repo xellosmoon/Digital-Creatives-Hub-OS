@@ -44,21 +44,21 @@ export default function SecuritySettings(): JSX.Element {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-        <Shield className="h-5 w-5 mr-2 text-primary-500" />
+    <div className="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+        <Shield className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" />
         Security Settings
       </h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="max-w-md space-y-4">
           <div>
-            <label htmlFor="new-password" title="New Password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="new-password" title="New Password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               New Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-gray-400" />
+                <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="password"
@@ -66,21 +66,21 @@ export default function SecuritySettings(): JSX.Element {
                 id="new-password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 placeholder="••••••••"
                 required
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 6 characters</p>
           </div>
 
           <div>
-            <label htmlFor="confirm-password" title="Confirm Password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="confirm-password" title="Confirm Password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Confirm New Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-gray-400" />
+                <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="password"
@@ -88,7 +88,7 @@ export default function SecuritySettings(): JSX.Element {
                 id="confirm-password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded-md"
                 placeholder="••••••••"
                 required
               />
@@ -100,7 +100,7 @@ export default function SecuritySettings(): JSX.Element {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 dark:bg-primary-700 hover:bg-primary-700 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -117,9 +117,9 @@ export default function SecuritySettings(): JSX.Element {
         </div>
       </form>
 
-      <div className="mt-8 border-t border-gray-100 pt-6">
-        <h3 className="text-sm font-medium text-gray-900">About Password Security</h3>
-        <p className="mt-2 text-sm text-gray-500">
+      <div className="mt-8 border-t border-gray-100 dark:border-slate-700 pt-6">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-white">About Password Security</h3>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           Changing your password will sign you out of all other sessions. Make sure you use a strong password that you don't use elsewhere.
         </p>
       </div>

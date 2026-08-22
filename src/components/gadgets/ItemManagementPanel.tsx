@@ -93,41 +93,41 @@ export default function ItemManagementPanel({
   };
 
   const STATUS_COLORS: Record<string, string> = {
-    available: 'bg-green-50 text-green-700',
-    borrowed: 'bg-blue-50 text-blue-700',
-    maintenance: 'bg-yellow-50 text-yellow-700',
-    broken: 'bg-red-50 text-red-700',
-    retired: 'bg-gray-50 text-gray-500',
+    available: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    borrowed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    maintenance: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+    broken: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+    retired: 'bg-gray-50 text-gray-500 dark:bg-slate-700 dark:text-gray-400',
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Manage Units — {asset.name}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {assetItems.length} unit{assetItems.length !== 1 ? 's' : ''} registered
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
-            <X className="h-5 w-5 text-gray-500" />
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-6">
           {/* Add new unit form */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 dark:bg-slate-900 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add New Unit
             </h3>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   <Tag className="inline h-3 w-3 mr-1" />
                   Asset Tag <span className="text-red-500">*</span>
                 </label>
@@ -136,11 +136,11 @@ export default function ItemManagementPanel({
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   placeholder="e.g. DCIH-CAM-004"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   <Hash className="inline h-3 w-3 mr-1" />
                   Serial Number
                 </label>
@@ -149,18 +149,18 @@ export default function ItemManagementPanel({
                   value={newSerial}
                   onChange={(e) => setNewSerial(e.target.value)}
                   placeholder="Optional"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                 />
               </div>
             </div>
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Condition Notes</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Condition Notes</label>
               <input
                 type="text"
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
                 placeholder="e.g. New, refurbished, etc."
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
               />
             </div>
             <button
@@ -175,11 +175,11 @@ export default function ItemManagementPanel({
 
           {/* Existing units list */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
               Existing Units ({assetItems.length})
             </h3>
             {assetItems.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">
                 No units yet. Add one above.
               </p>
             ) : (
@@ -187,18 +187,18 @@ export default function ItemManagementPanel({
                 {assetItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-medium text-gray-900">
+                        <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">
                           {item.asset_tag ?? '—'}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[item.status] || ''}`}>
                           {item.status}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {item.serial_number && <span>SN: {item.serial_number}</span>}
                         <span>📍 {item.current_location || 'DCIH Storage'}</span>
                         {item.condition_notes && <span>• {item.condition_notes}</span>}
@@ -217,7 +217,7 @@ export default function ItemManagementPanel({
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                          className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         >
                           Cancel
                         </button>
@@ -226,7 +226,7 @@ export default function ItemManagementPanel({
                       <button
                         onClick={() => setConfirmDeleteId(item.id)}
                         disabled={item.status === 'borrowed'}
-                        className="p-1.5 ml-3 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 ml-3 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors dark:text-gray-500 dark:hover:text-red-400 dark:hover:bg-red-900/20"
                         title={item.status === 'borrowed' ? 'Return item before deleting' : 'Delete unit'}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -240,10 +240,10 @@ export default function ItemManagementPanel({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
           >
             Close
           </button>

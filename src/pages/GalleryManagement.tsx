@@ -204,26 +204,26 @@ export default function GalleryManagement(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link
               to="/admin"
-              className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-[#0C2340]">Gallery Management</h1>
-              <p className="text-gray-600 mt-1">Manage homepage gallery images</p>
+              <h1 className="text-3xl font-bold text-[#0C2340] dark:text-white">Gallery Management</h1>
+              <p className="text-gray-600 mt-1 dark:text-gray-400">Manage homepage gallery images</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={fetchImages}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 dark:text-gray-300"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -241,13 +241,13 @@ export default function GalleryManagement(): JSX.Element {
         {/* Images Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2340]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2340] dark:border-primary-400"></div>
           </div>
         ) : images.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-            <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No images yet</h3>
-            <p className="text-gray-500 mb-4">Add your first gallery image to get started</p>
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 dark:bg-slate-800 dark:border-slate-700">
+            <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4 dark:text-gray-600" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2 dark:text-gray-200">No images yet</h3>
+            <p className="text-gray-500 mb-4 dark:text-gray-400">Add your first gallery image to get started</p>
             <button
               onClick={handleCreate}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0C2340] text-white hover:bg-[#0C2340]/90 transition-colors"
@@ -261,11 +261,11 @@ export default function GalleryManagement(): JSX.Element {
             {images.map((image) => (
               <div
                 key={image.id}
-                className={`bg-white rounded-2xl border-2 overflow-hidden transition-all ${
-                  image.is_active ? 'border-gray-200 shadow-md' : 'border-gray-300 opacity-60'
+                className={`bg-white rounded-2xl border-2 overflow-hidden transition-all dark:bg-slate-800 ${
+                  image.is_active ? 'border-gray-200 shadow-md dark:border-slate-700' : 'border-gray-300 opacity-60 dark:border-slate-600'
                 }`}
               >
-                <div className="aspect-video bg-gray-100 relative">
+                <div className="aspect-video bg-gray-100 relative dark:bg-slate-900">
                   <img
                     src={image.cloudinary_url}
                     alt={image.title}
@@ -278,18 +278,18 @@ export default function GalleryManagement(): JSX.Element {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{image.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{image.category}</p>
+                  <h3 className="font-semibold text-gray-900 mb-1 truncate dark:text-white">{image.title}</h3>
+                  <p className="text-sm text-gray-600 mb-2 dark:text-gray-400">{image.category}</p>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full dark:bg-amber-900/30 dark:text-amber-300">
                       {image.badge}
                     </span>
-                    <span className="text-xs text-gray-500">Order: {image.display_order}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Order: {image.display_order}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEdit(image)}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-200"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit
@@ -298,8 +298,8 @@ export default function GalleryManagement(): JSX.Element {
                       onClick={() => handleToggleActive(image.id, image.is_active)}
                       className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors text-sm ${
                         image.is_active
-                          ? 'bg-amber-100 hover:bg-amber-200 text-amber-700'
-                          : 'bg-green-100 hover:bg-green-200 text-green-700'
+                          ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300'
+                          : 'bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-300'
                       }`}
                     >
                       {image.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -307,7 +307,7 @@ export default function GalleryManagement(): JSX.Element {
                     </button>
                     <button
                       onClick={() => handleDelete(image.id)}
-                      className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors text-sm"
+                      className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors text-sm dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -322,43 +322,43 @@ export default function GalleryManagement(): JSX.Element {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto dark:bg-slate-800">
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[#0C2340]">
+                <h2 className="text-xl font-bold text-[#0C2340] dark:text-white">
                   {editingImage ? 'Edit Image' : 'Add New Image'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors dark:hover:bg-slate-700"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Category *
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white"
                   required
                 >
                   <option value="">Select category...</option>
@@ -374,7 +374,7 @@ export default function GalleryManagement(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Badge Text (with emoji) *
                 </label>
                 <input
@@ -382,27 +382,27 @@ export default function GalleryManagement(): JSX.Element {
                   value={formData.badge}
                   onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
                   placeholder="e.g., ☕ Coworking Lounge"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Display Order *
                 </label>
                 <input
                   type="number"
                   value={formData.display_order}
                   onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Lower numbers appear first</p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Cloudinary Public ID *
                 </label>
                 <input
@@ -410,16 +410,16 @@ export default function GalleryManagement(): JSX.Element {
                   value={formData.cloudinary_public_id}
                   onChange={(e) => setFormData({ ...formData, cloudinary_public_id: e.target.value })}
                   placeholder="e.g., samples/coffee-shop"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Upload Image
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0C2340] transition-colors">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0C2340] transition-colors dark:border-slate-600 dark:hover:border-primary-400">
                   <input
                     type="file"
                     accept="image/*"
@@ -434,8 +434,8 @@ export default function GalleryManagement(): JSX.Element {
                     htmlFor="image-upload"
                     className="cursor-pointer flex flex-col items-center"
                   >
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-600">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2 dark:text-gray-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
                       {uploading ? 'Uploading...' : 'Click to upload image'}
                     </span>
                   </label>
@@ -443,7 +443,7 @@ export default function GalleryManagement(): JSX.Element {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Cloudinary URL *
                 </label>
                 <input
@@ -451,14 +451,14 @@ export default function GalleryManagement(): JSX.Element {
                   value={formData.cloudinary_url}
                   onChange={(e) => setFormData({ ...formData, cloudinary_url: e.target.value })}
                   placeholder="https://res.cloudinary.com/..."
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               {/* Preview */}
               {formData.cloudinary_url && (
-                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden dark:bg-slate-900">
                   <img
                     src={formData.cloudinary_url}
                     alt="Preview"
@@ -471,7 +471,7 @@ export default function GalleryManagement(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors dark:border-slate-600 dark:hover:bg-slate-700 dark:text-gray-300"
                 >
                   Cancel
                 </button>

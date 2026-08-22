@@ -147,7 +147,8 @@ export default function HubBookingForm({
         .select('id')
         .eq('asset_id', assetId)
         .in('status', ['approved', 'active'])
-        .or(`start_time.lte.${endISO},end_time.gte.${startISO}`);
+        .lt('start_time', endISO)
+        .gt('end_time', startISO);
 
       if (error) throw error;
       return (data ?? []).length === 0;

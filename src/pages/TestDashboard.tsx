@@ -83,58 +83,58 @@ export default function TestDashboard(): JSX.Element {
     }
   };
 
-  if (loading) return <div className="p-8">Loading test data...</div>;
+  if (loading) return <div className="p-8 dark:text-white">Loading test data...</div>;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Dashboard Diagnostics</h1>
-      
+      <h1 className="text-2xl font-bold mb-6 dark:text-white">Dashboard Diagnostics</h1>
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded mb-6">
           <strong>Error:</strong> {error}
         </div>
       )}
 
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">User Info</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-3 dark:text-white">User Info</h2>
           {user ? (
-            <div>
+            <div className="text-gray-700 dark:text-gray-300">
               <p><strong>ID:</strong> {user.id}</p>
               <p><strong>Email:</strong> {user.email}</p>
               <p><strong>Role:</strong> {user.role || 'Not set'}</p>
             </div>
           ) : (
-            <p>No user logged in</p>
+            <p className="text-gray-700 dark:text-gray-300">No user logged in</p>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">Bookings ({bookings.length})</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-3 dark:text-white">Bookings ({bookings.length})</h2>
           {bookings.length > 0 ? (
-            <pre className="text-xs overflow-auto bg-gray-50 p-2 rounded">
+            <pre className="text-xs overflow-auto bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-300 p-2 rounded">
               {JSON.stringify(bookings[0], null, 2)}
             </pre>
           ) : (
-            <p>No bookings found</p>
+            <p className="text-gray-700 dark:text-gray-300">No bookings found</p>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">Spaces ({spaces.length})</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-3 dark:text-white">Spaces ({spaces.length})</h2>
           {spaces.length > 0 ? (
-            <pre className="text-xs overflow-auto bg-gray-50 p-2 rounded">
+            <pre className="text-xs overflow-auto bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-300 p-2 rounded">
               {JSON.stringify(spaces[0], null, 2)}
             </pre>
           ) : (
-            <p>No spaces found</p>
+            <p className="text-gray-700 dark:text-gray-300">No spaces found</p>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">Database Connection</h2>
-          <p className="text-green-600">✓ Connected to Supabase</p>
-          <p className="text-sm text-gray-600 mt-2">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-3 dark:text-white">Database Connection</h2>
+          <p className="text-green-600 dark:text-green-400">✓ Connected to Supabase</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
             URL: {import.meta.env.VITE_SUPABASE_URL}
           </p>
         </div>

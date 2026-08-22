@@ -24,36 +24,36 @@ export default function GadgetCard({ availability, onBorrow }: InventoryCardProp
   const allUnavailable = availableItems === 0;
 
   const availabilityColor = allUnavailable
-    ? 'text-red-600 bg-red-50'
+    ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'
     : availableItems <= Math.ceil(totalItems / 3)
-    ? 'text-amber-600 bg-amber-50'
-    : 'text-green-600 bg-green-50';
+    ? 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30'
+    : 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30';
 
   const locationBadge =
     asset.location_mode === 'inside_only'
-      ? { label: 'Inside Hub Only', cls: 'bg-blue-100 text-blue-700' }
+      ? { label: 'Inside Hub Only', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }
       : asset.location_mode === 'outside_only'
-      ? { label: 'Outside Use', cls: 'bg-purple-100 text-purple-700' }
-      : { label: 'Inside / Outside', cls: 'bg-gray-100 text-gray-700' };
+      ? { label: 'Outside Use', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }
+      : { label: 'Inside / Outside', cls: 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300' };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
       {/* Header */}
       <div className="p-5 flex-1">
         <div className="flex items-start justify-between mb-3">
-          <div className="h-10 w-10 rounded-lg bg-primary-50 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary-600" />
+          <div className="h-10 w-10 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
+            <Icon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           </div>
           <span className={`text-xs font-medium px-2 py-1 rounded-full ${locationBadge.cls}`}>
             {locationBadge.label}
           </span>
         </div>
 
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">{asset.name}</h3>
-        <p className="text-xs text-gray-500 mb-3">{CATEGORY_LABELS[asset.category]}</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{asset.name}</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{CATEGORY_LABELS[asset.category]}</p>
 
         {asset.description && (
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{asset.description}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{asset.description}</p>
         )}
 
         {/* Availability indicator */}
@@ -63,14 +63,14 @@ export default function GadgetCard({ availability, onBorrow }: InventoryCardProp
         </div>
 
         {maintenanceItems > 0 && (
-          <p className="text-xs text-gray-400 mt-1">{maintenanceItems} in maintenance</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{maintenanceItems} in maintenance</p>
         )}
 
         {/* Mandatory notice */}
         {asset.requires_notice && (
-          <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700">{asset.requires_notice}</p>
+          <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">{asset.requires_notice}</p>
           </div>
         )}
       </div>
@@ -82,7 +82,7 @@ export default function GadgetCard({ availability, onBorrow }: InventoryCardProp
           onClick={() => onBorrow(asset.id)}
           className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
             allUnavailable
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-slate-700 dark:text-gray-500'
               : 'bg-primary-500 text-white hover:bg-primary-600'
           }`}
         >

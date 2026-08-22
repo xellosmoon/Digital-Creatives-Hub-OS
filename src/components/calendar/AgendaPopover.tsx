@@ -48,15 +48,15 @@ export default function AgendaPopover({
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="w-80 sm:w-96 p-4 bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-100 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-80 sm:w-96 p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-slate-100 dark:border-slate-700 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-slate-900">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             Agenda for {format(selectedDate, 'MMMM d, yyyy')}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             aria-label="Close"
           >
             <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,13 +74,13 @@ export default function AgendaPopover({
               return (
                 <div
                   key={event.id}
-                  className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 hover:border-blue-200 transition-colors"
+                  className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-100 dark:border-blue-800/40 hover:border-blue-200 dark:hover:border-blue-700/50 transition-colors"
                 >
                   {/* Title */}
-                  <h4 className="text-sm font-bold text-blue-900 mb-1">{event.title}</h4>
+                  <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 mb-1">{event.title}</h4>
 
                   {/* Metadata */}
-                  <div className="flex items-center gap-2 text-xs text-slate-600 mb-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-2">
                     <Clock className="w-3 h-3 flex-shrink-0" />
                     <span>
                       {format(new Date(event.start_time), 'h:mm a')} –{' '}
@@ -89,7 +89,7 @@ export default function AgendaPopover({
                   </div>
 
                   {(event.organization || event.organizer) && (
-                    <div className="flex items-center gap-2 text-xs text-slate-600 mb-3">
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-3">
                       <User className="w-3 h-3 flex-shrink-0" />
                       <span>Hosted by {event.organization || event.organizer}</span>
                     </div>
@@ -110,11 +110,11 @@ export default function AgendaPopover({
         ) : (
           /* Empty State */
           <div className="text-center py-8">
-            <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600 mb-4">No events today</p>
+            <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-600 dark:text-slate-400 mb-4">No events today</p>
             <button
               onClick={onProposeEvent}
-              className="text-blue-600 hover:text-blue-700 font-semibold text-sm"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm"
             >
               Propose an Event →
             </button>

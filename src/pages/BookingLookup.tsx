@@ -55,18 +55,18 @@ export default function BookingLookup(): JSX.Element {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Booking Lookup</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Booking Lookup</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Find your booking using your reference number or email address.
         </p>
       </div>
 
       {/* Lookup Form */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-8">
         <form onSubmit={handleSearch} className="space-y-6">
           {/* Method Selection */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Search by:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search by:</label>
             <div className="mt-2 space-x-4">
               <label className="inline-flex items-center">
                 <input
@@ -76,7 +76,7 @@ export default function BookingLookup(): JSX.Element {
                   checked={lookupMethod === 'reference'}
                   onChange={(e) => setLookupMethod(e.target.value as 'reference' | 'email')}
                 />
-                <span className="ml-2">Booking Reference</span>
+                <span className="ml-2 dark:text-gray-300">Booking Reference</span>
               </label>
               <label className="inline-flex items-center">
                 <input
@@ -86,7 +86,7 @@ export default function BookingLookup(): JSX.Element {
                   checked={lookupMethod === 'email'}
                   onChange={(e) => setLookupMethod(e.target.value as 'reference' | 'email')}
                 />
-                <span className="ml-2">Email Address</span>
+                <span className="ml-2 dark:text-gray-300">Email Address</span>
               </label>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function BookingLookup(): JSX.Element {
           {/* Input Field */}
           {lookupMethod === 'reference' ? (
             <div>
-              <label htmlFor="reference" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="reference" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Booking Reference
               </label>
               <div className="mt-1">
@@ -104,17 +104,17 @@ export default function BookingLookup(): JSX.Element {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="e.g., BK-ABC123"
-                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 rounded-md"
                   required
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Your booking reference was sent to your email when you made the booking.
               </p>
             </div>
           ) : (
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email Address
               </label>
               <div className="mt-1">
@@ -124,11 +124,11 @@ export default function BookingLookup(): JSX.Element {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  className="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 rounded-md"
                   required
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Enter the email address you used when making the booking.
               </p>
             </div>
@@ -153,16 +153,16 @@ export default function BookingLookup(): JSX.Element {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
             </div>
           ) : bookings.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg shadow">
+              <Calendar className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No bookings found</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Please check your {lookupMethod === 'reference' ? 'booking reference' : 'email address'} and try again.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Found {bookings.length} booking{bookings.length > 1 ? 's' : ''}
               </h2>
               {bookings.map((booking) => (
@@ -179,9 +179,9 @@ export default function BookingLookup(): JSX.Element {
       )}
 
       {/* Help Text */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-blue-900">Need help?</h3>
-        <p className="mt-1 text-sm text-blue-700">
+      <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300">Need help?</h3>
+        <p className="mt-1 text-sm text-blue-700 dark:text-blue-400">
           If you can't find your booking, please contact us with your booking details
           and we'll help you locate it.
         </p>

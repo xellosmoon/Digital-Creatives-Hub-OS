@@ -254,38 +254,38 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
 
   const statusColor = (s: string): string => {
     switch (s) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': case 'active': return 'bg-green-100 text-green-800';
-      case 'rejected': case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'approved': case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'rejected': case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-300';
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           {/* Reference + Status */}
           <div className="flex items-center mb-2 flex-wrap gap-2">
-            <span className="text-sm font-medium text-gray-500">Ref:</span>
-            <span className="text-sm font-mono text-gray-900">{booking.booking_reference}</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Ref:</span>
+            <span className="text-sm font-mono text-gray-900 dark:text-white">{booking.booking_reference}</span>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(booking.status)}`}>
               {booking.status}
             </span>
             {booking.is_workshop && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300">
                 Workshop
               </span>
             )}
             {booking.booking_type === 'group' && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
                 <Users className="h-3 w-3 mr-1" />
                 Group Booking{booking.gathering_type ? ` · ${booking.gathering_type}` : ''}
               </span>
             )}
             {booking.admin_contacted && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
                 <PhoneCall className="h-3 w-3 mr-1" />
                 Contacted
               </span>
@@ -293,25 +293,25 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           </div>
 
           {/* Package Name */}
-          <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
             <Package className="h-5 w-5 text-violet-500" />
             {booking.package?.name || 'Unknown Package'}
             {booking.package?.is_bundle && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Bundle</span>
+              <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-medium">Bundle</span>
             )}
           </h3>
 
           {/* Group booking details */}
           {booking.booking_type === 'group' && (booking.organization || booking.group_size) && (
-            <p className="text-sm text-gray-600 mb-3">
-              {booking.organization && <span className="font-medium text-gray-900">{booking.organization}</span>}
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              {booking.organization && <span className="font-medium text-gray-900 dark:text-white">{booking.organization}</span>}
               {booking.organization && booking.group_size && ' · '}
               {booking.group_size && `${booking.group_size} people`}
             </p>
           )}
 
           {/* Date & Time */}
-          <div className="flex items-center text-sm text-gray-600 mb-3">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-3">
             <Calendar className="h-4 w-4 mr-1" />
             <span>
               {formatDate(booking.booking_date + 'T00:00', 'EEE, MMM d, yyyy')} &bull;{' '}
@@ -321,29 +321,29 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           </div>
 
           {/* Seats */}
-          <div className="flex items-center text-sm text-gray-600 mb-3">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-3">
             <Users className="h-4 w-4 mr-1" />
             <span>{booking.seats_used} seat{booking.seats_used > 1 ? 's' : ''}</span>
           </div>
 
           {/* Guest Info */}
           <div className="space-y-1.5 mb-4">
-            <div className="flex items-center text-sm">
-              <User className="h-4 w-4 text-gray-400 mr-2" />
+            <div className="flex items-center text-sm text-gray-900 dark:text-white">
+              <User className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
               <span className="font-medium">{booking.guest_name || 'No name'}</span>
             </div>
             {booking.guest_email && (
               <div className="flex items-center text-sm">
-                <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                <a href={`mailto:${booking.guest_email}`} className="text-primary-600 hover:underline">
+                <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                <a href={`mailto:${booking.guest_email}`} className="text-primary-600 dark:text-primary-400 hover:underline">
                   {booking.guest_email}
                 </a>
               </div>
             )}
             {booking.guest_phone && (
               <div className="flex items-center text-sm">
-                <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                <a href={`tel:${booking.guest_phone}`} className="text-primary-600 hover:underline">
+                <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                <a href={`tel:${booking.guest_phone}`} className="text-primary-600 dark:text-primary-400 hover:underline">
                   {booking.guest_phone}
                 </a>
               </div>
@@ -353,8 +353,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           {/* Purpose */}
           {booking.purpose && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-0.5">Purpose:</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5">Purpose:</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {Array.isArray(booking.purpose) ? (
                   <>
                     {booking.purpose.slice(0, 2).join(', ')}
@@ -370,17 +370,17 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           {/* Equipment Requested */}
           {equipmentSummary.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-0.5">Equipment Requested:</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5">Equipment Requested:</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {equipmentSummary.map((e) => `${e.name}${e.quantity > 1 ? ` ×${e.quantity}` : ''}`).join(', ')}
               </p>
             </div>
           )}
 
           {/* Total Price */}
-          <div className="flex items-center justify-between py-3 border-t border-gray-200">
-            <span className="text-sm font-medium text-gray-700">Total Price:</span>
-            <span className="text-lg font-semibold text-gray-900">₱{booking.total_price?.toLocaleString() ?? '0'}</span>
+          <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-slate-700">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Price:</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">₱{booking.total_price?.toLocaleString() ?? '0'}</span>
           </div>
         </div>
       </div>
@@ -411,8 +411,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             disabled={loading}
             className={`w-full inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md transition-colors ${
               booking.admin_contacted
-                ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                : 'border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
+                ? 'border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600'
             }`}
           >
             <PhoneCall className="h-4 w-4 mr-2" />
@@ -420,25 +420,25 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           </button>
           <button
             onClick={() => setShowOverride(!showOverride)}
-            className="w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-orange-300 text-sm font-semibold rounded-md text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors"
+            className="w-full inline-flex items-center justify-center px-4 py-2 border-2 border-dashed border-orange-300 dark:border-orange-700 text-sm font-semibold rounded-md text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
           >
             Override & Approve (Ignore Capacity)
           </button>
           <button
             onClick={openPromoteModal}
-            className="w-full inline-flex items-center justify-center px-4 py-2 border border-violet-300 text-sm font-medium rounded-md text-violet-700 bg-violet-50 hover:bg-violet-100 transition-colors"
+            className="w-full inline-flex items-center justify-center px-4 py-2 border border-violet-300 dark:border-violet-700 text-sm font-medium rounded-md text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
           >
             <Calendar className="h-4 w-4 mr-2" />
             Promote to Event
           </button>
           {showOverride && (
-            <div className="bg-orange-50 rounded-lg p-3 space-y-2 border border-orange-200">
+            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 space-y-2 border border-orange-200 dark:border-orange-800">
               <input
                 type="text"
                 value={overrideReason}
                 onChange={e => setOverrideReason(e.target.value)}
                 placeholder="Override reason (optional)"
-                className="w-full rounded-md border-orange-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
+                className="w-full rounded-md border-orange-200 dark:border-orange-700 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
               />
               <button
                 onClick={handleOverrideApprove}
@@ -450,15 +450,15 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             </div>
           )}
           {showPromoteModal && (
-            <div className="bg-violet-50 rounded-lg p-4 space-y-3 border border-violet-200">
-              <h4 className="text-sm font-semibold text-violet-900">Promote to Event</h4>
-              <p className="text-xs text-violet-700">This will create a public event from this booking. The booking will remain intact.</p>
+            <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-4 space-y-3 border border-violet-200 dark:border-violet-800">
+              <h4 className="text-sm font-semibold text-violet-900 dark:text-violet-300">Promote to Event</h4>
+              <p className="text-xs text-violet-700 dark:text-violet-400">This will create a public event from this booking. The booking will remain intact.</p>
               <input
                 type="text"
                 value={eventTitle}
                 onChange={e => setEventTitle(e.target.value)}
                 placeholder="Enter public event title (e.g., Strategic Alignment Meeting)"
-                className="w-full rounded-md border-violet-200 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-violet-400"
+                className="w-full rounded-md border-violet-200 dark:border-violet-700 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-violet-400"
               />
               <div className="flex gap-2">
                 <button
@@ -470,7 +470,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                 </button>
                 <button
                   onClick={() => setShowPromoteModal(false)}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -498,8 +498,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             disabled={loading}
             className={`w-full inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md transition-colors ${
               booking.admin_contacted
-                ? 'border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                : 'border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100'
+                ? 'border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600'
             }`}
           >
             <PhoneCall className="h-4 w-4 mr-2" />
@@ -509,7 +509,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       )}
 
       {/* Timestamp */}
-      <div className="mt-4 text-xs text-gray-500">
+      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
         <Clock className="h-3 w-3 inline mr-1" />
         Requested {formatDate(booking.created_at, 'MMM d, yyyy h:mm a')}
       </div>
@@ -517,27 +517,27 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       {/* Check-In Modal */}
       {showCheckInModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Check In User</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Check In User</h3>
               <button
                 onClick={() => setShowCheckInModal(false)}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
               >
                 <XCircle className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Checking in: <span className="font-medium">{booking.guest_name || 'Guest'}</span>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Checking in: <span className="font-medium text-gray-900 dark:text-white">{booking.guest_name || 'Guest'}</span>
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 All fields are optional. Fill in any additional information you have.
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Creative Domains</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Creative Domains</label>
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                   {PCIDA_DOMAINS.map((domain) => (
                     <button
@@ -554,8 +554,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                       }}
                       className={`text-left px-2 py-1.5 rounded text-xs ${
                         checkInData.creative_domains.includes(domain)
-                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700'
+                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
                       }`}
                     >
                       {checkInData.creative_domains.includes(domain) && '✓ '} {domain}
@@ -565,7 +565,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purpose of Visit</label>
                 <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                   {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
                     <button
@@ -582,8 +582,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
                       }}
                       className={`text-left px-2 py-1.5 rounded text-xs ${
                         checkInData.purpose_of_visit.includes(purpose)
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
                       }`}
                     >
                       {checkInData.purpose_of_visit.includes(purpose) && '✓ '} {purpose}
@@ -593,11 +593,11 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
                 <select
                   value={checkInData.gender}
                   onChange={e => setCheckInData({ ...checkInData, gender: e.target.value })}
-                  className="w-full rounded-md border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                 >
                   <option value="">Select...</option>
                   <option value="Male">Male</option>
@@ -608,42 +608,42 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sector</label>
                 <input
                   type="text"
                   value={checkInData.sector}
                   onChange={e => setCheckInData({ ...checkInData, sector: e.target.value })}
                   placeholder="e.g. Government, Private, Academic"
-                  className="w-full rounded-md border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization</label>
                 <input
                   type="text"
                   value={checkInData.organization}
                   onChange={e => setCheckInData({ ...checkInData, organization: e.target.value })}
                   placeholder="Company or school name"
-                  className="w-full rounded-md border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Designation</label>
                 <input
                   type="text"
                   value={checkInData.designation}
                   onChange={e => setCheckInData({ ...checkInData, designation: e.target.value })}
                   placeholder="e.g. Graphic Designer, Student"
-                  className="w-full rounded-md border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setShowCheckInModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                 >
                   Cancel
                 </button>
