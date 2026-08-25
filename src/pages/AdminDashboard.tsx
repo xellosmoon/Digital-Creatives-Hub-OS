@@ -3,7 +3,7 @@ import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
   CheckCircle, X, LogOut, Timer, Building2,
-  CreditCard, XCircle, Calendar, Image
+  CreditCard, XCircle, Calendar, Image, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -660,6 +660,24 @@ export default function AdminDashboard(): JSX.Element {
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-semibold inline-flex items-center gap-0.5">
                           <Timer className="h-2.5 w-2.5" />
                           {timeElapsed(a.confirmed_at)}
+                        </span>
+                      )}
+                      {a.status === 'active' && !a.confirmed_by && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold inline-flex items-center gap-0.5"
+                          title="Nobody personally confirmed this entrance — the system auto-confirmed it after a few minutes since kiosk check-ins mean they're already on-site"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Not personally verified
+                        </span>
+                      )}
+                      {a.status === 'checked_out' && !a.checked_out_by && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 font-semibold inline-flex items-center gap-0.5"
+                          title="Nobody manually checked this person out — the system auto-closed the session after it sat active too long"
+                        >
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Auto checked-out
                         </span>
                       )}
                     </div>

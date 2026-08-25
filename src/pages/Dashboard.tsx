@@ -38,16 +38,21 @@ export default function Dashboard(): JSX.Element {
 
   const fetchProfile = async (userId: string): Promise<void> => {
     try {
+      // `phone` doesn't exist on the live profiles table under that name or
+      // its old `phone_number` name (confirmed against the live schema —
+      // it errors with 42703), which was silently killing this entire
+      // fetch and leaving name/email prefill blank too. Drop it until a
+      // real phone column exists to select.
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, phone, email, tier')
+        .select('full_name, email, tier')
         .eq('id', userId)
         .maybeSingle();
 
       if (profileError) throw profileError;
       setProfile(profileData);
     } catch (error) {
-      // Error fetching profile
+      console.error('Error fetching profile:', error);
     }
   };
 

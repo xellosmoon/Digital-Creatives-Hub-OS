@@ -147,6 +147,16 @@ export default function CheckIn(): JSX.Element {
       const { data } = await supabase.rpc('find_returning_user', { p_mobile: mobile });
       if (data && data.length > 0) {
         const user = data[0];
+        // find_returning_user's `creative_domain` is a legacy single value
+        // already cast to an array by the RPC (ARRAY[creative_domain]::TEXT[]),
+        // so it's `[]`/`[null]` for older rows, never a plain string despite
+        // the name. Treating it as a string and re-wrapping it (the old code
+        // here did `[user.creative_domain]`) produced a nested [[null]] that
+        // crashed anything reading this column downstream — filter to real
+        // strings instead of assuming the shape.
+        const rawDomains: unknown[] = user.creative_domains?.length ? user.creative_domains : (user.creative_domain || []);
+        const cleanDomains = rawDomains.filter((d): d is string => typeof d === 'string' && d.trim().length > 0);
+
         setFoundUser({
           full_name: user.full_name || '',
           sector: user.sector || '',
@@ -155,13 +165,14 @@ export default function CheckIn(): JSX.Element {
           age: user.age || undefined,
           organization: user.organization || '',
           designation: user.designation || '',
-          creative_domain: user.creative_domain || '',
+          creative_domain: cleanDomains[0] || '',
+          creative_domains: cleanDomains,
         });
         setForm(prev => ({
           ...prev,
           name: user.full_name || '',
           sector: user.sector || '',
-          creative_domains: user.creative_domains || (user.creative_domain ? [user.creative_domain] : []),
+          creative_domains: cleanDomains,
           purpose_of_visit: resetPurpose,
           organization: user.organization || '',
           designation: user.designation || '',

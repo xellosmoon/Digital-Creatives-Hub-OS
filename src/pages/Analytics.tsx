@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Calendar, DollarSign, Clock, Download, Trash, Users, Building2, Briefcase, Package, ArrowLeft, BarChart3, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Calendar, DollarSign, Clock, Download, Trash, Users, Building2, Briefcase, Package, ArrowLeft, BarChart3, AlertTriangle, UserCheck, Footprints } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { supabase } from '../lib/supabase';
@@ -32,16 +32,18 @@ interface Space {
 interface Attendance {
   id: string;
   organization?: string;
-  guest_organization?: string;
-  pcida_domain?: string;
+  sector?: string;
   creative_domain?: string;
+  creative_domains?: string[];
   purpose?: string;
-  guest_name?: string;
-  guest_email?: string;
-  guest_phone?: string;
-  entrance_time?: string;
-  exit_time?: string;
+  purpose_of_visit?: string[];
+  full_name?: string;
+  email?: string;
+  mobile_number?: string;
+  check_in_time?: string;
+  check_out_time?: string;
   status?: string;
+  is_walk_in?: boolean;
   created_at: string;
   [key: string]: unknown;
 }
@@ -87,12 +89,12 @@ interface Proposal {
 
 interface RecordWithOrg {
   organization?: string;
-  guest_organization?: string;
   [key: string]: unknown;
 }
 
 interface RecordWithPurpose {
   purpose?: string;
+  purpose_of_visit?: string[];
   [key: string]: unknown;
 }
 
@@ -106,6 +108,11 @@ interface AnalyticsData {
   popularSpaces: { name: string; bookings: number; revenue: number }[];
   peakHours: { hour: number; bookings: number }[];
   totalCheckins: number;
+  activeCheckins: number;
+  walkInCheckins: number;
+  attendanceByStatus: { [key: string]: number };
+  checkinPeakHours: { hour: number; checkins: number }[];
+  sectorBreakdown: { sector: string; count: number }[];
   totalEvents: number;
   gadgetsBorrowed: number;
   spacesOccupied: number;
@@ -120,8 +127,13 @@ interface AnalyticsData {
 
 export default function Analytics(): JSX.Element {
   const [loading, setLoading] = useState(true);
+  // A trailing 3-month window was silently dropping real data once the hub
+  // had been running for longer than that (verified against live data: it
+  // was excluding over a third of all bookings). There's no date picker in
+  // this dashboard to work around it, so default to a year — comfortably
+  // covers the hub's history today with headroom before this recurs.
   const [dateRange] = useState({
-    start: startOfMonth(subMonths(new Date(), 2)),
+    start: startOfMonth(subMonths(new Date(), 11)),
     end: endOfMonth(new Date())
   });
   const [analytics, setAnalytics] = useState<AnalyticsData>({
@@ -134,6 +146,11 @@ export default function Analytics(): JSX.Element {
     popularSpaces: [],
     peakHours: [],
     totalCheckins: 0,
+    activeCheckins: 0,
+    walkInCheckins: 0,
+    attendanceByStatus: {},
+    checkinPeakHours: [],
+    sectorBreakdown: [],
     totalEvents: 0,
     gadgetsBorrowed: 0,
     spacesOccupied: 0,
@@ -277,6 +294,41 @@ export default function Analytics(): JSX.Element {
 
     // New stats
     const totalCheckins = attendance.length;
+
+    // Check-in specific breakdowns
+    const activeCheckins = attendance.filter((a: Attendance) => a.status === 'active').length;
+    const walkInCheckins = attendance.filter((a: Attendance) => a.is_walk_in === true).length;
+
+    const attendanceByStatus: { [key: string]: number } = {
+      pending_entrance: 0,
+      active: 0,
+      checked_out: 0,
+      rejected: 0,
+    };
+    attendance.forEach((a: Attendance) => {
+      if (a.status) attendanceByStatus[a.status] = (attendanceByStatus[a.status] || 0) + 1;
+    });
+
+    const checkinHourCounts: { [key: number]: number } = {};
+    attendance.forEach((a: Attendance) => {
+      if (!a.check_in_time) return;
+      const hour = new Date(a.check_in_time).getHours();
+      checkinHourCounts[hour] = (checkinHourCounts[hour] || 0) + 1;
+    });
+    const checkinPeakHours = Object.entries(checkinHourCounts)
+      .map(([hour, checkins]) => ({ hour: parseInt(hour), checkins }))
+      .sort((a, b) => a.hour - b.hour);
+
+    const sectorCounts: { [key: string]: number } = {};
+    attendance.forEach((a: Attendance) => {
+      if (a.sector && a.sector.trim()) {
+        sectorCounts[a.sector] = (sectorCounts[a.sector] || 0) + 1;
+      }
+    });
+    const sectorBreakdown = Object.entries(sectorCounts)
+      .map(([sector, count]) => ({ sector, count }))
+      .sort((a, b) => b.count - a.count);
+
     const totalEvents = events.length;
     const gadgetsBorrowed = borrowings.filter(b => b.status === 'returned' || b.status === 'active').length;
     const spacesOccupied = new Set(approvedBookings.map(b => b.workshop_zones).flat()).size;
@@ -319,8 +371,8 @@ export default function Analytics(): JSX.Element {
 
     // Organizations breakdown
     const orgCounts: { [key: string]: number } = {};
-    [...bookings, ...attendance].forEach((record: any) => {
-      const org = record.organization || record.guest_organization;
+    [...bookings, ...attendance].forEach((record: RecordWithOrg) => {
+      const org = record.organization;
       if (org && org.trim()) {
         orgCounts[org] = (orgCounts[org] || 0) + 1;
       }
@@ -330,7 +382,10 @@ export default function Analytics(): JSX.Element {
       .sort((a, b) => b.visits - a.visits)
       .slice(0, 10);
 
-    // Creative domains breakdown (from proposals and attendance)
+    // Creative domains breakdown (from proposals and attendance). Attendance
+    // rows are written with the `creative_domains` array (CheckIn.tsx) —
+    // the older singular `creative_domain` column is a fallback for rows
+    // from before that migration, not the primary source.
     const domainCounts: { [key: string]: number } = {};
     proposals.forEach((p: Proposal) => {
       if (Array.isArray(p.creative_domains)) {
@@ -340,22 +395,30 @@ export default function Analytics(): JSX.Element {
       }
     });
     attendance.forEach((a: Attendance) => {
-      const domain = a.pcida_domain || a.creative_domain;
-      if (domain && domain.trim()) {
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
-      }
+      const domains = a.creative_domains?.length ? a.creative_domains : (a.creative_domain ? [a.creative_domain] : []);
+      // A handful of live rows carry a malformed nested value (e.g. [[null]])
+      // from an old check-in bug — guard against any shape, not just null.
+      domains.forEach((domain) => {
+        if (typeof domain === 'string' && domain.trim()) {
+          domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+        }
+      });
     });
     const creativeDomains = Object.entries(domainCounts)
       .map(([domain, count]) => ({ domain, count }))
       .sort((a, b) => b.count - a.count);
 
-    // Purpose breakdown
+    // Purpose breakdown. Same story as creative domains — `purpose_of_visit`
+    // (array) is what the check-in kiosk and booking forms actually write;
+    // the singular `purpose` column is only populated on older records.
     const purposeCounts: { [key: string]: number } = {};
     [...bookings, ...attendance].forEach((record: RecordWithPurpose) => {
-      const purpose = record.purpose;
-      if (purpose && purpose.trim()) {
-        purposeCounts[purpose] = (purposeCounts[purpose] || 0) + 1;
-      }
+      const purposes = record.purpose_of_visit?.length ? record.purpose_of_visit : (record.purpose ? [record.purpose] : []);
+      purposes.forEach((purpose) => {
+        if (typeof purpose === 'string' && purpose.trim()) {
+          purposeCounts[purpose] = (purposeCounts[purpose] || 0) + 1;
+        }
+      });
     });
     const purposeBreakdown = Object.entries(purposeCounts)
       .map(([purpose, count]) => ({ purpose, count }))
@@ -371,6 +434,11 @@ export default function Analytics(): JSX.Element {
       popularSpaces,
       peakHours,
       totalCheckins,
+      activeCheckins,
+      walkInCheckins,
+      attendanceByStatus,
+      checkinPeakHours,
+      sectorBreakdown,
       totalEvents,
       gadgetsBorrowed,
       spacesOccupied,
@@ -442,14 +510,14 @@ export default function Analytics(): JSX.Element {
       if (error) throw error;
       
       const csvData = (data || []).map(a => ({
-        'Name': a.guest_name || '',
-        'Email': a.guest_email || '',
-        'Phone': a.guest_phone || '',
-        'Organization': a.guest_organization || '',
-        'PCIDA Domain': a.pcida_domain || '',
-        'Purpose': a.purpose || '',
-        'Check-in Time': new Date(a.entrance_time || a.created_at).toLocaleString(),
-        'Check-out Time': a.exit_time ? new Date(a.exit_time).toLocaleString() : '',
+        'Name': a.full_name || '',
+        'Email': a.email || '',
+        'Phone': a.mobile_number || '',
+        'Organization': a.organization || '',
+        'Creative Domain': (a.creative_domains?.length ? a.creative_domains.join('; ') : a.creative_domain) || '',
+        'Purpose': (a.purpose_of_visit?.length ? a.purpose_of_visit.join('; ') : a.purpose) || '',
+        'Check-in Time': new Date(a.check_in_time || a.created_at).toLocaleString(),
+        'Check-out Time': a.check_out_time ? new Date(a.check_out_time).toLocaleString() : '',
         'Status': a.status,
       }));
 
@@ -559,6 +627,8 @@ export default function Analytics(): JSX.Element {
   const kpiTiles: { label: string; value: string | number; icon: typeof Calendar; badge: string }[] = [
     { label: 'Total Bookings', value: analytics.totalBookings, icon: Calendar, badge: 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' },
     { label: 'Total Check-ins', value: analytics.totalCheckins, icon: Users, badge: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' },
+    { label: 'Active Now', value: analytics.activeCheckins, icon: UserCheck, badge: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400' },
+    { label: 'Walk-ins', value: analytics.walkInCheckins, icon: Footprints, badge: 'bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400' },
     { label: 'Total Revenue', value: `₱${analytics.totalRevenue.toFixed(2)}`, icon: DollarSign, badge: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
     { label: 'Avg. Duration', value: `${analytics.averageBookingDuration.toFixed(1)}h`, icon: Clock, badge: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
     { label: 'Total Events', value: analytics.totalEvents, icon: Calendar, badge: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
@@ -724,6 +794,84 @@ export default function Analytics(): JSX.Element {
                   />
                 ))}
                 {analytics.popularSpaces.length === 0 && <EmptyNote />}
+              </div>
+            </ChartCard>
+          </div>
+
+          {/* Check-in Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Check-in Status Distribution */}
+            <ChartCard icon={UserCheck} title="Check-in Status Distribution">
+              <div className="space-y-3">
+                {Object.entries(analytics.attendanceByStatus).map(([status, count]) => (
+                  <StatusBar
+                    key={status}
+                    status={status.replace(/_/g, ' ')}
+                    count={count}
+                    total={analytics.totalCheckins}
+                    colorClass={
+                      status === 'active' ? 'bg-blue-500' :
+                      status === 'checked_out' ? 'bg-green-500' :
+                      status === 'pending_entrance' ? 'bg-yellow-500' :
+                      status === 'rejected' ? 'bg-red-500' :
+                      'bg-gray-400'
+                    }
+                  />
+                ))}
+                {analytics.totalCheckins === 0 && <EmptyNote />}
+              </div>
+            </ChartCard>
+
+            {/* Visitor Sectors */}
+            <ChartCard icon={Briefcase} title="Visitor Sectors">
+              <div className="space-y-3">
+                {analytics.sectorBreakdown.slice(0, 5).map((s, _index) => (
+                  <RankedRow
+                    key={s.sector}
+                    rank={_index + 1}
+                    label={s.sector}
+                    valueLabel={String(s.count)}
+                    value={s.count}
+                    max={Math.max(...analytics.sectorBreakdown.slice(0, 5).map((x) => x.count), 1)}
+                  />
+                ))}
+                {analytics.sectorBreakdown.length === 0 && <EmptyNote />}
+              </div>
+            </ChartCard>
+          </div>
+
+          {/* Peak Check-in Hours */}
+          <div className="mb-8">
+            <ChartCard icon={Clock} title="Peak Check-in Hours">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1">
+                {Array.from({ length: 24 }, (_, i) => {
+                  const hourData = analytics.checkinPeakHours.find(h => h.hour === i);
+                  const checkins = hourData?.checkins || 0;
+                  const maxCheckins = Math.max(...analytics.checkinPeakHours.map(h => h.checkins), 1);
+                  const widthPercent = maxCheckins > 0 ? (checkins / maxCheckins) * 100 : 0;
+
+                  let hourLabel = '';
+                  if (i === 0) hourLabel = '12 MN';
+                  else if (i === 12) hourLabel = '12 NN';
+                  else if (i < 12) hourLabel = `${i} AM`;
+                  else hourLabel = `${i - 12} PM`;
+
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 w-12 text-right">{hourLabel}</span>
+                      <div className="flex-1 bg-gray-100 dark:bg-slate-700 rounded-full h-5 relative overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-teal-500 to-teal-600 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                          style={{ width: `${widthPercent}%` }}
+                        >
+                          {checkins > 0 && (
+                            <span className="text-xs font-semibold text-white">{checkins}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </ChartCard>
           </div>
