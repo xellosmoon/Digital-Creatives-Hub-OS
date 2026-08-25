@@ -8,6 +8,62 @@ interface ExtendedCalendarEvent extends CalendarEvent {
   facebook_post_url?: string;
 }
 
+// Counts visitors currently checked into the hub floor (status='active') for
+// one event, live via realtime — matches the same 'active' convention the
+// admin Live Floor tab uses to mean "actually here right now".
+function useLiveEventAttendance(eventId: string, enabled: boolean): number {
+  const [count, setCount] = useState(0);
+  // Supabase caches channels by name — the card and the detail modal can
+  // both hold a live subscription for the same event at once, and a second
+  // `.on()` on an already-subscribed channel throws. Each hook instance
+  // needs its own channel name to avoid colliding with the other's.
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current;
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const fetchCount = async (): Promise<void> => {
+      const { count: c, error } = await supabase
+        .from('hub_attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'active');
+      if (!error) setCount(c ?? 0);
+    };
+
+    fetchCount();
+
+    const subscription = supabase
+      .channel(`event-attendance-${eventId}-${instanceId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'hub_attendance',
+        filter: `event_id=eq.${eventId}`,
+      }, () => fetchCount())
+      .subscribe();
+
+    return () => { subscription.unsubscribe(); };
+  }, [eventId, enabled, instanceId]);
+
+  return count;
+}
+
+function LiveAttendanceBadge({ count }: { count: number }): JSX.Element {
+  return (
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+      </span>
+      <Users className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+      <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+        {count} {count === 1 ? 'person' : 'people'} here now
+      </span>
+    </div>
+  );
+}
+
 export default function EventCards(): JSX.Element {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,6 +339,7 @@ interface OngoingEventCardProps {
 }
 
 function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX.Element {
+  const attendeeCount = useLiveEventAttendance(event.id, true);
   const gradients = [
     'from-violet-600 via-purple-600 to-fuchsia-600',
     'from-fuchsia-600 via-pink-600 to-rose-600',
@@ -375,6 +432,9 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
               Hosted by <span className="font-semibold text-gray-700 dark:text-gray-300">{event.organization || event.organizer}</span>
             </p>
           )}
+          <div className="mt-3">
+            <LiveAttendanceBadge count={attendeeCount} />
+          </div>
           <p className="text-xs text-violet-600 font-medium mt-2 opacity-0 group-hover:opacity-100 transition-opacity dark:text-violet-400">Click to view details →</p>
         </div>
       </div>
@@ -630,6 +690,8 @@ interface EventDetailModalProps {
 
 function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Element {
   const isPast = new Date(event.end_time) < new Date();
+  const isOngoing = new Date(event.start_time) <= new Date() && new Date(event.end_time) > new Date();
+  const attendeeCount = useLiveEventAttendance(event.id, isOngoing);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -666,6 +728,10 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300">
                   Concluded
                 </span>
+              ) : isOngoing ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-violet-100 text-violet-700 animate-pulse dark:bg-violet-900/30 dark:text-violet-300">
+                  Happening Now
+                </span>
               ) : (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                   Upcoming
@@ -677,6 +743,7 @@ function EventDetailModal({ event, onClose }: EventDetailModalProps): JSX.Elemen
                   Featured
                 </span>
               )}
+              {isOngoing && <LiveAttendanceBadge count={attendeeCount} />}
             </div>
 
             {/* Title */}

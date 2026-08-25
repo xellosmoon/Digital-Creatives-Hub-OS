@@ -1,16 +1,68 @@
-import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, ArrowLeft, Trash2, Edit2, Image as ImageIcon, Upload, X, Check, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, RefreshCw, ArrowLeft, Trash2, Edit2, Image as ImageIcon, Upload, X, Check, Eye, EyeOff, Smile } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
+
+// Curated set for the badge picker below — covers the categories this
+// gallery actually uses, so the admin doesn't need to know how to type an
+// emoji or hunt through a full system picker for one.
+const BADGE_EMOJIS: { emoji: string; label: string }[] = [
+  { emoji: '☕', label: 'Coworking' },
+  { emoji: '💻', label: 'Deep work' },
+  { emoji: '🎯', label: 'Meeting' },
+  { emoji: '🎙️', label: 'Podcast' },
+  { emoji: '🎨', label: 'Design' },
+  { emoji: '👥', label: 'Community' },
+  { emoji: '✨', label: 'Creative' },
+  { emoji: '🎪', label: 'Event' },
+  { emoji: '📸', label: 'Photo' },
+  { emoji: '🎉', label: 'Celebration' },
+  { emoji: '💡', label: 'Idea' },
+  { emoji: '🚀', label: 'Launch' },
+  { emoji: '📚', label: 'Workshop' },
+  { emoji: '🖥️', label: 'Tech' },
+  { emoji: '🎧', label: 'Audio' },
+  { emoji: '🏆', label: 'Award' },
+  { emoji: '🤝', label: 'Collaboration' },
+  { emoji: '🌟', label: 'Featured' },
+];
+
+// Downscale + re-encode as JPEG before upload — the marquee on the homepage
+// renders many of these at once while continuously animating, so an
+// unoptimized multi-MB phone photo (or a dozen of them) is what was making
+// the page heavy on slower machines. 1600px is comfortably larger than the
+// biggest size it's ever displayed at (a ~288px-wide card, even at 3x DPI).
+async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) return file;
+
+    return new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
+  } finally {
+    bitmap.close();
+  }
+}
 
 interface GalleryImage {
   id: string;
   title: string;
   category: string;
   badge: string;
-  cloudinary_public_id: string;
-  cloudinary_url: string;
+  storage_path: string;
+  image_url: string;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -21,8 +73,8 @@ interface FormData {
   title: string;
   category: string;
   badge: string;
-  cloudinary_public_id: string;
-  cloudinary_url: string;
+  storage_path: string;
+  image_url: string;
   display_order: number;
 }
 
@@ -36,12 +88,14 @@ export default function GalleryManagement(): JSX.Element {
   const [showModal, setShowModal] = useState(false);
   const [editingImage, setEditingImage] = useState<GalleryImage | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const badgeInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     category: '',
     badge: '',
-    cloudinary_public_id: '',
-    cloudinary_url: '',
+    storage_path: '',
+    image_url: '',
     display_order: 0,
   });
 
@@ -73,8 +127,8 @@ export default function GalleryManagement(): JSX.Element {
       title: '',
       category: '',
       badge: '',
-      cloudinary_public_id: '',
-      cloudinary_url: '',
+      storage_path: '',
+      image_url: '',
       display_order: images.length,
     });
     setShowModal(true);
@@ -86,14 +140,14 @@ export default function GalleryManagement(): JSX.Element {
       title: image.title,
       category: image.category,
       badge: image.badge,
-      cloudinary_public_id: image.cloudinary_public_id,
-      cloudinary_url: image.cloudinary_url,
+      storage_path: image.storage_path,
+      image_url: image.image_url,
       display_order: image.display_order,
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string): Promise<void> => {
+  const handleDelete = async (id: string, storagePath: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this image?')) return;
 
     try {
@@ -103,6 +157,11 @@ export default function GalleryManagement(): JSX.Element {
         .eq('id', id);
 
       if (error) throw error;
+
+      if (storagePath) {
+        await supabase.storage.from('gallery').remove([storagePath]);
+      }
+
       toast.success('Image deleted successfully');
       fetchImages();
     } catch (err) {
@@ -132,6 +191,12 @@ export default function GalleryManagement(): JSX.Element {
     setUploading(true);
 
     try {
+      if (!formData.image_url) {
+        toast.error('Please upload an image first');
+        setUploading(false);
+        return;
+      }
+
       if (editingImage) {
         // Update existing
         const { error } = await supabase
@@ -140,8 +205,8 @@ export default function GalleryManagement(): JSX.Element {
             title: formData.title,
             category: formData.category,
             badge: formData.badge,
-            cloudinary_public_id: formData.cloudinary_public_id,
-            cloudinary_url: formData.cloudinary_url,
+            storage_path: formData.storage_path,
+            image_url: formData.image_url,
             display_order: formData.display_order,
           })
           .eq('id', editingImage.id);
@@ -156,8 +221,8 @@ export default function GalleryManagement(): JSX.Element {
             title: formData.title,
             category: formData.category,
             badge: formData.badge,
-            cloudinary_public_id: formData.cloudinary_public_id,
-            cloudinary_url: formData.cloudinary_url,
+            storage_path: formData.storage_path,
+            image_url: formData.image_url,
             display_order: formData.display_order,
             is_active: true,
           });
@@ -176,31 +241,52 @@ export default function GalleryManagement(): JSX.Element {
     }
   };
 
-  const handleCloudinaryUpload = async (file: File): Promise<void> => {
+  const handleImageUpload = async (file: File): Promise<void> => {
     setUploading(true);
     try {
-      // For now, use a simple file reader to get a preview URL
-      // In production, integrate with Cloudinary upload API
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const mockPublicId = `gallery_${Date.now()}`;
-        const mockUrl = reader.result as string;
-        
-        setFormData({
-          ...formData,
-          cloudinary_public_id: mockPublicId,
-          cloudinary_url: mockUrl,
-        });
-        
-        toast.success('Image uploaded (demo mode)');
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
+      const compressed = await compressImage(file).catch(() => file);
+      const path = `gallery_${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(path, compressed, { contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('gallery').getPublicUrl(path);
+
+      setFormData(prev => ({
+        ...prev,
+        storage_path: path,
+        image_url: data.publicUrl,
+      }));
+
+      toast.success('Image uploaded');
     } catch (err) {
       console.error('Error uploading image:', err);
       toast.error('Failed to upload image');
+    } finally {
       setUploading(false);
     }
+  };
+
+  // Inserts at the cursor position (like any emoji picker) rather than
+  // just appending, so it works whether the admin already typed the label
+  // first or hasn't typed anything yet.
+  const handlePickEmoji = (emoji: string): void => {
+    const input = badgeInputRef.current;
+    const start = input?.selectionStart ?? formData.badge.length;
+    const end = input?.selectionEnd ?? formData.badge.length;
+    const next = formData.badge.slice(0, start) + emoji + formData.badge.slice(end);
+
+    setFormData(prev => ({ ...prev, badge: next }));
+    setShowEmojiPicker(false);
+
+    requestAnimationFrame(() => {
+      input?.focus();
+      const cursor = start + emoji.length;
+      input?.setSelectionRange(cursor, cursor);
+    });
   };
 
   return (
@@ -267,7 +353,7 @@ export default function GalleryManagement(): JSX.Element {
               >
                 <div className="aspect-video bg-gray-100 relative dark:bg-slate-900">
                   <img
-                    src={image.cloudinary_url}
+                    src={image.image_url}
                     alt={image.title}
                     className="w-full h-full object-cover"
                   />
@@ -306,7 +392,7 @@ export default function GalleryManagement(): JSX.Element {
                       {image.is_active ? 'Hide' : 'Show'}
                     </button>
                     <button
-                      onClick={() => handleDelete(image.id)}
+                      onClick={() => handleDelete(image.id, image.storage_path)}
                       className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors text-sm dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -373,18 +459,50 @@ export default function GalleryManagement(): JSX.Element {
                 </select>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
                   Badge Text (with emoji) *
                 </label>
-                <input
-                  type="text"
-                  value={formData.badge}
-                  onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                  placeholder="e.g., ☕ Coworking Lounge"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
-                  required
-                />
+                <div className="flex gap-2">
+                  <input
+                    ref={badgeInputRef}
+                    type="text"
+                    value={formData.badge}
+                    onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                    placeholder="e.g., ☕ Coworking Lounge"
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(prev => !prev)}
+                    title="Insert an emoji"
+                    className={`px-3 rounded-lg border transition-colors ${
+                      showEmojiPicker
+                        ? 'border-[#0C2340] bg-[#0C2340]/5 dark:bg-slate-700'
+                        : 'border-gray-300 hover:bg-gray-50 dark:border-slate-600 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <Smile className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Not sure how to type an emoji? Click the smiley to pick one.</p>
+
+                {showEmojiPicker && (
+                  <div className="absolute z-10 mt-1 right-0 w-64 p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-lg grid grid-cols-6 gap-1">
+                    {BADGE_EMOJIS.map(({ emoji, label }) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => handlePickEmoji(emoji)}
+                        title={label}
+                        className="text-xl p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -403,21 +521,7 @@ export default function GalleryManagement(): JSX.Element {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
-                  Cloudinary Public ID *
-                </label>
-                <input
-                  type="text"
-                  value={formData.cloudinary_public_id}
-                  onChange={(e) => setFormData({ ...formData, cloudinary_public_id: e.target.value })}
-                  placeholder="e.g., samples/coffee-shop"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
-                  Upload Image
+                  Image *
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0C2340] transition-colors dark:border-slate-600 dark:hover:border-primary-400">
                   <input
@@ -425,7 +529,7 @@ export default function GalleryManagement(): JSX.Element {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleCloudinaryUpload(file);
+                      if (file) handleImageUpload(file);
                     }}
                     className="hidden"
                     id="image-upload"
@@ -436,31 +540,17 @@ export default function GalleryManagement(): JSX.Element {
                   >
                     <Upload className="w-8 h-8 text-gray-400 mb-2 dark:text-gray-500" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {uploading ? 'Uploading...' : 'Click to upload image'}
+                      {uploading ? 'Uploading...' : formData.image_url ? 'Click to replace image' : 'Click to upload image'}
                     </span>
                   </label>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1 dark:text-gray-300">
-                  Cloudinary URL *
-                </label>
-                <input
-                  type="url"
-                  value={formData.cloudinary_url}
-                  onChange={(e) => setFormData({ ...formData, cloudinary_url: e.target.value })}
-                  placeholder="https://res.cloudinary.com/..."
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0C2340] focus:border-transparent dark:bg-slate-900 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
-                  required
-                />
-              </div>
-
               {/* Preview */}
-              {formData.cloudinary_url && (
+              {formData.image_url && (
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden dark:bg-slate-900">
                   <img
-                    src={formData.cloudinary_url}
+                    src={formData.image_url}
                     alt="Preview"
                     className="w-full h-full object-cover"
                   />

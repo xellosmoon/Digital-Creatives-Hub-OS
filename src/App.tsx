@@ -27,7 +27,6 @@ const AdminGadgets = lazy(() => import('./pages/AdminGadgets'));
 const MyBorrows = lazy(() => import('./pages/MyBorrows'));
 const SeatManagement = lazy(() => import('./pages/SeatManagement'));
 const ProposeEvent = lazy(() => import('./pages/ProposeEvent'));
-const EventDetails = lazy(() => import('./pages/EventDetails'));
 const CheckIn = lazy(() => import('./pages/CheckIn'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
@@ -85,7 +84,6 @@ function App(): JSX.Element {
             <Route path="/booking-lookup" element={<Layout session={session}><BookingLookup /></Layout>} />
             <Route path="/gadgets" element={<Layout session={session}><Gadgets /></Layout>} />
             <Route path="/propose-event" element={<Layout session={session}><ProposeEvent /></Layout>} />
-            <Route path="/events/:id" element={<Layout session={session}><EventDetails /></Layout>} />
             <Route path="/about" element={<Layout session={session}><AboutUs /></Layout>} />
 
             {/* Protected Routes */}

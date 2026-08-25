@@ -123,10 +123,11 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl z-50">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200/50 dark:border-slate-700/50 rounded-full px-6 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              {/* Logo */}
-              <Link to="/" className="flex items-center flex-shrink-0">
-                <span className="font-black text-sm tracking-wider text-slate-900 dark:text-[#F59E0B] uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B]">
+            <div className="flex items-center min-w-0 flex-1 mr-2">
+              {/* Logo — truncates instead of overlapping the icons on the right
+                  when the viewport is too narrow to fit the full wordmark. */}
+              <Link to="/" className="flex items-center min-w-0">
+                <span className="font-black text-sm tracking-wider text-slate-900 dark:text-[#F59E0B] uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-[#F59E0B] dark:via-orange-400 dark:to-[#F59E0B] truncate">
                   Digital Creatives Hub
                 </span>
               </Link>
@@ -159,8 +160,9 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
               </div>
             </div>
 
-            {/* Right side */}
-            <div className="flex items-center gap-2">
+            {/* Right side — flex-shrink-0 so these controls are never squeezed
+                or overlapped by the logo on narrow screens. */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}

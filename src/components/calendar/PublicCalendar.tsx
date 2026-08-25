@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval,
@@ -47,8 +46,6 @@ interface DaySummary {
 }
 
 export default function PublicCalendar(): JSX.Element {
-  const navigate = useNavigate();
-
   // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
@@ -488,7 +485,7 @@ export default function PublicCalendar(): JSX.Element {
                             key={ev.id}
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/events/${ev.id}`);
+                              handleEventClick(ev);
                             }}
                             className={`flex items-center gap-1.5 px-2 py-1 rounded-full border min-w-0 max-w-full ${bgColor} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
                             title={ev.title}

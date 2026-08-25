@@ -51,8 +51,19 @@
 
 .animate-marquee {
   animation: marquee 30s linear infinite;
+  will-change: transform;
 }
 
 .animate-marquee-reverse {
   animation: marquee-reverse 30s linear infinite;
+  will-change: transform;
+}
+
+/* Belt-and-suspenders alongside the IntersectionObserver pause in
+   HubGalleryMarquee.tsx — this covers the moment before that effect runs. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee-reverse {
+    animation: none;
+  }
 }

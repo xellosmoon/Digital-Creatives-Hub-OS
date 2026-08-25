@@ -5,14 +5,14 @@ import { format } from 'date-fns';
 import {
   ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
   UserCheck, Sparkles, X, CalendarClock, Building, Palette,
-  CheckCircle, Building2, BadgeCheck, Loader2, PartyPopper, Mail, User,
+  CheckCircle, Building2, BadgeCheck, Loader2, PartyPopper, Mail, User, Pencil,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
 import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../types/hub';
 
-type Step = 'privacy' | 'mobile' | 'identify' | 'purpose' | 'newUser' | 'success';
+type Step = 'privacy' | 'event' | 'mobile' | 'identify' | 'purpose' | 'newUser' | 'success';
 
 const SECTOR_OPTIONS = [
   'Teacher/Academe',
@@ -107,14 +107,20 @@ export default function CheckIn(): JSX.Element {
   }, []);
 
   // ── Fetch today's events ───────────────────────────────────────────
+  // `events` has no `date` column and its status enum is draft/published/
+  // cancelled (not approved/confirmed) — match the same table/values the
+  // public Events page queries, or this silently returns nothing.
   const fetchTodayEvents = useCallback(async (): Promise<void> => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0).toISOString();
       const { data, error } = await supabase
         .from('events')
         .select('id, title, start_time, end_time')
-        .eq('date', today)
-        .in('status', ['approved', 'confirmed'])
+        .eq('status', 'published')
+        .lt('start_time', todayEnd)
+        .gte('end_time', todayStart)
         .order('start_time');
 
       if (error) throw error;
@@ -124,16 +130,19 @@ export default function CheckIn(): JSX.Element {
     }
   }, []);
 
-  // Fetch today's events when component mounts or when entering purpose step
+  // Fetch once on mount — needed before the privacy step's "Continue" button
+  // decides whether to route into the event-selection step at all.
   useEffect(() => {
-    if (step === 'purpose') {
-      fetchTodayEvents();
-    }
-  }, [step, fetchTodayEvents]);
+    fetchTodayEvents();
+  }, [fetchTodayEvents]);
 
   // ── Check returning user when mobile is entered ─────────────────
+  // Every branch below clears purpose_of_visit "ask every time" — except
+  // an event picked on the earlier event step must survive that clear, or
+  // it silently reappears as an unfilled required field later.
   const checkReturning = useCallback(async (mobile: string) => {
     if (mobile.length < 10) return;
+    const resetPurpose = selectedEventId ? ['Event'] : [];
     try {
       const { data } = await supabase.rpc('find_returning_user', { p_mobile: mobile });
       if (data && data.length > 0) {
@@ -153,7 +162,7 @@ export default function CheckIn(): JSX.Element {
           name: user.full_name || '',
           sector: user.sector || '',
           creative_domains: user.creative_domains || (user.creative_domain ? [user.creative_domain] : []),
-          purpose_of_visit: [], // Always clear purpose of visit - ask every time
+          purpose_of_visit: resetPurpose,
           organization: user.organization || '',
           designation: user.designation || '',
           email: user.email || '',
@@ -167,7 +176,7 @@ export default function CheckIn(): JSX.Element {
           ...prev,
           sector: '',
           creative_domains: [],
-          purpose_of_visit: [],
+          purpose_of_visit: resetPurpose,
           organization: '',
           designation: '',
           email: '',
@@ -182,7 +191,7 @@ export default function CheckIn(): JSX.Element {
         ...prev,
         sector: '',
         creative_domains: [],
-        purpose_of_visit: [],
+        purpose_of_visit: resetPurpose,
         organization: '',
         designation: '',
         email: '',
@@ -191,7 +200,7 @@ export default function CheckIn(): JSX.Element {
       }));
       setStep('newUser');
     }
-  }, []);
+  }, [selectedEventId]);
 
   // ── Number Pad Logic ────────────────────────────────────────────
   const appendDigit = (d: string): void => {
@@ -225,19 +234,26 @@ export default function CheckIn(): JSX.Element {
 
   // ── Navigation ─────────────────────────────────────────────────
   const goNext = (): void => {
-    if (step === 'privacy') setStep('mobile');
+    if (step === 'privacy') setStep(todayEvents.length > 0 ? 'event' : 'mobile');
+    else if (step === 'event') setStep('mobile');
   };
 
   const goBack = (): void => {
-    if (step === 'mobile') {
-      navigate('/');
+    if (step === 'event') {
+      setStep('privacy');
+    } else if (step === 'mobile') {
+      if (todayEvents.length > 0) {
+        setStep('event');
+      } else {
+        navigate('/');
+      }
     } else if (step === 'identify') {
       setForm({
         mobile: form.mobile,
         name: '',
         sector: '',
         creative_domains: [],
-        purpose_of_visit: [],
+        purpose_of_visit: selectedEventId ? ['Event'] : [],
         organization: '',
         designation: '',
         email: '',
@@ -249,13 +265,16 @@ export default function CheckIn(): JSX.Element {
     } else if (step === 'purpose') {
       setStep('identify');
       setSelectedEventId(null);
+      if (form.purpose_of_visit.length === 1 && form.purpose_of_visit[0] === 'Event') {
+        update({ purpose_of_visit: [] });
+      }
     } else if (step === 'newUser') {
       setForm({
         mobile: '',
         name: '',
         sector: '',
         creative_domains: [],
-        purpose_of_visit: [],
+        purpose_of_visit: selectedEventId ? ['Event'] : [],
         organization: '',
         designation: '',
         email: '',
@@ -271,15 +290,27 @@ export default function CheckIn(): JSX.Element {
     setStep('purpose');
   };
 
+  // Picking a specific event locks purpose-of-visit to "Event" — no need to
+  // also ask them to pick from the general purpose chips. Switching back to
+  // "Just visiting" only clears that auto-picked purpose, never a manual one.
+  const handleSelectEvent = (eventId: string | null): void => {
+    setSelectedEventId(eventId);
+    if (eventId) {
+      update({ purpose_of_visit: ['Event'] });
+    } else if (form.purpose_of_visit.length === 1 && form.purpose_of_visit[0] === 'Event') {
+      update({ purpose_of_visit: [] });
+    }
+  };
+
   const handleNotMe = (): void => {
     // Keep the phone number, just let them enter their own name
     setFoundUser(null);
-    setForm(prev => ({ 
-      ...prev, 
-      name: '', 
+    setForm(prev => ({
+      ...prev,
+      name: '',
       sector: '',
       creative_domains: [],
-      purpose_of_visit: [],
+      purpose_of_visit: selectedEventId ? ['Event'] : [],
       organization: '',
       designation: '',
       email: '',
@@ -435,17 +466,19 @@ export default function CheckIn(): JSX.Element {
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white">
               {step === 'privacy' && 'Data Privacy Notice'}
+              {step === 'event' && "Joining Today's Event?"}
               {step === 'mobile' && 'Enter Your Mobile Number'}
               {step === 'identify' && 'Is this you?'}
-              {step === 'purpose' && 'What brings you here?'}
+              {step === 'purpose' && (selectedEventId ? 'Confirm Your Details' : 'What brings you here?')}
               {step === 'newUser' && 'Welcome!'}
               {step === 'success' && 'Welcome to the Hub!'}
             </h1>
             <p className="text-sm text-white/50 mt-1">
               {step === 'privacy' && 'Please read before proceeding'}
+              {step === 'event' && 'Select an event, or continue as a general visit'}
               {step === 'mobile' && 'Use the keypad below or type on keyboard'}
               {step === 'identify' && 'We found a previous visitor with this number'}
-              {step === 'purpose' && 'Select all that apply'}
+              {step === 'purpose' && (selectedEventId ? "You're all set — review your info below" : 'Select all that apply')}
               {step === 'newUser' && 'Let us know your name'}
               {step === 'success' && '🎉'}
             </p>
@@ -504,6 +537,72 @@ export default function CheckIn(): JSX.Element {
                   I understand and consent to the collection and use of my data
                 </span>
               </button>
+            </div>
+          )}
+
+          {/* ═══ STEP: TODAY'S EVENT ═══ */}
+          {step === 'event' && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-400/30 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <PartyPopper className="h-5 w-5 text-amber-400" />
+                  <p className="text-sm font-semibold text-amber-200">Are you here for one of today's events?</p>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectEvent(null)}
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                      selectedEventId === null
+                        ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
+                        : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        selectedEventId === null ? 'bg-amber-500' : 'bg-white/10'
+                      }`}>
+                        {selectedEventId === null && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">No, just visiting / general purpose</p>
+                      </div>
+                    </div>
+                  </button>
+                  {todayEvents.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => handleSelectEvent(event.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
+                        selectedEventId === event.id
+                          ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
+                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          selectedEventId === event.id ? 'bg-amber-500' : 'bg-white/10'
+                        }`}>
+                          {selectedEventId === event.id && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{event.title}</p>
+                          <p className="text-xs text-white/50">
+                            {format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selectedEventId && (
+                <p className="text-center text-xs text-white/40">
+                  Your purpose of visit will be set to "Event" — no need to pick from the other options later.
+                </p>
+              )}
             </div>
           )}
 
@@ -582,13 +681,15 @@ export default function CheckIn(): JSX.Element {
                       />
                     ) : (
                       <p
-                        className="text-3xl font-bold text-white mb-2 cursor-pointer hover:text-violet-200 transition-colors"
+                        className="text-3xl font-bold text-white mb-2 cursor-pointer hover:text-violet-200 transition-colors inline-flex items-center gap-2"
                         onClick={() => setEditingName(true)}
                       >
                         {form.name || foundUser?.full_name}
+                        <Pencil className="h-4 w-4 text-white/30 flex-shrink-0" />
                       </p>
                     )}
                     <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
+                    <p className="text-[11px] text-white/30 -mt-2 mb-1">Tap your name to correct it</p>
                   </div>
 
                   <div className="flex gap-3 justify-center">
@@ -622,62 +723,70 @@ export default function CheckIn(): JSX.Element {
           {step === 'purpose' && (
             <div className="space-y-4">
               {/* Your details (shown only now that identity is confirmed) */}
-              {(foundUser?.sector || foundUser?.organization || foundUser?.email || foundUser?.gender || foundUser?.age || foundUser?.creative_domain || (foundUser?.creative_domains && foundUser.creative_domains.length > 0)) && (
+              {foundUser && (
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Your Details</p>
+                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+                    Your Details <span className="normal-case font-normal text-white/30">— tap any field to edit</span>
+                  </p>
                   <div className="space-y-2 text-left text-sm">
-                    {foundUser?.sector && (
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Building2 className="h-4 w-4" />
-                        {editingSector ? (
-                          <select
-                            value={form.sector}
-                            onChange={e => update({ sector: e.target.value })}
-                            onBlur={() => setEditingSector(false)}
-                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                          >
-                            <option value="" className="bg-slate-900">Select sector</option>
-                            {SECTOR_OPTIONS.map(opt => (
-                              <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>{foundUser.sector}</span>
-                        )}
-                      </div>
-                    )}
-                    {foundUser?.organization && (
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Building className="h-4 w-4" />
-                        {editingOrganization ? (
-                          <input
-                            type="text"
-                            value={form.organization}
-                            onChange={e => update({ organization: e.target.value })}
-                            onBlur={() => setEditingOrganization(false)}
-                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                          />
-                        ) : (
-                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>{foundUser.organization}</span>
-                        )}
-                      </div>
-                    )}
-                    {foundUser?.designation && (
-                      <div className="flex items-center gap-2 text-white/70">
-                        <BadgeCheck className="h-4 w-4" />
-                        {editingDesignation ? (
-                          <input
-                            type="text"
-                            value={form.designation}
-                            onChange={e => update({ designation: e.target.value })}
-                            onBlur={() => setEditingDesignation(false)}
-                            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                          />
-                        ) : (
-                          <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>{foundUser.designation}</span>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 text-white/70">
+                      <Building2 className="h-4 w-4" />
+                      {editingSector ? (
+                        <select
+                          value={form.sector}
+                          onChange={e => update({ sector: e.target.value })}
+                          onBlur={() => setEditingSector(false)}
+                          autoFocus
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        >
+                          <option value="" className="bg-slate-900">Select sector</option>
+                          {SECTOR_OPTIONS.map(opt => (
+                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>
+                          {form.sector || foundUser?.sector || 'Add sector'}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-white/70">
+                      <Building className="h-4 w-4" />
+                      {editingOrganization ? (
+                        <input
+                          type="text"
+                          value={form.organization}
+                          onChange={e => update({ organization: e.target.value })}
+                          onBlur={() => setEditingOrganization(false)}
+                          autoFocus
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>
+                          {form.organization || foundUser?.organization || 'Add office/agency/business'}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-white/70">
+                      <BadgeCheck className="h-4 w-4" />
+                      {editingDesignation ? (
+                        <input
+                          type="text"
+                          value={form.designation}
+                          onChange={e => update({ designation: e.target.value })}
+                          onBlur={() => setEditingDesignation(false)}
+                          autoFocus
+                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>
+                          {form.designation || foundUser?.designation || 'Add designation'}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-white/70">
                       <Mail className="h-4 w-4" />
                       {editingEmail ? (
@@ -686,10 +795,14 @@ export default function CheckIn(): JSX.Element {
                           value={form.email}
                           onChange={e => update({ email: e.target.value })}
                           onBlur={() => setEditingEmail(false)}
+                          autoFocus
                           className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
-                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>{form.email || foundUser?.email || 'Add email'}</span>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>
+                          {form.email || foundUser?.email || 'Add email'}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-white/70">
@@ -699,6 +812,7 @@ export default function CheckIn(): JSX.Element {
                           value={form.gender}
                           onChange={e => update({ gender: e.target.value })}
                           onBlur={() => setEditingGender(false)}
+                          autoFocus
                           className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
                         >
                           <option value="" className="bg-slate-900">Select gender</option>
@@ -707,7 +821,10 @@ export default function CheckIn(): JSX.Element {
                           ))}
                         </select>
                       ) : (
-                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>{form.gender || foundUser?.gender || 'Add gender'}</span>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>
+                          {form.gender || foundUser?.gender || 'Add gender'}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-white/70">
@@ -721,10 +838,14 @@ export default function CheckIn(): JSX.Element {
                           placeholder="Age"
                           min="1"
                           max="120"
+                          autoFocus
                           className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
-                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>{form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}</span>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>
+                          {form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                        </span>
                       )}
                     </div>
                     <div className="flex items-start gap-2 text-white/70">
@@ -761,10 +882,11 @@ export default function CheckIn(): JSX.Element {
                           </button>
                         </div>
                       ) : (
-                        <span className="flex-1 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
                           {form.creative_domains.length > 0
                             ? form.creative_domains.join(', ')
                             : (foundUser?.creative_domains?.length ? foundUser.creative_domains.join(', ') : (foundUser?.creative_domain || 'Add creative domain'))}
+                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
@@ -772,105 +894,61 @@ export default function CheckIn(): JSX.Element {
                 </div>
               )}
 
-              {/* Event Selection (if events are happening today) */}
-              {todayEvents.length > 0 && (
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-400/30 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <PartyPopper className="h-5 w-5 text-amber-400" />
-                    <p className="text-sm font-semibold text-amber-200">Events happening today</p>
-                  </div>
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEventId(null)}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
-                        selectedEventId === null
-                          ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
-                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          selectedEventId === null ? 'bg-amber-500' : 'bg-white/10'
-                        }`}>
-                          {selectedEventId === null && <Check className="h-3 w-3 text-white" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">Just visiting / General purpose</p>
-                        </div>
-                      </div>
-                    </button>
-                    {todayEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => setSelectedEventId(event.id)}
-                        className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
-                          selectedEventId === event.id
-                            ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
-                            : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            selectedEventId === event.id ? 'bg-amber-500' : 'bg-white/10'
-                          }`}>
-                            {selectedEventId === event.id && <Check className="h-3 w-3 text-white" />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{event.title}</p>
-                            <p className="text-xs text-white/50">
-                              {event.start_time} - {event.end_time}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+              {selectedEventId ? (
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-400/30 rounded-2xl p-4 text-center">
+                  <PartyPopper className="h-6 w-6 text-emerald-300 mx-auto mb-2" />
+                  <p className="text-sm text-white/80">
+                    Purpose of visit: <span className="font-semibold text-white">Event</span>
+                  </p>
+                  <p className="text-xs text-white/50 mt-1">
+                    You're checking in for {todayEvents.find(e => e.id === selectedEventId)?.title}
+                  </p>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
+                      const isSelected = form.purpose_of_visit.includes(purpose);
+                      const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+                      const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
+
+                      return (
+                        <button
+                          key={purpose}
+                          type="button"
+                          onClick={() => {
+                            const newSelection = isSelected
+                              ? form.purpose_of_visit.filter(p => p !== purpose)
+                              : [...form.purpose_of_visit, purpose];
+                            update({ purpose_of_visit: newSelection });
+                          }}
+                          className={`
+                            relative px-4 py-4 rounded-2xl text-left transition-all duration-200 border-2
+                            ${isSelected
+                              ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
+                              : tintClass
+                            }
+                          `}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                              isSelected ? 'bg-white/20' : 'bg-white/10'
+                            }`}>
+                              {isSelected && <Check className="h-4 w-4 text-white" />}
+                            </div>
+                            <span className="font-semibold text-sm break-words">{purpose}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {form.purpose_of_visit.length === 0 && (
+                    <p className="text-center text-sm text-red-400 mt-2">Please select at least one purpose</p>
+                  )}
+                </>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
-                  const isSelected = form.purpose_of_visit.includes(purpose);
-                  const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
-                  const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
-
-                  return (
-                    <button
-                      key={purpose}
-                      type="button"
-                      onClick={() => {
-                        const newSelection = isSelected
-                          ? form.purpose_of_visit.filter(p => p !== purpose)
-                          : [...form.purpose_of_visit, purpose];
-                        update({ purpose_of_visit: newSelection });
-                      }}
-                      className={`
-                        relative px-4 py-4 rounded-2xl text-left transition-all duration-200 border-2
-                        ${isSelected
-                          ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
-                          : tintClass
-                        }
-                      `}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                          isSelected ? 'bg-white/20' : 'bg-white/10'
-                        }`}>
-                          {isSelected && <Check className="h-4 w-4 text-white" />}
-                        </div>
-                        <span className="font-semibold text-sm break-words">{purpose}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              
-              {form.purpose_of_visit.length === 0 && (
-                <p className="text-center text-sm text-red-400 mt-2">Please select at least one purpose</p>
-              )}
-              
               <button
                 type="button"
                 onClick={handleCheckIn}
@@ -1007,45 +1085,59 @@ export default function CheckIn(): JSX.Element {
 
               <div>
                 <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Purpose of Visit *</label>
-                <p className="text-xs text-white/40 mb-2">Select all that apply</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
-                    const isSelected = form.purpose_of_visit.includes(purpose);
-                    const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
-                    const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
+                {selectedEventId ? (
+                  <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-400/30 rounded-2xl p-4 text-center">
+                    <PartyPopper className="h-6 w-6 text-emerald-300 mx-auto mb-2" />
+                    <p className="text-sm text-white/80">
+                      Purpose of visit: <span className="font-semibold text-white">Event</span>
+                    </p>
+                    <p className="text-xs text-white/50 mt-1">
+                      You're checking in for {todayEvents.find(e => e.id === selectedEventId)?.title}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-white/40 mb-2">Select all that apply</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
+                        const isSelected = form.purpose_of_visit.includes(purpose);
+                        const colorClass = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+                        const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
 
-                    return (
-                      <button
-                        key={purpose}
-                        type="button"
-                        onClick={() => {
-                          const newSelection = isSelected
-                            ? form.purpose_of_visit.filter(p => p !== purpose)
-                            : [...form.purpose_of_visit, purpose];
-                          update({ purpose_of_visit: newSelection });
-                        }}
-                        className={`
-                          relative px-4 py-3 rounded-2xl text-left transition-all duration-200 border-2
-                          ${isSelected
-                            ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
-                            : tintClass
-                          }
-                        `}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`h-5 w-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                            isSelected ? 'bg-white/20' : 'bg-white/10'
-                          }`}>
-                            {isSelected && <Check className="h-3 w-3 text-white" />}
-                          </div>
-                          <span className="font-semibold text-xs break-words">{purpose}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                {form.purpose_of_visit.length === 0 && (
-                  <p className="text-xs text-red-400 mt-2">Please select at least one purpose</p>
+                        return (
+                          <button
+                            key={purpose}
+                            type="button"
+                            onClick={() => {
+                              const newSelection = isSelected
+                                ? form.purpose_of_visit.filter(p => p !== purpose)
+                                : [...form.purpose_of_visit, purpose];
+                              update({ purpose_of_visit: newSelection });
+                            }}
+                            className={`
+                              relative px-4 py-3 rounded-2xl text-left transition-all duration-200 border-2
+                              ${isSelected
+                                ? `bg-gradient-to-r ${colorClass} text-white shadow-lg scale-[1.02] border-transparent`
+                                : tintClass
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`h-5 w-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                                isSelected ? 'bg-white/20' : 'bg-white/10'
+                              }`}>
+                                {isSelected && <Check className="h-3 w-3 text-white" />}
+                              </div>
+                              <span className="font-semibold text-xs break-words">{purpose}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {form.purpose_of_visit.length === 0 && (
+                      <p className="text-xs text-red-400 mt-2">Please select at least one purpose</p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -1109,11 +1201,11 @@ export default function CheckIn(): JSX.Element {
               </button>
             )}
 
-            {step === 'privacy' ? (
+            {(step === 'privacy' || step === 'event') ? (
               <button
                 type="button"
                 onClick={goNext}
-                disabled={!privacyConsent}
+                disabled={step === 'privacy' && !privacyConsent}
                 className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 shadow-lg shadow-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
               >
                 Continue <ArrowRight className="h-4 w-4" />

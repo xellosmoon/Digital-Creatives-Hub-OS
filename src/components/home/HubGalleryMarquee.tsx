@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, ZoomIn } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface GalleryImage {
   id: string;
-  cloudinary_public_id: string;
-  cloudinary_url: string;
+  storage_path: string;
+  image_url: string;
   title: string;
   category: string;
   badge: string;
@@ -14,10 +14,26 @@ interface GalleryImage {
 export default function HubGalleryMarquee(): JSX.Element {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     fetchImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The marquee runs two always-on transform animations — real, ongoing
+  // CPU/GPU cost that shouldn't be paid while the section is scrolled out
+  // of view, or at all if the OS has asked for reduced motion.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsRunning(entry.isIntersecting),
+      { threshold: 0.01 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
   const fetchImages = async (): Promise<void> => {
@@ -44,64 +60,64 @@ export default function HubGalleryMarquee(): JSX.Element {
   const getMockImages = (): GalleryImage[] => [
     {
       id: '1',
-      cloudinary_public_id: 'morning-collaboration',
-      cloudinary_url: 'https://images.pexels.com/photos/3184357/pexels-photo-3184357.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'morning-collaboration',
+      image_url: 'https://images.pexels.com/photos/3184357/pexels-photo-3184357.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Morning Collaboration',
       category: 'Coworking',
       badge: '☕ Coworking Lounge',
     },
     {
       id: '2',
-      cloudinary_public_id: 'focus-session',
-      cloudinary_url: 'https://images.pexels.com/photos/4974912/pexels-photo-4974912.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'focus-session',
+      image_url: 'https://images.pexels.com/photos/4974912/pexels-photo-4974912.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Focus Session',
       category: 'Productivity',
       badge: '💻 Deep Work Zone',
     },
     {
       id: '3',
-      cloudinary_public_id: 'team-brainstorm',
-      cloudinary_url: 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'team-brainstorm',
+      image_url: 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Team Brainstorm',
       category: 'Meetings',
       badge: '🎯 Meeting Room',
     },
     {
       id: '4',
-      cloudinary_public_id: 'podcast-recording',
-      cloudinary_url: 'https://images.pexels.com/photos/3783471/pexels-photo-3783471.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'podcast-recording',
+      image_url: 'https://images.pexels.com/photos/3783471/pexels-photo-3783471.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Podcast Recording',
       category: 'Media',
       badge: '🎙️ Podcast Studio',
     },
     {
       id: '5',
-      cloudinary_public_id: 'design-sprint',
-      cloudinary_url: 'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'design-sprint',
+      image_url: 'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Design Sprint',
       category: 'Workshops',
       badge: '🎨 Design Sprint',
     },
     {
       id: '6',
-      cloudinary_public_id: 'community-hub',
-      cloudinary_url: 'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'community-hub',
+      image_url: 'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Community Hub',
       category: 'Community',
       badge: '👥 Community Space',
     },
     {
       id: '7',
-      cloudinary_public_id: 'creative-session',
-      cloudinary_url: 'https://images.pexels.com/photos/1839919/pexels-photo-1839919.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'creative-session',
+      image_url: 'https://images.pexels.com/photos/1839919/pexels-photo-1839919.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Creative Session',
       category: 'Studio',
       badge: '✨ Creative Studio',
     },
     {
       id: '8',
-      cloudinary_public_id: 'workshop-event',
-      cloudinary_url: 'https://images.pexels.com/photos/1181533/pexels-photo-1181533.jpeg?auto=compress&cs=tinysrgb&w=800',
+      storage_path: 'workshop-event',
+      image_url: 'https://images.pexels.com/photos/1181533/pexels-photo-1181533.jpeg?auto=compress&cs=tinysrgb&w=800',
       title: 'Workshop Event',
       category: 'Events',
       badge: '🎪 Event Space',
@@ -113,7 +129,7 @@ export default function HubGalleryMarquee(): JSX.Element {
   const row2Images = [...images.slice().reverse(), ...images.slice().reverse()];
 
   return (
-    <section className="py-12 md:py-16 bg-gradient-to-br from-slate-50 via-white to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/20 relative overflow-hidden">
+    <section ref={sectionRef} className="py-12 md:py-16 bg-gradient-to-br from-slate-50 via-white to-amber-50 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/20 relative overflow-hidden">
       {/* Section Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 text-center">
         <div className="flex justify-center mb-4">
@@ -138,8 +154,11 @@ export default function HubGalleryMarquee(): JSX.Element {
         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-50 via-amber-50/80 to-transparent dark:from-amber-950/20 dark:via-amber-950/10 z-10 pointer-events-none" />
 
         {/* Row 1 - Scrolls Right */}
-        <div className="flex overflow-hidden mb-6 hover:[animation-play-state:paused]">
-          <div className="flex animate-marquee-reverse">
+        <div className="flex overflow-hidden mb-6">
+          <div
+            className="flex animate-marquee-reverse hover:[animation-play-state:paused]"
+            style={isRunning ? undefined : { animationPlayState: 'paused' }}
+          >
             {row1Images.map((image, index) => (
               <ImageCard
                 key={`${image.id}-${index}`}
@@ -151,8 +170,11 @@ export default function HubGalleryMarquee(): JSX.Element {
         </div>
 
         {/* Row 2 - Scrolls Left */}
-        <div className="flex overflow-hidden hover:[animation-play-state:paused]">
-          <div className="flex animate-marquee">
+        <div className="flex overflow-hidden">
+          <div
+            className="flex animate-marquee hover:[animation-play-state:paused]"
+            style={isRunning ? undefined : { animationPlayState: 'paused' }}
+          >
             {row2Images.map((image, index) => (
               <ImageCard
                 key={`${image.id}-${index}`}
@@ -182,12 +204,13 @@ function ImageCard({ image, onClick }: { image: GalleryImage; onClick: () => voi
       className="flex-shrink-0 w-72 mx-3 cursor-pointer group"
     >
       <div className="relative h-48 md:h-56 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-md overflow-hidden hover:scale-105 hover:shadow-xl transition-all duration-300">
-        {/* Cloudinary Image */}
+        {/* Gallery Image */}
         <img
-          src={image.cloudinary_url}
+          src={image.image_url}
           alt={image.title}
           className="w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
         />
 
         {/* Overlay Gradient */}
@@ -231,9 +254,10 @@ function LightboxModal({ image, onClose }: { image: GalleryImage; onClose: () =>
 
         {/* Image */}
         <img
-          src={image.cloudinary_url}
+          src={image.image_url}
           alt={image.title}
           className="w-full h-auto max-h-[70vh] object-cover"
+          decoding="async"
         />
 
         {/* Caption */}
