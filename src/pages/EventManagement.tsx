@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../types';
 import AdminEventCard from '../components/admin/AdminEventCard';
-import EventFormModal from '../components/admin/EventFormModal';
-import { format } from 'date-fns';
+import EventFormModal, { type EventFormPrefill } from '../components/admin/EventFormModal';
+import { format, addDays } from 'date-fns';
 import { exportToCSV, formatEventForExport } from '../utils/csvExport';
 
 type StatusFilter = 'all' | 'proposed' | 'approved' | 'published' | 'draft' | 'cancelled';
@@ -30,7 +30,32 @@ interface EventProposal {
   creative_domains: string[];
   event_dates: EventDate[];
   status: string;
+  published_event_id: string | null;
   created_at: string;
+}
+
+/** Builds the EventFormModal prefill from a proposal — the one place this
+ *  mapping lives, so the "Approve & Publish" and "Publish" buttons below
+ *  can't drift apart from each other. */
+function prefillFromProposal(proposal: EventProposal): EventFormPrefill {
+  const eventDates = Array.isArray(proposal.event_dates) && proposal.event_dates.length > 0
+    ? proposal.event_dates
+        .filter((d): d is Required<EventDate> => !!(d.date && d.start_time && d.end_time))
+        .map(d => ({ date: d.date, start_time: d.start_time, end_time: d.end_time }))
+    : [];
+
+  return {
+    title: proposal.title,
+    description: proposal.description,
+    organizer: proposal.organizer_name,
+    organization: proposal.organization || '',
+    contact_email: proposal.organizer_email,
+    contact_phone: proposal.organizer_phone,
+    expected_guests: proposal.expected_guests || 0,
+    eventDates: eventDates.length > 0
+      ? eventDates
+      : [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }],
+  };
 }
 
 /**
@@ -88,66 +113,33 @@ export default function EventManagement(): JSX.Element {
     }
   };
 
-  // ── Approve proposal ─────────────────
-  const handleApproveProposal = async (id: string): Promise<void> => {
+  // ── Publish a proposal ─────────────────
+  // "Approve & Publish" used to just flip hub_events.status to 'approved'
+  // and reserve seats — it never actually created a row in `events`, so
+  // nothing showed up on the public calendar and the admin had to
+  // separately use "New Event" and re-type everything. Now it opens the
+  // real event form pre-filled from the proposal; EventFormModal handles
+  // both creating the event and reserving seats (it already does that
+  // generically whenever expected_guests > 0), and onProposalPublished
+  // below just records the link back once that succeeds.
+  const [promotingProposal, setPromotingProposal] = useState<EventProposal | null>(null);
+
+  const onProposalPublished = async (eventId: string): Promise<void> => {
+    if (!promotingProposal) return;
     try {
-      // First, get the proposal details
-      const { data: proposal, error: fetchError } = await supabase
+      const { error } = await supabase
         .from('hub_events')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-      if (!proposal) throw new Error('Proposal not found');
-
-      // Update proposal status to approved
-      const { error: updateError } = await supabase
-        .from('hub_events')
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
-      // Create hub_bookings rows for each event date to reserve seats
-      if (Array.isArray(proposal.event_dates) && proposal.event_dates.length > 0 && proposal.expected_guests) {
-        const bookingPromises = proposal.event_dates.map(async (eventDate: EventDate) => {
-          if (!eventDate.date || !eventDate.start_time || !eventDate.end_time) return null;
-
-          const startISO = new Date(`${eventDate.date}T${eventDate.start_time}`).toISOString();
-          const endISO = new Date(`${eventDate.date}T${eventDate.end_time}`).toISOString();
-
-          return supabase.from('hub_bookings').insert({
-            user_id: null,
-            package_id: null, // Event bookings don't use packages
-            guest_name: proposal.organizer_name || proposal.title,
-            guest_email: proposal.organizer_email,
-            guest_phone: proposal.organizer_phone,
-            facebook_page: (proposal as any).facebook_page || null,
-            booking_date: eventDate.date,
-            start_time: startISO,
-            end_time: endISO,
-            seats_used: proposal.expected_guests,
-            total_price: 0, // Events are free
-            status: 'approved',
-            is_workshop: true, // Mark as event/workshop to distinguish from regular bookings
-            workshop_zones: [],
-            purpose: `Event: ${proposal.title}`,
-            notes: proposal.description,
-            booking_reference: `EVT-${proposal.id.substring(0, 8).toUpperCase()}`,
-            admin_contacted: false,
-          });
-        });
-
-        await Promise.all(bookingPromises);
-      }
-
-      toast.success('Event proposal approved! Seats reserved for expected guests.');
+        .update({ status: 'approved', published_event_id: eventId })
+        .eq('id', promotingProposal.id);
+      if (error) throw error;
+      toast.success('Proposal published as an event');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Event was created, but failed to link it back to the proposal';
+      toast.error(errorMessage);
+    } finally {
+      setPromotingProposal(null);
       fetchProposals();
       fetchEvents();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to approve proposal';
-      toast.error(errorMessage);
     }
   };
 
@@ -267,14 +259,23 @@ export default function EventManagement(): JSX.Element {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500" />
           </div>
         ) : filter === 'proposed' || filter === 'approved' ? (
-          // Show proposals
-          (filter === 'proposed' ? proposals.filter(p => p.status === 'pending_review') : proposals.filter(p => p.status === 'approved')).length === 0 ? (
+          // Show proposals. The 'approved' tab only holds ones that were
+          // approved under the old flow but never actually got published —
+          // once published (published_event_id set) they drop off both
+          // tabs instead of piling up in them forever.
+          (filter === 'proposed'
+            ? proposals.filter(p => p.status === 'pending_review')
+            : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
+          ).length === 0 ? (
             <div className="text-center py-16 bg-gray-50 rounded-lg dark:bg-slate-800">
               <Sparkles className="h-10 w-10 text-gray-300 mx-auto mb-2 dark:text-gray-600" />
-              <p className="text-gray-500 mb-4 dark:text-gray-400">{filter === 'proposed' ? 'No pending event proposals found' : 'No approved proposals found'}</p>
+              <p className="text-gray-500 mb-4 dark:text-gray-400">{filter === 'proposed' ? 'No pending event proposals found' : 'No approved proposals awaiting publish'}</p>
             </div>
           ) : (
-            (filter === 'proposed' ? proposals.filter(p => p.status === 'pending_review') : proposals.filter(p => p.status === 'approved')).map((proposal) => (
+            (filter === 'proposed'
+              ? proposals.filter(p => p.status === 'pending_review')
+              : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
+            ).map((proposal) => (
               <div key={proposal.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 dark:bg-slate-800 dark:border-slate-700">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -353,7 +354,7 @@ export default function EventManagement(): JSX.Element {
                 {proposal.status === 'pending_review' && (
                   <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-slate-700">
                     <button
-                      onClick={() => handleApproveProposal(proposal.id)}
+                      onClick={() => setPromotingProposal(proposal)}
                       className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm transition-all"
                     >
                       <Check className="h-4 w-4 mr-2" />
@@ -365,6 +366,18 @@ export default function EventManagement(): JSX.Element {
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject
+                    </button>
+                  </div>
+                )}
+
+                {proposal.status === 'approved' && !proposal.published_event_id && (
+                  <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-slate-700">
+                    <button
+                      onClick={() => setPromotingProposal(proposal)}
+                      className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm transition-all"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Publish
                     </button>
                   </div>
                 )}
@@ -398,6 +411,16 @@ export default function EventManagement(): JSX.Element {
           event={null}
           onClose={() => setShowCreateModal(false)}
           onSaved={fetchEvents}
+        />
+      )}
+
+      {/* Publish-a-proposal modal — same form, pre-filled */}
+      {promotingProposal && (
+        <EventFormModal
+          event={null}
+          prefill={prefillFromProposal(promotingProposal)}
+          onClose={() => setPromotingProposal(null)}
+          onSaved={onProposalPublished}
         />
       )}
     </div>

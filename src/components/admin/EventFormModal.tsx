@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { X, Calendar, Image, Link2, User, Mail, Phone, Sparkles, Loader2, Building2, Users } from 'lucide-react';
+import { X, Calendar, Image, Link2, User, Mail, Phone, Loader2, Building2, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
-
-// ── Props ───────────────────────────────────────────────────────────
-interface EventFormModalProps {
-  /** Pass an existing event to edit, or `null` to create a new one. */
-  event: CalendarEvent | null;
-  onClose: () => void;
-  onSaved: () => void;
-}
 
 interface EventDate {
   date: string;
@@ -19,16 +11,31 @@ interface EventDate {
   end_time: string;
 }
 
-interface ApprovedProposal {
-  id: string;
-  title: string;
-  description: string;
-  organizer_name: string;
-  organizer_email: string;
-  organizer_phone: string;
-  organization: string | null;
-  event_dates: EventDate[];
-  expected_guests: number | null;
+// ── Props ───────────────────────────────────────────────────────────
+/** Pre-fills a new event's form from a proposal or a group booking being
+ *  promoted — the one shared path both flows go through now, instead of
+ *  each keeping its own separate, drifting mini-form. */
+export interface EventFormPrefill {
+  title?: string;
+  description?: string;
+  organizer?: string;
+  organization?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  expected_guests?: number;
+  eventDates?: EventDate[];
+  /** Set when promoting a hub_bookings row — recorded on the created event. */
+  promotedBookingId?: string;
+}
+
+interface EventFormModalProps {
+  /** Pass an existing event to edit, or `null` to create a new one. */
+  event: CalendarEvent | null;
+  onClose: () => void;
+  /** Called with the created/updated event's id once the save succeeds. */
+  onSaved: (eventId: string) => void;
+  /** Only used when `event` is null — seeds the form for a new event. */
+  prefill?: EventFormPrefill;
 }
 
 interface ExtendedCalendarEvent extends CalendarEvent {
@@ -40,29 +47,27 @@ interface ExtendedCalendarEvent extends CalendarEvent {
  * Admin-only modal for creating or editing an event.
  * All fields map directly to the `events` table columns.
  */
-export default function EventFormModal({ event, onClose, onSaved }: EventFormModalProps): JSX.Element {
+export default function EventFormModal({ event, onClose, onSaved, prefill }: EventFormModalProps): JSX.Element {
   const isEditing = !!event;
   const [loading, setLoading] = useState(false);
   const [posterPreviewError, setPosterPreviewError] = useState(false);
-  const [approvedProposals, setApprovedProposals] = useState<ApprovedProposal[]>([]);
-  const [selectedProposal, setSelectedProposal] = useState<string>('');
   const [posterSource, setPosterSource] = useState<'upload' | 'url'>('url');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // ── Form state ──────────────────────────────────────────────────
   const [form, setForm] = useState({
-    title: event?.title ?? '',
-    description: event?.description ?? '',
+    title: event?.title ?? prefill?.title ?? '',
+    description: event?.description ?? prefill?.description ?? '',
     poster_url: event?.poster_url ?? '',
     registration_link: event?.registration_link ?? '',
     facebook_post_url: (event as ExtendedCalendarEvent)?.facebook_post_url ?? '',
     facebook_page: (event as any)?.facebook_page ?? '',
-    organizer: event?.organizer ?? '',
-    organization: event?.organization ?? '',
-    contact_email: event?.contact_email ?? '',
-    contact_phone: event?.contact_phone ?? '',
-    expected_guests: (event as any)?.expected_guests ?? 0,
+    organizer: event?.organizer ?? prefill?.organizer ?? '',
+    organization: event?.organization ?? prefill?.organization ?? '',
+    contact_email: event?.contact_email ?? prefill?.contact_email ?? '',
+    contact_phone: event?.contact_phone ?? prefill?.contact_phone ?? '',
+    expected_guests: (event as any)?.expected_guests ?? prefill?.expected_guests ?? 0,
     eventDates: (() => {
       const extendedEvent = event as ExtendedCalendarEvent | null;
       if (event && extendedEvent?.event_dates && Array.isArray(extendedEvent.event_dates) && extendedEvent.event_dates.length > 0) {
@@ -79,8 +84,10 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
           start_time: format(new Date(event.start_time), 'HH:mm'),
           end_time: format(new Date(event.end_time), 'HH:mm')
         }];
+      } else if (prefill?.eventDates && prefill.eventDates.length > 0) {
+        return prefill.eventDates;
       }
-      // Default for new events
+      // Default for a blank new event
       return [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }];
     })(),
     is_featured: event?.is_featured ?? false,
@@ -95,19 +102,6 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
       setPosterSource('url');
     }
   }, [form.poster_url]);
-
-  // ── Fetch approved proposals ─────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      // Fetch approved proposals
-      const { data: proposals } = await supabase
-        .from('hub_events')
-        .select('id, title, description, organizer_name, organizer_email, organizer_phone, organization, event_dates, expected_guests')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
-      setApprovedProposals((proposals as ApprovedProposal[]) ?? []);
-    })();
-  }, []);
 
   // ── Event date management functions ─────────────────────────────
   const addEventDate = (): void => {
@@ -131,33 +125,6 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
     const updatedDates = [...form.eventDates];
     updatedDates[index] = { ...updatedDates[index], [field]: value };
     setForm({ ...form, eventDates: updatedDates });
-  };
-
-  // ── Pre-fill form from selected proposal ───────────────────────
-  const handleProposalSelect = async (proposalId: string): Promise<void> => {
-    setSelectedProposal(proposalId);
-    if (!proposalId) return;
-
-    const proposal = approvedProposals.find(p => p.id === proposalId);
-    if (!proposal) return;
-
-    // Pre-fill form with proposal data
-    setForm({
-      ...form,
-      title: proposal.title,
-      description: proposal.description,
-      organizer: proposal.organizer_name,
-      organization: proposal.organization || '',
-      contact_email: proposal.organizer_email,
-      contact_phone: proposal.organizer_phone,
-      eventDates: Array.isArray(proposal.event_dates) && proposal.event_dates.length > 0 
-        ? proposal.event_dates.map((d: EventDate) => ({
-            date: d.date || format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-            start_time: d.start_time || '14:00',
-            end_time: d.end_time || '17:00'
-          }))
-        : [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }]
-    });
   };
 
   // ── Helpers ─────────────────────────────────────────────────────
@@ -281,7 +248,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         event_dates: form.eventDates,
         is_featured: form.is_featured,
         status: form.status,
-        ...(isEditing ? {} : { created_by: user?.id ?? null }),
+        ...(isEditing ? {} : { created_by: user?.id ?? null, promoted_booking_id: prefill?.promotedBookingId ?? null }),
       };
 
       // Only include facebook_page if the user provided a value
@@ -353,7 +320,7 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
         await Promise.all(bookingPromises);
       }
 
-      onSaved();
+      onSaved(eventId as string);
       onClose();
     } catch (err: unknown) {
       console.error('Error saving event:', err);
@@ -380,24 +347,14 @@ export default function EventFormModal({ event, onClose, onSaved }: EventFormMod
 
         {/* Scrollable form body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* ── Load from Approved Proposal (only for new events) ──────── */}
-          {!isEditing && approvedProposals.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <Sparkles className="inline w-4 h-4 mr-1 text-amber-500" />
-                Load from Approved Proposal
-              </label>
-              <select
-                value={selectedProposal}
-                onChange={(e) => handleProposalSelect(e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              >
-                <option value="">— Select a proposal —</option>
-                {approvedProposals.map(p => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select an approved proposal to pre-fill the form data</p>
+          {/* ── Prefill banner — this replaces the old "Load from Approved
+                Proposal" dropdown, which just kept growing as every
+                approved-but-unpublished proposal piled up in it forever.
+                Now the specific proposal/booking is already chosen by
+                which "Publish"/"Promote" button the admin clicked. ── */}
+          {!isEditing && prefill && (
+            <div className="rounded-md bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-3 py-2 text-xs text-primary-700 dark:text-primary-300">
+              Pre-filled — review the details below, then publish.
             </div>
           )}
 

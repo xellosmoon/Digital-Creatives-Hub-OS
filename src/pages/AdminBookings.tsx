@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Filter, CheckCircle, XCircle, Clock, Calendar, Download, Search } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Filter, Calendar, Download, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { exportToCSV, formatBookingForExport } from '../utils/csvExport';
+import BookingApprovalCard from '../components/admin/BookingApprovalCard';
 
 interface AdminBooking {
   id: string;
@@ -18,13 +19,27 @@ interface AdminBooking {
   seats_used: number;
   total_price: number;
   status: string;
-  purpose: string | null;
+  purpose: string | string[] | null;
   notes: string | null;
+  is_workshop: boolean;
   created_at: string;
+  admin_contacted: boolean;
+  admin_contacted_at: string | null;
+  booking_type: string | null;
+  group_size: number | null;
+  organization: string | null;
+  gathering_type: string | null;
   package?: {
-    name: string;
+    id: string;
     slug: string;
-  };
+    name: string;
+    hourly_rate: number | null;
+    daily_rate: number | null;
+    billing_mode: string;
+    seats_consumed: number;
+    is_bundle: boolean;
+  } | null;
+  borrowings?: { id: string; asset: { name: string } | null }[];
 }
 
 export default function AdminBookings(): JSX.Element {
@@ -38,7 +53,7 @@ export default function AdminBookings(): JSX.Element {
     try {
       const { data, error } = await supabase
         .from('hub_bookings')
-        .select('*, package:rental_packages(name, slug)')
+        .select('*, package:rental_packages(id, slug, name, hourly_rate, daily_rate, billing_mode, seats_consumed, is_bundle), borrowings(id, asset:assets(name))')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -63,11 +78,12 @@ export default function AdminBookings(): JSX.Element {
     // Then filter by search term
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
+    const purposeText = Array.isArray(booking.purpose) ? booking.purpose.join(' ') : booking.purpose;
     return (
       booking.guest_name?.toLowerCase().includes(term) ||
       booking.guest_email?.toLowerCase().includes(term) ||
       booking.booking_reference?.toLowerCase().includes(term) ||
-      booking.purpose?.toLowerCase().includes(term)
+      purposeText?.toLowerCase().includes(term)
     );
   });
 
@@ -77,39 +93,6 @@ export default function AdminBookings(): JSX.Element {
     pending: allBookings.filter(b => b.status === 'pending').length,
     approved: allBookings.filter(b => b.status === 'approved').length,
     rejected: allBookings.filter(b => b.status === 'rejected').length,
-  };
-
-  const handleApprove = async (id: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('hub_bookings')
-        .update({ status: 'approved' })
-        .eq('id', id);
-      
-      if (error) throw error;
-      toast.success('Booking approved!');
-      fetchBookings();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to approve';
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleReject = async (id: string): Promise<void> => {
-    if (!window.confirm('Reject this booking?')) return;
-    try {
-      const { error } = await supabase
-        .from('hub_bookings')
-        .update({ status: 'rejected' })
-        .eq('id', id);
-      
-      if (error) throw error;
-      toast.success('Booking rejected');
-      fetchBookings();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to reject';
-      toast.error(errorMessage);
-    }
   };
 
   const handleExport = async (): Promise<void> => {
@@ -132,21 +115,6 @@ export default function AdminBookings(): JSX.Element {
       toast.error('Export failed');
     }
   };
-
-  const statusColors: Record<string, string> = {
-    pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
-    approved: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-    rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
-    cancelled: 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-600',
-  };
-
-  const statusIcons: Record<string, JSX.Element> = {
-    pending: <Clock className="h-4 w-4" />,
-    approved: <CheckCircle className="h-4 w-4" />,
-    rejected: <XCircle className="h-4 w-4" />,
-  };
-
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -241,120 +209,9 @@ export default function AdminBookings(): JSX.Element {
             <p className="text-gray-500 dark:text-gray-400 text-lg">No {filter !== 'all' ? filter : ''} bookings found</p>
           </div>
         ) : (
-          filteredBookings.map((booking) => {
-            const isPast = booking.booking_date < todayStr;
-            return (
-            <div key={booking.id} className={`rounded-2xl border p-6 hover:shadow-md transition-shadow ${isPast ? 'bg-gray-50 dark:bg-slate-800/60 border-gray-200 dark:border-slate-700 opacity-75' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700'}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{booking.guest_name || 'Unknown'}</h3>
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColors[booking.status] || 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>
-                      {statusIcons[booking.status]}
-                      {booking.status}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${isPast ? 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-slate-600' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800'}`}>
-                      {isPast ? 'Past' : 'Upcoming'}
-                    </span>
-                    {booking.package && (
-                      <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
-                        {booking.package.name}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Reference</p>
-                      <p className="font-mono text-gray-900 dark:text-white">{booking.booking_reference || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Email</p>
-                      <p className="text-gray-900 dark:text-white">{booking.guest_email || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Phone</p>
-                      <p className="text-gray-900 dark:text-white">{booking.guest_phone || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Seats</p>
-                      <p className="text-gray-900 dark:text-white">{booking.seats_used}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Date</p>
-                      <p className="text-gray-900 dark:text-white">{format(new Date(booking.booking_date), 'MMM d, yyyy')}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Time</p>
-                      <p className="text-gray-900 dark:text-white">
-                        {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Price</p>
-                      <p className="text-gray-900 dark:text-white font-semibold">₱{booking.total_price.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">Booked</p>
-                      <p className="text-gray-900 dark:text-white">{format(new Date(booking.created_at), 'MMM d, h:mm a')}</p>
-                    </div>
-                  </div>
-
-                  {(booking.purpose || booking.notes) && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                      {booking.purpose && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          <span className="font-medium text-gray-500 dark:text-gray-400">Purpose:</span> {booking.purpose}
-                        </p>
-                      )}
-                      {booking.notes && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                          <span className="font-medium text-gray-500 dark:text-gray-400">Notes:</span> {booking.notes}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-2">
-                  {booking.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleApprove(booking.id)}
-                        className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm transition-all"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(booking.id)}
-                        className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-sm transition-all"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {booking.status === 'approved' && !isPast && (
-                    <button
-                      onClick={() => handleReject(booking.id)}
-                      className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-sm transition-all"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  {booking.status === 'approved' && isPast && (
-                    <span className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-slate-700 text-center whitespace-nowrap">
-                      Completed
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            );
-          })
+          filteredBookings.map((booking) => (
+            <BookingApprovalCard key={booking.id} booking={booking} onUpdate={fetchBookings} />
+          ))
         )}
       </div>
     </div>

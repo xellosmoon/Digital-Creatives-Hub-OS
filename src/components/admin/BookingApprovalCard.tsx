@@ -4,6 +4,7 @@ import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../../types/hub';
+import EventFormModal, { type EventFormPrefill } from './EventFormModal';
 
 interface HubBookingRow {
   id: string;
@@ -59,14 +60,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     designation: '',
   });
   const [showPromoteModal, setShowPromoteModal] = useState(false);
-  const [eventTitle, setEventTitle] = useState('');
 
   const suggestedEventTitle = [booking.organization, booking.gathering_type].filter(Boolean).join(' ');
-
-  const openPromoteModal = (): void => {
-    setEventTitle(suggestedEventTitle);
-    setShowPromoteModal(true);
-  };
 
   const equipmentSummary: { name: string; quantity: number }[] = [];
   for (const b of booking.borrowings ?? []) {
@@ -136,50 +131,35 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  const handlePromoteToEvent = async (): Promise<void> => {
-    if (!eventTitle.trim()) {
-      toast.error('Please enter an event title');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Create event from booking
-      const { data: session } = await supabase.auth.getSession();
-      const equipmentLine = equipmentSummary.length > 0
+  // Promoting now opens the same EventFormModal the proposal-publish flow
+  // uses, pre-filled from this booking, instead of a bespoke title-only
+  // mini-form — the admin gets the full event form (poster, registration
+  // link, featured, multiple dates) rather than a stripped-down version.
+  const bookingPrefill: EventFormPrefill = {
+    title: suggestedEventTitle,
+    description: [
+      booking.notes,
+      equipmentSummary.length > 0
         ? `Equipment: ${equipmentSummary.map((e) => `${e.name}${e.quantity > 1 ? ` ×${e.quantity}` : ''}`).join(', ')}`
-        : null;
-      const description = [booking.notes, equipmentLine].filter(Boolean).join('\n\n')
-        || `Promoted from booking ${booking.booking_reference}`;
-      const { error: eventError } = await supabase
-        .from('events')
-        .insert({
-          title: eventTitle.trim(),
-          description,
-          organizer: booking.guest_name || 'Unknown',
-          organization: booking.organization || null,
-          contact_email: booking.guest_email || null,
-          contact_phone: booking.guest_phone || null,
-          start_time: booking.start_time,
-          end_time: booking.end_time,
-          expected_guests: booking.group_size || booking.seats_used || null,
-          promoted_booking_id: booking.id,
-          status: 'published',
-          created_by: session?.session?.user?.id || null,
-        });
+        : null,
+    ].filter(Boolean).join('\n\n') || `Promoted from booking ${booking.booking_reference}`,
+    organizer: booking.guest_name || 'Unknown',
+    organization: booking.organization || '',
+    contact_email: booking.guest_email || '',
+    contact_phone: booking.guest_phone || '',
+    expected_guests: booking.group_size || booking.seats_used || 0,
+    eventDates: [{
+      date: format(new Date(booking.start_time), 'yyyy-MM-dd'),
+      start_time: format(new Date(booking.start_time), 'HH:mm'),
+      end_time: format(new Date(booking.end_time), 'HH:mm'),
+    }],
+    promotedBookingId: booking.id,
+  };
 
-      if (eventError) throw eventError;
-
-      toast.success('Booking promoted to event successfully');
-      setShowPromoteModal(false);
-      setEventTitle('');
-      onUpdate();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error promoting to event';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const handleEventPublished = (): void => {
+    setShowPromoteModal(false);
+    toast.success('Booking promoted to event successfully');
+    onUpdate();
   };
 
   const handleToggleContacted = async (): Promise<void> => {
@@ -425,7 +405,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             Override & Approve (Ignore Capacity)
           </button>
           <button
-            onClick={openPromoteModal}
+            onClick={() => setShowPromoteModal(true)}
             className="w-full inline-flex items-center justify-center px-4 py-2 border border-violet-300 dark:border-violet-700 text-sm font-medium rounded-md text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
           >
             <Calendar className="h-4 w-4 mr-2" />
@@ -447,34 +427,6 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               >
                 Confirm Override Approval
               </button>
-            </div>
-          )}
-          {showPromoteModal && (
-            <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-4 space-y-3 border border-violet-200 dark:border-violet-800">
-              <h4 className="text-sm font-semibold text-violet-900 dark:text-violet-300">Promote to Event</h4>
-              <p className="text-xs text-violet-700 dark:text-violet-400">This will create a public event from this booking. The booking will remain intact.</p>
-              <input
-                type="text"
-                value={eventTitle}
-                onChange={e => setEventTitle(e.target.value)}
-                placeholder="Enter public event title (e.g., Strategic Alignment Meeting)"
-                className="w-full rounded-md border-violet-200 dark:border-violet-700 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-400 focus:border-violet-400"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handlePromoteToEvent}
-                  disabled={loading}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 transition-colors"
-                >
-                  Promote
-                </button>
-                <button
-                  onClick={() => setShowPromoteModal(false)}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
           )}
         </div>
@@ -513,6 +465,16 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
         <Clock className="h-3 w-3 inline mr-1" />
         Requested {formatDate(booking.created_at, 'MMM d, yyyy h:mm a')}
       </div>
+
+      {/* Promote to Event — same form the proposal-publish flow uses */}
+      {showPromoteModal && (
+        <EventFormModal
+          event={null}
+          prefill={bookingPrefill}
+          onClose={() => setShowPromoteModal(false)}
+          onSaved={handleEventPublished}
+        />
+      )}
 
       {/* Check-In Modal */}
       {showCheckInModal && (
