@@ -29,6 +29,11 @@ const SECTOR_OPTIONS = [
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
+// Email is one of the hub's main channels for reaching visitors afterward
+// (newsletters, event invites), so it's required at check-in — the same
+// weight as the mobile number, not an optional nice-to-have.
+const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
 // Shared per-item color treatment for chip/tile grids (purposes, creative domains)
 const CHIP_GRADIENTS = [
   'from-pink-500 to-rose-500',
@@ -338,6 +343,10 @@ export default function CheckIn(): JSX.Element {
       toast.error('Please select at least one purpose of visit');
       return;
     }
+    if (!isValidEmail(effectiveEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -455,6 +464,10 @@ export default function CheckIn(): JSX.Element {
       return () => clearTimeout(timer);
     }
   }, [step]);
+
+  // Returning visitors can have an email already on file (foundUser) or one
+  // just typed this visit (form) — either satisfies the requirement.
+  const effectiveEmail = (form.email || foundUser?.email || '').trim();
 
   // ══════════════════════════════════════════════════════════════════
   // RENDER
@@ -700,14 +713,45 @@ export default function CheckIn(): JSX.Element {
                       </p>
                     )}
                     <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
-                    <p className="text-[11px] text-white/30 -mt-2 mb-1">Tap your name to correct it</p>
+                    <p className="text-[11px] text-white/30 -mt-2 mb-3">Tap your name to correct it</p>
+
+                    {/* Email — same weight as name/phone here, not deferred
+                        to a later screen, so there's no confusing dead end
+                        after they've already confirmed their identity. */}
+                    <div className="border-t border-white/10 pt-3">
+                      {editingEmail ? (
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={e => update({ email: e.target.value })}
+                          onBlur={() => setEditingEmail(false)}
+                          autoFocus
+                          placeholder="juan@example.com"
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-lg font-semibold text-white text-center focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        />
+                      ) : (
+                        <p
+                          className={`text-lg font-semibold cursor-pointer transition-colors inline-flex items-center gap-2 justify-center w-full ${
+                            isValidEmail(effectiveEmail) ? 'text-violet-200 hover:text-white' : 'text-red-300'
+                          }`}
+                          onClick={() => setEditingEmail(true)}
+                        >
+                          {form.email || foundUser?.email || 'Add your email *'}
+                          <Pencil className="h-4 w-4 text-white/30 flex-shrink-0" />
+                        </p>
+                      )}
+                      {!isValidEmail(effectiveEmail) && (
+                        <p className="text-[11px] text-red-400 mt-1">Required to continue — tap to add</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-3 justify-center">
                     <button
                       type="button"
                       onClick={handleYesThisIsMe}
-                      className="flex-1 max-w-[180px] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 active:scale-95"
+                      disabled={!isValidEmail(effectiveEmail)}
+                      className="flex-1 max-w-[180px] px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:shadow-none"
                     >
                       <div className="flex items-center justify-center gap-2">
                         <Check className="h-5 w-5" />
@@ -810,8 +854,11 @@ export default function CheckIn(): JSX.Element {
                           className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingEmail(true)}>
-                          {form.email || foundUser?.email || 'Add email'}
+                        <span
+                          className={`flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white ${!isValidEmail(effectiveEmail) ? 'text-red-300' : ''}`}
+                          onClick={() => setEditingEmail(true)}
+                        >
+                          {form.email || foundUser?.email || 'Add email *'}
                           <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
                         </span>
                       )}
@@ -960,10 +1007,16 @@ export default function CheckIn(): JSX.Element {
                 </>
               )}
 
+              {!isValidEmail(effectiveEmail) && (
+                <p className="text-center text-sm text-red-400 mt-2">
+                  {effectiveEmail ? 'Please tap the email above and enter a valid address' : 'Please tap the email above and add one — we need it to keep in touch'}
+                </p>
+              )}
+
               <button
                 type="button"
                 onClick={handleCheckIn}
-                disabled={form.purpose_of_visit.length === 0 || submitting}
+                disabled={form.purpose_of_visit.length === 0 || !isValidEmail(effectiveEmail) || submitting}
                 className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {submitting ? (
@@ -1000,7 +1053,7 @@ export default function CheckIn(): JSX.Element {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Email</label>
+                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Email *</label>
                 <input
                   type="email"
                   value={form.email}
@@ -1008,6 +1061,9 @@ export default function CheckIn(): JSX.Element {
                   placeholder="juan@example.com"
                   className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
+                {form.email.trim() && !isValidEmail(form.email) && (
+                  <p className="text-xs text-red-400 mt-1.5">Please enter a valid email address</p>
+                )}
               </div>
 
               <div>
@@ -1156,7 +1212,7 @@ export default function CheckIn(): JSX.Element {
                 <button
                   type="button"
                   onClick={handleCheckIn}
-                  disabled={!form.name.trim() || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || submitting}
+                  disabled={!form.name.trim() || !isValidEmail(form.email) || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || submitting}
                   className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-lg font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
                 >
                   {submitting ? (
