@@ -173,6 +173,25 @@ export default function AdminDashboard(): JSX.Element {
     }
   };
 
+  // ── Secretariat: claim personal verification on an already-active,
+  //    auto-confirmed entrance (confirmed_by stays NULL until someone
+  //    actually does this — see 051_auto_resolve_stale_attendance.sql) ──
+  const handleMarkVerified = async (id: string, name: string): Promise<void> => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const { error } = await supabase
+        .from('hub_attendance')
+        .update({ confirmed_by: session?.session?.user?.id || null })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success(`${name} marked as personally verified`);
+      fetchAttendance();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to verify';
+      toast.error(errorMessage);
+    }
+  };
+
   // ── Secretariat: Check Out ─────────────────────────────────────
   const handleCheckout = async (id: string, name: string): Promise<void> => {
     try {
@@ -663,13 +682,15 @@ export default function AdminDashboard(): JSX.Element {
                         </span>
                       )}
                       {a.status === 'active' && !a.confirmed_by && (
-                        <span
-                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold inline-flex items-center gap-0.5"
-                          title="Nobody personally confirmed this entrance — the system auto-confirmed it after a few minutes since kiosk check-ins mean they're already on-site"
+                        <button
+                          type="button"
+                          onClick={() => handleMarkVerified(a.id, a.full_name)}
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold inline-flex items-center gap-0.5 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                          title="Nobody personally confirmed this entrance — the system auto-confirmed it after a few minutes since kiosk check-ins mean they're already on-site. Click to verify them yourself."
                         >
                           <AlertTriangle className="h-2.5 w-2.5" />
-                          Not personally verified
-                        </span>
+                          Not personally verified — tap to verify
+                        </button>
                       )}
                       {a.status === 'checked_out' && !a.checked_out_by && (
                         <span
