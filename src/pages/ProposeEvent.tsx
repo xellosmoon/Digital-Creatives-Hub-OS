@@ -4,7 +4,7 @@ import { format, addDays } from 'date-fns';
 import {
   Sparkles, Calendar, User, Mail, Phone, FileText,
   Users, Building2, CheckCircle,
-  ArrowLeft, Send, PartyPopper, Info, Check, Music, Film,
+  ArrowLeft, Send, PartyPopper, Check, Music, Film,
   Palette, Monitor, PenTool, BookOpen, Megaphone, Landmark,
   Theater, X, Grid3X3,
 } from 'lucide-react';
@@ -177,10 +177,16 @@ export default function ProposeEvent(): JSX.Element {
             <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Proposal Submitted!</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Our team will review your event proposal and get back to you at <span className="font-semibold">{form.email}</span>.
-            This usually takes 1–2 business days.
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Thanks for proposing your event with us.
           </p>
+          <div className="text-left rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 p-4 mb-6 flex items-start gap-3">
+            <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <span className="font-bold">Please wait for our admin to contact you at <span className="underline">{form.email}</span>.</span>{' '}
+              Your event is not yet confirmed — an admin will review your proposal and email you within 1–2 business days to confirm or discuss details.
+            </p>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/"
@@ -561,11 +567,11 @@ export default function ProposeEvent(): JSX.Element {
                 </div>
 
                 {/* Info box */}
-                <div className="rounded-2xl bg-amber-50/80 border border-amber-100 p-4 flex items-start gap-3 text-xs text-amber-700">
-                  <Info className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-300 dark:border-amber-700 p-4 flex items-start gap-3 text-sm text-amber-800 dark:text-amber-200">
+                  <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <p>
-                    Your proposal will be reviewed by our team within <span className="font-semibold">1–2 business days</span>.
-                    We'll reach out via email to confirm or discuss details.
+                    <span className="font-bold">This is not a confirmed booking.</span> After you submit, please wait for our admin to contact you by email
+                    ({form.email || 'the address you provide'}) within <span className="font-semibold">1–2 business days</span> to confirm or discuss details.
                     There's no charge for submitting a proposal.
                   </p>
                 </div>
