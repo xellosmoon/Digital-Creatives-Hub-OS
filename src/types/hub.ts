@@ -203,7 +203,7 @@ export type AttendanceStatus = 'pending_entrance' | 'active' | 'checked_out' | '
 
 export interface HubAttendance {
   id: string;
-  mobile_number: string;
+  mobile_number: string | null;
   full_name: string;
   gender: string | null;
   email: string | null;

@@ -156,10 +156,26 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     promotedBookingId: booking.id,
   };
 
-  const handleEventPublished = (): void => {
-    setShowPromoteModal(false);
-    toast.success('Booking promoted to event successfully');
-    onUpdate();
+  const handleEventPublished = async (eventId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('hub_bookings')
+        .update({
+          status: 'approved',
+          promoted_to_event_id: eventId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', booking.id);
+
+      if (error) throw error;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Event was published, but failed to resolve the original booking request';
+      toast.error(errorMessage);
+    } finally {
+      setShowPromoteModal(false);
+      toast.success('Booking promoted to event successfully');
+      onUpdate();
+    }
   };
 
   const handleToggleContacted = async (): Promise<void> => {

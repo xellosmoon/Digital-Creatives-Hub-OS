@@ -44,7 +44,7 @@ export default function AdminDashboard(): JSX.Element {
 
   // Manual check-in form
   const [manualForm, setManualForm] = useState({
-    mobile: '', name: '', creative_domains: [PCIDA_DOMAINS[0]] as string[], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]] as string[], organization: '', eventId: '',
+    mobile: '', name: '', email: '', creative_domains: [PCIDA_DOMAINS[0]] as string[], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]] as string[], organization: '', eventId: '',
   });
   const [todayEvents, setTodayEvents] = useState<Array<{ id: string; title: string; start_time: string }>>([]);
 
@@ -264,15 +264,16 @@ export default function AdminDashboard(): JSX.Element {
 
   // ── Manual Check-In (walk-in, directly active) ─────────────────
   const handleManualCheckIn = async (): Promise<void> => {
-    if (!manualForm.name.trim() || !manualForm.mobile.trim()) {
-      toast.error('Name and mobile are required');
+    if (!manualForm.name.trim()) {
+      toast.error('Name is required');
       return;
     }
     try {
       const { data: session } = await supabase.auth.getSession();
       const { error } = await supabase.from('hub_attendance').insert({
-        mobile_number: manualForm.mobile,
+        mobile_number: manualForm.mobile.trim() || null,
         full_name: manualForm.name,
+        email: manualForm.email.trim() || null,
         creative_domains: manualForm.creative_domains.length > 0 ? manualForm.creative_domains : null,
         purpose_of_visit: manualForm.purpose_of_visit.length > 0 ? manualForm.purpose_of_visit : null,
         organization: manualForm.organization || null,
@@ -290,7 +291,7 @@ export default function AdminDashboard(): JSX.Element {
         return;
       }
       toast.success(`${manualForm.name} checked in!`);
-      setManualForm({ mobile: '', name: '', creative_domains: [PCIDA_DOMAINS[0]], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]], organization: '', eventId: '' });
+      setManualForm({ mobile: '', name: '', email: '', creative_domains: [PCIDA_DOMAINS[0]], purpose_of_visit: [PURPOSE_OF_VISIT_OPTIONS[0]], organization: '', eventId: '' });
       setShowManualCheckIn(false);
       fetchAttendance();
     } catch (err: unknown) {
@@ -829,12 +830,16 @@ export default function AdminDashboard(): JSX.Element {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Mobile *</label>
-                <input type="tel" inputMode="numeric" value={manualForm.mobile} onChange={e => setManualForm(p => ({ ...p, mobile: e.target.value }))} placeholder="09171234567" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Mobile <span className="normal-case font-normal text-gray-400 dark:text-gray-500">(optional)</span></label>
+                <input type="tel" inputMode="numeric" value={manualForm.mobile} onChange={e => setManualForm(p => ({ ...p, mobile: e.target.value }))} placeholder="09171234567 (leave blank if declined)" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Full Name *</label>
                 <input type="text" value={manualForm.name} onChange={e => setManualForm(p => ({ ...p, name: e.target.value }))} placeholder="Juan Dela Cruz" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Email <span className="normal-case font-normal text-gray-400 dark:text-gray-500">(optional)</span></label>
+                <input type="email" value={manualForm.email} onChange={e => setManualForm(p => ({ ...p, email: e.target.value }))} placeholder="juan@example.com (leave blank if declined)" className="w-full rounded-xl border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 block">Creative Domains</label>

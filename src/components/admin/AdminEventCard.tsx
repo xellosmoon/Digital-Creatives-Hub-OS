@@ -25,6 +25,15 @@ export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps)
 
     setDeleting(true);
     try {
+      // Clear the seat-reservation hub_bookings rows this event created
+      // (booking_reference prefixed EVT-<eventId>) — there's no FK/cascade
+      // from events to them, so they'd otherwise be orphaned and keep
+      // counting as reserved seats forever.
+      await supabase
+        .from('hub_bookings')
+        .delete()
+        .like('booking_reference', `EVT-${event.id.substring(0, 8).toUpperCase()}%`);
+
       const { error } = await supabase.from('events').delete().eq('id', event.id);
       if (error) throw error;
       toast.success('Event deleted');

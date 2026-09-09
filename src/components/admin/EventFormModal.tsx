@@ -280,18 +280,23 @@ export default function EventFormModal({ event, onClose, onSaved, prefill }: Eve
         toast.success('Event created');
       }
 
-      // Create hub_bookings rows for seat reservation if expected_guests > 0
-      if (eventId && form.expected_guests > 0) {
-        // First, delete any existing bookings for this event (if editing)
-        if (isEditing) {
-          await supabase
-            .from('hub_bookings')
-            .delete()
-            .like('booking_reference', `EVT-${eventId.substring(0, 8).toUpperCase()}%`);
-        }
+      // Seat-reservation hub_bookings rows for this event (booking_reference
+      // prefixed EVT-<eventId>) are what the calendar actually sums as
+      // "reserved" — always clear the old ones on edit, regardless of
+      // expected_guests, so cancelling/drafting an event (or zeroing out
+      // guests) actually frees the seats instead of leaving stale
+      // 'approved' rows behind.
+      if (eventId && isEditing) {
+        await supabase
+          .from('hub_bookings')
+          .delete()
+          .like('booking_reference', `EVT-${eventId.substring(0, 8).toUpperCase()}%`);
+      }
 
-        // Create new bookings for each event date
-        const bookingPromises = form.eventDates.map(async (eventDate: EventDate) => {
+      // Only re-create them when the event is actually published — a
+      // draft or cancelled event shouldn't hold seats reserved.
+      if (eventId && form.expected_guests > 0 && form.status === 'published') {
+        const bookingPromises = form.eventDates.map(async (eventDate: EventDate, index: number) => {
           const dateStartISO = toISO(eventDate.date, eventDate.start_time);
           const dateEndISO = toISO(eventDate.date, eventDate.end_time);
 
@@ -312,7 +317,10 @@ export default function EventFormModal({ event, onClose, onSaved, prefill }: Eve
             workshop_zones: [],
             purpose: `Event: ${form.title}`,
             notes: form.description,
-            booking_reference: `EVT-${eventId.substring(0, 8).toUpperCase()}`,
+            // booking_reference is UNIQUE — suffix by date index so a
+            // multi-date event doesn't collide on the first insert and
+            // silently drop every date after it.
+            booking_reference: `EVT-${eventId.substring(0, 8).toUpperCase()}-${index + 1}`,
             admin_contacted: false,
           });
         });
