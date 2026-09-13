@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, MapPin, AlertTriangle, Clock, DollarSign, Building2, ExternalLink, UserPlus } from 'lucide-react';
+import { X, MapPin, AlertTriangle, Clock, DollarSign, Building2, ExternalLink, UserPlus, Search, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import {
@@ -19,6 +19,13 @@ interface ManualBorrowModalProps {
   onSuccess: () => void;
 }
 
+interface AccountMatch {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
 export default function ManualBorrowModal({
   assets,
   items,
@@ -28,6 +35,10 @@ export default function ManualBorrowModal({
 }: ManualBorrowModalProps): JSX.Element {
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
+  const [accountQuery, setAccountQuery] = useState('');
+  const [accountResults, setAccountResults] = useState<AccountMatch[]>([]);
+  const [searchingAccounts, setSearchingAccounts] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<AccountMatch | null>(null);
   const [borrowerName, setBorrowerName] = useState('');
   const [borrowerOffice, setBorrowerOffice] = useState('');
   const [borrowerContact, setBorrowerContact] = useState('');
@@ -41,6 +52,41 @@ export default function ManualBorrowModal({
   const [submitting, setSubmitting] = useState(false);
   const [liveAvailableIds, setLiveAvailableIds] = useState<string[] | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+
+  // Every borrowing now requires a real account attached (see
+  // 057_require_account_for_borrowings.sql) — walk-ins are no longer
+  // exempt, so staff search for or select the account the borrowing
+  // should be attached to before the request can be submitted.
+  //
+  // Three separate .ilike() calls instead of one .or(`a.ilike.%x%,...`)
+  // string — the .or() builder requires the caller to hand-escape
+  // PostgREST's structural characters (, . ( ) *), and phone numbers /
+  // names routinely contain commas and parens that would otherwise
+  // break the filter. Each .ilike() call is parameterized safely on
+  // its own.
+  useEffect(() => {
+    const q = accountQuery.trim();
+    if (q.length < 2) {
+      setAccountResults([]);
+      return;
+    }
+    setSearchingAccounts(true);
+    const timeout = setTimeout(async () => {
+      const cols = ['full_name', 'email', 'phone'] as const;
+      const results = await Promise.all(
+        cols.map((col) =>
+          supabase.from('profiles').select('id, full_name, email, phone').ilike(col, `%${q}%`).limit(5)
+        )
+      );
+      const merged = new Map<string, AccountMatch>();
+      for (const { data } of results) {
+        for (const row of data ?? []) merged.set(row.id, row);
+      }
+      setAccountResults(Array.from(merged.values()).slice(0, 5));
+      setSearchingAccounts(false);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [accountQuery]);
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
   // Real-time, conflict-aware availability for the chosen window — replaces
@@ -129,6 +175,10 @@ export default function ManualBorrowModal({
   }, [startTime, endTime]);
 
   const handleSubmit = async (): Promise<void> => {
+    if (!selectedAccount) {
+      toast.error('Please search for and select the account this borrowing should be attached to.');
+      return;
+    }
     if (!selectedAssetId || !selectedItemId) {
       toast.error('Please select an asset and a specific unit.');
       return;
@@ -158,11 +208,8 @@ export default function ManualBorrowModal({
 
     setSubmitting(true);
     try {
-      // Get current admin user for approved_by
-      const { data: { user: adminUser } } = await supabase.auth.getUser();
-
       const { error } = await supabase.from('borrowings').insert({
-        user_id: null,
+        user_id: selectedAccount.id,
         item_id: selectedItemId,
         asset_id: selectedAssetId,
         usage_type: resolvedLoc,
@@ -172,7 +219,7 @@ export default function ManualBorrowModal({
         duration_hours: estimate.durationHours,
         matched_tier_hours: estimate.matchedTier.duration_hours,
         total_price: estimate.totalPrice,
-        status: 'active', // Manual borrow = immediately active
+        status: 'pending', // Goes through the same approval queue as every other request
         purpose: purpose || null,
         notes: notes || null,
         borrower_name: borrowerName.trim(),
@@ -181,12 +228,11 @@ export default function ManualBorrowModal({
         device_operator_name: deviceOperatorName.trim() || borrowerName.trim(),
         late_fee_rate: selectedAsset?.default_late_fee_rate ?? null,
         late_fee_unit: selectedAsset?.default_late_fee_unit ?? null,
-        approved_by: adminUser?.id ?? null,
       });
 
       if (error) throw error;
 
-      toast.success('Manual borrowing created — item is now active!');
+      toast.success('Request submitted — it now needs approval like any other request.');
       onSuccess();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create manual borrowing.';
@@ -211,6 +257,63 @@ export default function ManualBorrowModal({
         </div>
 
         <div className="px-6 py-5 space-y-5">
+          {/* Account to attach — required, since every borrowing now needs a real user_id */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <UserCheck className="inline h-4 w-4 mr-1 -mt-0.5" />
+              Account to Attach <span className="text-red-500">*</span>
+            </label>
+            {selectedAccount ? (
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/20">
+                <div className="text-sm">
+                  <p className="font-medium text-gray-900 dark:text-white">{selectedAccount.full_name || 'Unnamed account'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{selectedAccount.email || selectedAccount.phone}</p>
+                </div>
+                <button
+                  onClick={() => { setSelectedAccount(null); setAccountQuery(''); }}
+                  className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={accountQuery}
+                    onChange={(e) => setAccountQuery(e.target.value)}
+                    placeholder="Search by name, email, or phone…"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                {searchingAccounts && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Searching…</p>
+                )}
+                {accountResults.length > 0 && (
+                  <div className="mt-2 space-y-1 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                    {accountResults.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => setSelectedAccount(acc)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
+                      >
+                        <span className="font-medium text-gray-900 dark:text-white">{acc.full_name || 'Unnamed account'}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">{acc.email || acc.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Can't find them? Have them register at <span className="font-mono">/register</span> on their own
+                  phone, or in a private/incognito window — not just another tab of this browser, which would log
+                  you out of your own admin account — then search again.
+                </p>
+              </>
+            )}
+          </div>
+
           {/* Borrower details */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
@@ -481,10 +584,10 @@ export default function ManualBorrowModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !estimate || !selectedItemId}
+            disabled={submitting || !estimate || !selectedItemId || !selectedAccount}
             className="px-5 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {submitting ? 'Creating…' : 'Assign & Activate'}
+            {submitting ? 'Submitting…' : 'Submit Request'}
           </button>
         </div>
       </div>

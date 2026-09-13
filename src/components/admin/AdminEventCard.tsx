@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, Edit, Trash2, Star, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, Edit, Trash2, Star, ExternalLink, Ban } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
@@ -18,6 +18,34 @@ interface AdminEventCardProps {
 export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps): JSX.Element {
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  // ── Cancel handler ──────────────────────────────────────────────
+  // Previously the only way to call off a published event was Delete,
+  // which just erases it. Cancel keeps the event (marked cancelled) and
+  // clears its reserved seats, matching the pattern EventFormModal
+  // already uses when an admin edits an event to "Cancelled" status.
+  const handleCancel = async (): Promise<void> => {
+    if (!window.confirm(`Cancel "${event.title}"? This frees up its reserved seats but keeps the event on record as cancelled.`)) return;
+
+    setCancelling(true);
+    try {
+      await supabase
+        .from('hub_bookings')
+        .delete()
+        .like('booking_reference', `EVT-${event.id.substring(0, 8).toUpperCase()}%`);
+
+      const { error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', event.id);
+      if (error) throw error;
+      toast.success('Event cancelled');
+      onUpdate();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to cancel event';
+      toast.error(errorMessage);
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // ── Delete handler ──────────────────────────────────────────────
   const handleDelete = async (): Promise<void> => {
@@ -127,6 +155,15 @@ export default function AdminEventCard({ event, onUpdate }: AdminEventCardProps)
             >
               <Edit className="w-4 h-4 mr-1" /> Edit
             </button>
+            {event.status === 'published' && (
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-orange-200 dark:border-orange-900/50 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50"
+              >
+                <Ban className="w-4 h-4 mr-1" /> {cancelling ? 'Cancelling…' : 'Cancel'}
+              </button>
+            )}
             <button
               onClick={handleDelete}
               disabled={deleting}

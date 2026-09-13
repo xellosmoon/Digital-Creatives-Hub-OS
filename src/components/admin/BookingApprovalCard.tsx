@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall, LogIn, XCircle } from 'lucide-react';
+import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall, Ban } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
-import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../../types/hub';
 import EventFormModal, { type EventFormPrefill } from './EventFormModal';
 
 interface HubBookingRow {
@@ -50,15 +49,6 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
   const [loading, setLoading] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
-  const [showCheckInModal, setShowCheckInModal] = useState(false);
-  const [checkInData, setCheckInData] = useState({
-    creative_domains: [] as string[],
-    purpose_of_visit: [] as string[],
-    gender: '',
-    sector: '',
-    organization: '',
-    designation: '',
-  });
   const [showPromoteModal, setShowPromoteModal] = useState(false);
 
   const suggestedEventTitle = [booking.organization, booking.gathering_type].filter(Boolean).join(' ');
@@ -201,47 +191,27 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  const handleCheckIn = async (): Promise<void> => {
+  // Frees up the seats an approved/active booking was holding — there was
+  // previously no way to do this short of rejecting it while still
+  // pending, so an approved booking that later fell through kept counting
+  // against capacity forever.
+  const handleCancel = async (): Promise<void> => {
+    if (!window.confirm('Cancel this booking? This frees up its reserved seats.')) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('create_attendance_from_booking', {
-        p_booking_id: booking.id,
-        p_creative_domains: checkInData.creative_domains.length > 0 ? checkInData.creative_domains : null,
-        p_purpose_of_visit: checkInData.purpose_of_visit.length > 0 ? checkInData.purpose_of_visit : null,
-        p_gender: checkInData.gender || null,
-        p_sector: checkInData.sector || null,
-        p_organization: checkInData.organization || null,
-        p_designation: checkInData.designation || null,
-      });
-
-      if (error) throw error;
-      
-      // Update booking with the additional info
-      await supabase
+      const { error } = await supabase
         .from('hub_bookings')
         .update({
-          creative_domains: checkInData.creative_domains.length > 0 ? checkInData.creative_domains : null,
-          purpose_of_visit: checkInData.purpose_of_visit.length > 0 ? checkInData.purpose_of_visit : null,
-          gender: checkInData.gender || null,
-          sector: checkInData.sector || null,
-          organization: checkInData.organization || null,
-          designation: checkInData.designation || null,
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
         })
         .eq('id', booking.id);
 
-      toast.success('Check-in created successfully!');
-      setShowCheckInModal(false);
-      setCheckInData({
-        creative_domains: [],
-        purpose_of_visit: [],
-        gender: '',
-        sector: '',
-        organization: '',
-        designation: '',
-      });
+      if (error) throw error;
+      toast.success('Booking cancelled');
       onUpdate();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Check-in failed';
+      const errorMessage = error instanceof Error ? error.message : 'Error cancelling booking';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -453,12 +423,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
         <div className="space-y-3 mt-4">
           {(booking.status === 'approved' || booking.status === 'active') && (
             <button
-              onClick={() => setShowCheckInModal(true)}
+              onClick={handleCancel}
               disabled={loading}
-              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 transition-colors"
+              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
-              <LogIn className="h-4 w-4 mr-2" />
-              Check In User
+              <Ban className="h-4 w-4 mr-2" />
+              Cancel Booking
             </button>
           )}
           <button
@@ -490,152 +460,6 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
           onClose={() => setShowPromoteModal(false)}
           onSaved={handleEventPublished}
         />
-      )}
-
-      {/* Check-In Modal */}
-      {showCheckInModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Check In User</h3>
-              <button
-                onClick={() => setShowCheckInModal(false)}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Checking in: <span className="font-medium text-gray-900 dark:text-white">{booking.guest_name || 'Guest'}</span>
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                All fields are optional. Fill in any additional information you have.
-              </p>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Creative Domains</label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {PCIDA_DOMAINS.map((domain) => (
-                    <button
-                      key={domain}
-                      type="button"
-                      onClick={() => {
-                        const isSelected = checkInData.creative_domains.includes(domain);
-                        setCheckInData(d => ({
-                          ...d,
-                          creative_domains: isSelected
-                            ? d.creative_domains.filter(d => d !== domain)
-                            : [...d.creative_domains, domain]
-                        }));
-                      }}
-                      className={`text-left px-2 py-1.5 rounded text-xs ${
-                        checkInData.creative_domains.includes(domain)
-                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700'
-                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      {checkInData.creative_domains.includes(domain) && '✓ '} {domain}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purpose of Visit</label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {PURPOSE_OF_VISIT_OPTIONS.map((purpose) => (
-                    <button
-                      key={purpose}
-                      type="button"
-                      onClick={() => {
-                        const isSelected = checkInData.purpose_of_visit.includes(purpose);
-                        setCheckInData(d => ({
-                          ...d,
-                          purpose_of_visit: isSelected
-                            ? d.purpose_of_visit.filter(p => p !== purpose)
-                            : [...d.purpose_of_visit, purpose]
-                        }));
-                      }}
-                      className={`text-left px-2 py-1.5 rounded text-xs ${
-                        checkInData.purpose_of_visit.includes(purpose)
-                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                          : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      {checkInData.purpose_of_visit.includes(purpose) && '✓ '} {purpose}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
-                <select
-                  value={checkInData.gender}
-                  onChange={e => setCheckInData({ ...checkInData, gender: e.target.value })}
-                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sector</label>
-                <input
-                  type="text"
-                  value={checkInData.sector}
-                  onChange={e => setCheckInData({ ...checkInData, sector: e.target.value })}
-                  placeholder="e.g. Government, Private, Academic"
-                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization</label>
-                <input
-                  type="text"
-                  value={checkInData.organization}
-                  onChange={e => setCheckInData({ ...checkInData, organization: e.target.value })}
-                  placeholder="Company or school name"
-                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Designation</label>
-                <input
-                  type="text"
-                  value={checkInData.designation}
-                  onChange={e => setCheckInData({ ...checkInData, designation: e.target.value })}
-                  placeholder="e.g. Graphic Designer, Student"
-                  className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowCheckInModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCheckIn}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
-                >
-                  {loading ? 'Creating...' : 'Check In'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

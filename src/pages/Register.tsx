@@ -35,9 +35,9 @@ export default function Register(): JSX.Element {
             id: authData.user.id,
             full_name: formData.fullName,
             phone: formData.phone,
+            email: formData.email,
             role: 'user',
             tier: 'SUBSCRIBER',
-            phone_number: formData.phone,
           });
 
         if (profileError) throw profileError;
@@ -69,16 +69,8 @@ export default function Register(): JSX.Element {
               sign in to existing account
             </Link>
           </p>
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 dark:bg-amber-900/30 dark:border-amber-800">
-            <p className="text-center text-sm text-amber-800 font-semibold dark:text-amber-300">
-              ⚠️ Accounts are exclusive to DCIH Members
-            </p>
-            <p className="text-center text-xs text-amber-700 mt-1 dark:text-amber-400">
-              Talk to the Secretariat to upgrade your tier and create a full account.
-            </p>
-          </div>
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            Creating an account gives you access to booking history, faster checkout, and exclusive member benefits.
+            Anyone can create an account. You'll need one to borrow gadgets and equipment from the Hub.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

@@ -396,7 +396,9 @@ export default function Bookings(): JSX.Element {
       setStep('package');
       setForm({ gathering_type: '', date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Booking failed';
+      const errorMessage = err instanceof Error
+        ? err.message
+        : (err as { message?: string })?.message || 'Booking failed';
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);

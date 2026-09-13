@@ -45,7 +45,7 @@ interface AdminBooking {
 export default function AdminBookings(): JSX.Element {
   const [allBookings, setAllBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled' | 'rejected'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchBookings = useCallback(async (): Promise<void> => {
@@ -92,6 +92,7 @@ export default function AdminBookings(): JSX.Element {
     all: allBookings.length,
     pending: allBookings.filter(b => b.status === 'pending').length,
     approved: allBookings.filter(b => b.status === 'approved').length,
+    cancelled: allBookings.filter(b => b.status === 'cancelled').length,
     rejected: allBookings.filter(b => b.status === 'rejected').length,
   };
 
@@ -152,7 +153,7 @@ export default function AdminBookings(): JSX.Element {
         <div className="flex items-center gap-4">
           <Filter className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           <div className="flex gap-2">
-            {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+            {(['all', 'pending', 'approved', 'cancelled', 'rejected'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -180,8 +181,8 @@ export default function AdminBookings(): JSX.Element {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {(['pending', 'approved', 'rejected', 'all'] as const).map((status) => (
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+        {(['pending', 'approved', 'cancelled', 'rejected', 'all'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}

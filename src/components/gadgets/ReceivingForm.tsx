@@ -95,6 +95,12 @@ export function ReceivingFormPage({ data, isLast }: { data: ReceivingFormData; i
       className="receiving-form-page bg-white text-gray-900"
       style={{ pageBreakAfter: isLast ? 'auto' : 'always' }}
     >
+      {data.borrowingReference && (
+        <p className="absolute top-[8mm] left-[10mm] text-[10px] font-mono font-semibold text-gray-700">
+          Ref: {data.borrowingReference}
+        </p>
+      )}
+
       <div className="text-center mb-4">
         <h1 className="text-base font-bold tracking-wide uppercase">Digital Creatives Hub Iligan</h1>
         <h2 className="text-sm font-semibold tracking-wide uppercase mt-0.5">Receiving Form</h2>
@@ -208,6 +214,7 @@ function SignatureLine({ label, prefill, className = '' }: { label: string; pref
 
 const SHARED_PAGE_STYLE = `
   .receiving-form-page {
+    position: relative;
     width: 210mm;
     min-height: 297mm;
     box-sizing: border-box;

@@ -49,7 +49,12 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
   const updateStatus = async (id: string, status: BorrowingStatus): Promise<void> => {
     setUpdatingId(id);
     try {
-      const { error } = await supabase.from('borrowings').update({ status }).eq('id', id);
+      const updates: { status: BorrowingStatus; approved_by?: string } = { status };
+      if (status === 'approved') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) updates.approved_by = user.id;
+      }
+      const { error } = await supabase.from('borrowings').update(updates).eq('id', id);
       if (error) throw error;
       toast.success(`Borrowing ${status}`);
       onRefresh();
