@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { Session } from '@supabase/supabase-js';
@@ -37,8 +36,6 @@ const GalleryManagement = lazy(() => import('./pages/GalleryManagement'));
 import Layout from './components/shared/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
-const queryClient = new QueryClient();
-
 function App(): JSX.Element {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,10 +67,9 @@ function App(): JSX.Element {
 
   return (
     <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandedLoader size="lg" /></div>}>
-            <Routes>
+      <Router>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandedLoader size="lg" /></div>}>
+          <Routes>
             <Route path="/check-in" element={<CheckIn />} />
             <Route path="/" element={<Layout session={session}><Home /></Layout>} />
             <Route path="/login" element={<Layout session={session}><Login /></Layout>} />
@@ -221,7 +217,6 @@ function App(): JSX.Element {
         </Suspense>
       </Router>
       <Toaster position="top-right" />
-    </QueryClientProvider>
     </HelmetProvider>
   );
 }
