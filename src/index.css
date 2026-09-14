@@ -30,6 +30,39 @@
   animation-delay: 4s;
 }
 
+/* Entrance animations — used as `animate-in fade-in[.slide-in-from-top-1|
+   .zoom-in-95] duration-*`. These class names match the tailwindcss-
+   animate plugin's convention, but that plugin was never installed, so
+   they were previously no-ops (DayTimelineModal's backdrop, Layout's nav
+   dropdown) — hand-rolled here instead, consistent with the blob/marquee
+   keyframes above already being hand-rolled rather than a dependency. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-top-1 {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoom-in-95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-in {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.fade-in { animation-name: fade-in; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+.slide-in-from-top-1 { animation-name: slide-in-from-top-1; }
+.fade-in.slide-in-from-top-1 { animation-name: fade-in, slide-in-from-top-1; }
+.fade-in.zoom-in-95 { animation-name: fade-in, zoom-in-95; }
+
 /* Marquee Animations */
 @keyframes marquee {
   0% {
@@ -60,10 +93,15 @@
 }
 
 /* Belt-and-suspenders alongside the IntersectionObserver pause in
-   HubGalleryMarquee.tsx — this covers the moment before that effect runs. */
+   HubGalleryMarquee.tsx — this covers the moment before that effect runs.
+   .animate-blob and .animate-in never had a reduced-motion guard at all
+   until now — every other looping/entrance animation on the site funnels
+   through one of these classes, so this one rule covers all of them. */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
-  .animate-marquee-reverse {
-    animation: none;
+  .animate-marquee-reverse,
+  .animate-blob,
+  .animate-in {
+    animation: none !important;
   }
 }

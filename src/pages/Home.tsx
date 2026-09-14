@@ -11,6 +11,8 @@ import { supabase } from '../lib/supabase';
 import type { HubZone } from '../types/hub';
 import EventCards from '../components/home/EventCards';
 import HubGalleryMarquee from '../components/home/HubGalleryMarquee';
+import Reveal from '../components/shared/Reveal';
+import AnimatedNumber from '../components/shared/AnimatedNumber';
 
 interface Equipment {
   id: string;
@@ -58,7 +60,7 @@ function OfferCard({ icon: Icon, title, description, iconColor }: { icon: React.
 
   return (
     <div className="group p-6 rounded-2xl bg-white/60 backdrop-blur-lg border border-white/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 dark:bg-slate-800/60 dark:border-slate-700/80">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${getIconContainer()}`}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${getIconContainer()}`}>
         <Icon className="w-6 h-6" />
       </div>
       <h3 className="text-lg font-bold text-[#0C2340] mb-2 dark:text-white">{title}</h3>
@@ -71,13 +73,19 @@ export default function Home(): JSX.Element {
   const [zones, setZones] = useState<HubZone[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [stats, setStats] = useState<Stats>({ totalSpaces: 0, totalBookings: 0, happyUsers: 0 });
+  const [statsLoaded, setStatsLoaded] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async (): Promise<void> => {
       setLoading(true);
-      setError(null);
+      // Each section fetches and fails independently — one flaky query
+      // (say, the stats RPC) used to set a single page-level error that
+      // replaced the ENTIRE homepage — hero, booking CTAs, everything —
+      // with a bare "Failed to load / Retry" screen. Now a failed section
+      // just quietly doesn't render (zones/equipment already do this via
+      // their own `.length > 0` guards; stats now does the same via
+      // `statsLoaded`), and everything else on the page still works.
       await Promise.all([fetchZones(), fetchStats(), fetchEquipment()]);
       setLoading(false);
     };
@@ -95,7 +103,6 @@ export default function Home(): JSX.Element {
       setZones(data || []);
     } catch (err) {
       console.error('Error fetching zones:', err);
-      setError('Failed to load zones');
     }
   };
 
@@ -122,7 +129,6 @@ export default function Home(): JSX.Element {
       setEquipment(enriched);
     } catch (err) {
       console.error('Error fetching equipment:', err);
-      setError('Failed to load equipment');
     }
   };
 
@@ -136,27 +142,31 @@ export default function Home(): JSX.Element {
       if (zonesError) throw zonesError;
       const totalSeats = zonesData?.reduce((sum, zone) => sum + (zone.seats || 0), 0) || 0;
 
-      // Get total bookings from hub_bookings
-      const { count: bookingsCount, error: bookingsError } = await supabase
-        .from('hub_bookings')
-        .select('*', { count: 'exact', head: true });
-      if (bookingsError) throw bookingsError;
-
-      // Get unique visitors from hub_attendance
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from('hub_attendance')
-        .select('mobile_number');
-      if (attendanceError) throw attendanceError;
-      const uniqueVisitors = new Set(attendanceData?.map(a => a.mobile_number)).size;
+      // Both go through SECURITY DEFINER RPCs rather than a direct
+      // count/select — hub_bookings and hub_attendance SELECT are now
+      // scoped to each row's own owner/admin (see
+      // 062_fix_public_pii_exposure.sql and
+      // 064_fix_attendance_pii_leak_and_stat_accuracy.sql), so a plain
+      // anonymous query would come back empty instead of the real total.
+      // Each RPC also only counts genuine outcomes — a rejected or
+      // still-pending booking/check-in was never a real "booking made"
+      // or "happy creative," the same fix already made for the
+      // calendar's "Peak" figure.
+      const [bookingsRes, happyCreativesRes] = await Promise.all([
+        supabase.rpc('get_public_hub_booking_count'),
+        supabase.rpc('get_public_happy_creatives_count'),
+      ]);
+      if (bookingsRes.error) throw bookingsRes.error;
+      if (happyCreativesRes.error) throw happyCreativesRes.error;
 
       setStats({
         totalSpaces: totalSeats,
-        totalBookings: bookingsCount || 0,
-        happyUsers: uniqueVisitors
+        totalBookings: bookingsRes.data || 0,
+        happyUsers: happyCreativesRes.data || 0,
       });
+      setStatsLoaded(true);
     } catch (err) {
       console.error('Error fetching stats:', err);
-      setError('Failed to load statistics');
     }
   };
 
@@ -167,22 +177,6 @@ export default function Home(): JSX.Element {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#F59E0B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[#0C2340] font-semibold dark:text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F59E0B]/5 via-white to-[#0C2340]/5 dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
-        <div className="text-center p-8">
-          <p className="text-red-600 font-semibold mb-4 dark:text-red-400">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-[#0C2340] text-white rounded-lg hover:bg-[#0C2340]/90 transition-colors"
-          >
-            Retry
-          </button>
         </div>
       </div>
     );
@@ -291,14 +285,18 @@ export default function Home(): JSX.Element {
             <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto mt-2"></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <OfferCard icon={Presentation} title="Meetings/Events Venue" description="Professional spaces perfect for workshops, seminars, and gatherings." iconColor="slate" />
-            <OfferCard icon={Clock} title="24/7 Operations" description="Work anytime, day or night, in a secure and inspired environment." iconColor="teal" />
-            <OfferCard icon={Zap} title="Fast Internet Speed" description="Blazing fast fiber internet to keep your creative workflow uninterrupted." iconColor="orange" />
-            <OfferCard icon={Briefcase} title="Virtual Office Space" description="Establish your business presence with our professional mailing address." />
-            <OfferCard icon={Lightbulb} title="Innovation Hub" description="Access to tools and a community focused on groundbreaking ideas." />
-            <OfferCard icon={Layers} title="Collaborative Space" description="Connect, share, and grow with a network of talented digital pros." />
-            <OfferCard icon={Armchair} title="Co-working Space" description="Ergonomic and flexible workstations designed for productivity." />
-            <OfferCard icon={Camera} title="Digital Gadgets & Media Gear" description="High-end equipment available for rent to level up your production." />
+            {[
+              <OfferCard key="venue" icon={Presentation} title="Meetings/Events Venue" description="Professional spaces perfect for workshops, seminars, and gatherings." iconColor="slate" />,
+              <OfferCard key="247" icon={Clock} title="24/7 Operations" description="Work anytime, day or night, in a secure and inspired environment." iconColor="teal" />,
+              <OfferCard key="internet" icon={Zap} title="Fast Internet Speed" description="Blazing fast fiber internet to keep your creative workflow uninterrupted." iconColor="orange" />,
+              <OfferCard key="virtual" icon={Briefcase} title="Virtual Office Space" description="Establish your business presence with our professional mailing address." />,
+              <OfferCard key="innovation" icon={Lightbulb} title="Innovation Hub" description="Access to tools and a community focused on groundbreaking ideas." />,
+              <OfferCard key="collab" icon={Layers} title="Collaborative Space" description="Connect, share, and grow with a network of talented digital pros." />,
+              <OfferCard key="coworking" icon={Armchair} title="Co-working Space" description="Ergonomic and flexible workstations designed for productivity." />,
+              <OfferCard key="gadgets" icon={Camera} title="Digital Gadgets & Media Gear" description="High-end equipment available for rent to level up your production." />,
+            ].map((card, i) => (
+              <Reveal key={card.key} delay={i * 60}>{card}</Reveal>
+            ))}
           </div>
         </div>
       </div>
@@ -310,39 +308,53 @@ export default function Home(): JSX.Element {
       <HubGalleryMarquee />
 
       {/* Stats Section */}
+      {statsLoaded && (
       <div className="relative py-16 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="group">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-colors">
-                  <Building2 className="w-8 h-8 text-[#F59E0B]" />
+            <Reveal delay={0}>
+              <div className="group">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-all group-hover:scale-110">
+                    <Building2 className="w-8 h-8 text-[#F59E0B]" />
+                  </div>
                 </div>
-              </div>
-              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.totalSpaces}+</div>
-              <div className="text-gray-600 mt-1 dark:text-gray-400">Creative Spaces</div>
-            </div>
-            <div className="group">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#0C2340]/10 rounded-full group-hover:bg-[#0C2340]/20 dark:bg-white/10 dark:group-hover:bg-white/20 transition-colors">
-                  <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
+                <div className="text-4xl font-bold text-[#0C2340] dark:text-white">
+                  <AnimatedNumber value={stats.totalSpaces} suffix="+" />
                 </div>
+                <div className="text-gray-600 mt-1 dark:text-gray-400">Creative Spaces</div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.happyUsers}+</div>
-              <div className="text-gray-600 mt-1 dark:text-gray-400">Happy Creatives</div>
-            </div>
-            <div className="group">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-colors">
-                  <ClipboardCheck className="w-8 h-8 text-[#F59E0B]" />
+            </Reveal>
+            <Reveal delay={100}>
+              <div className="group">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-[#0C2340]/10 rounded-full group-hover:bg-[#0C2340]/20 dark:bg-white/10 dark:group-hover:bg-white/20 transition-all group-hover:scale-110">
+                    <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
+                  </div>
                 </div>
+                <div className="text-4xl font-bold text-[#0C2340] dark:text-white">
+                  <AnimatedNumber value={stats.happyUsers} suffix="+" />
+                </div>
+                <div className="text-gray-600 mt-1 dark:text-gray-400">Happy Creatives</div>
               </div>
-              <div className="text-4xl font-bold text-[#0C2340] dark:text-white">{stats.totalBookings}</div>
-              <div className="text-gray-600 mt-1 dark:text-gray-400">Bookings Made</div>
-            </div>
+            </Reveal>
+            <Reveal delay={200}>
+              <div className="group">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-[#F59E0B]/10 rounded-full group-hover:bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 dark:group-hover:bg-[#F59E0B]/30 transition-all group-hover:scale-110">
+                    <ClipboardCheck className="w-8 h-8 text-[#F59E0B]" />
+                  </div>
+                </div>
+                <div className="text-4xl font-bold text-[#0C2340] dark:text-white">
+                  <AnimatedNumber value={stats.totalBookings} />
+                </div>
+                <div className="text-gray-600 mt-1 dark:text-gray-400">Bookings Made</div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </div>
+      )}
 
       {/* Features Section */}
       <div className="py-20 bg-gradient-to-br from-[#0C2340]/[0.03] via-white to-[#F59E0B]/[0.05] dark:from-[#0C2340] dark:via-slate-900 dark:to-[#0C2340]/40">
@@ -358,49 +370,57 @@ export default function Home(): JSX.Element {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Feature Cards — alternating the two brand hues instead of a rainbow */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6">
-                  <Clock className="w-7 h-7 text-white" />
+            <Reveal delay={0}>
+              <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <Clock className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Instant Booking</h3>
+                  <p className="text-gray-600 dark:text-gray-400">No account needed. Book your perfect space in under 2 minutes.</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Instant Booking</h3>
-                <p className="text-gray-600 dark:text-gray-400">No account needed. Book your perfect space in under 2 minutes.</p>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
-                  <Building2 className="w-7 h-7 text-white" />
+            <Reveal delay={80}>
+              <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <Building2 className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Premium Spaces</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Studios, meeting rooms, and event spaces designed for creativity.</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Premium Spaces</h3>
-                <p className="text-gray-600 dark:text-gray-400">Studios, meeting rooms, and event spaces designed for creativity.</p>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6">
-                  <Zap className="w-7 h-7 text-white" />
+            <Reveal delay={160}>
+              <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0C2340] to-blue-900 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-[#0C2340] to-blue-900 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <Zap className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Fast Approval</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Real-time notifications and quick booking confirmations.</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Fast Approval</h3>
-                <p className="text-gray-600 dark:text-gray-400">Real-time notifications and quick booking confirmations.</p>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
-                  <Shield className="w-7 h-7 text-white" />
+            <Reveal delay={240}>
+              <div className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:bg-slate-800">
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <Shield className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Secure & Private</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Your data is protected with enterprise-grade security.</p>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3 dark:text-white">Secure & Private</h3>
-                <p className="text-gray-600 dark:text-gray-400">Your data is protected with enterprise-grade security.</p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </div>
@@ -414,19 +434,21 @@ export default function Home(): JSX.Element {
               <p className="text-xl text-gray-600 dark:text-gray-300">Explore our creative quadrants</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {zones.map((zone) => (
-                <div key={zone.id} className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 dark:bg-slate-800">
-                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-purple-100 dark:from-primary-900/30 dark:to-purple-900/30 flex items-center justify-center">
-                    <Building2 className="w-16 h-16 text-primary-300 dark:text-primary-400" />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2 dark:text-white">{zone.label}</h3>
-                    <p className="text-gray-600 mb-4 dark:text-gray-400">{zone.description || zone.name}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{zone.seats} seats</span>
+              {zones.map((zone, i) => (
+                <Reveal key={zone.id} delay={i * 80}>
+                  <div className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 dark:bg-slate-800">
+                    <div className="aspect-video bg-gradient-to-br from-primary-100 to-purple-100 dark:from-primary-900/30 dark:to-purple-900/30 flex items-center justify-center overflow-hidden">
+                      <Building2 className="w-16 h-16 text-primary-300 dark:text-primary-400 transition-transform duration-500 group-hover:scale-110" />
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2 dark:text-white">{zone.label}</h3>
+                      <p className="text-gray-600 mb-4 dark:text-gray-400">{zone.description || zone.name}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">{zone.seats} seats</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -501,30 +523,38 @@ export default function Home(): JSX.Element {
             <p className="text-xl text-gray-600 dark:text-gray-300">All spaces come fully equipped with premium amenities</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30">
-                <Wifi className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            <Reveal delay={0}>
+              <div className="group text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary-200 dark:group-hover:shadow-none">
+                  <Wifi className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">High-Speed WiFi</h3>
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">High-Speed WiFi</h3>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10">
-                <Coffee className="w-8 h-8 text-[#0C2340] dark:text-white" />
+            </Reveal>
+            <Reveal delay={80}>
+              <div className="group text-center">
+                <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-[#0C2340]/20 dark:group-hover:shadow-none">
+                  <Coffee className="w-8 h-8 text-[#0C2340] dark:text-white" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Free Coffee</h3>
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Free Coffee</h3>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30">
-                <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+            </Reveal>
+            <Reveal delay={160}>
+              <div className="group text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-primary-900/30 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary-200 dark:group-hover:shadow-none">
+                  <Monitor className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Modern Equipment</h3>
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Modern Equipment</h3>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10">
-                <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
+            </Reveal>
+            <Reveal delay={240}>
+              <div className="group text-center">
+                <div className="w-16 h-16 bg-[#0C2340]/10 rounded-full flex items-center justify-center mx-auto mb-4 dark:bg-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-[#0C2340]/20 dark:group-hover:shadow-none">
+                  <Users className="w-8 h-8 text-[#0C2340] dark:text-white" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Community Events</h3>
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Community Events</h3>
-            </div>
+            </Reveal>
           </div>
         </div>
       </div>

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Calendar, Clock, ArrowRight, ExternalLink, Sparkles, ChevronLeft, ChevronRight, X, MapPin, Facebook, Mic, PartyPopper, Users, Zap, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { CalendarEvent } from '../../types';
+import { normalizeEventCategory } from '../../lib/eventCategories';
 
 interface ExtendedCalendarEvent extends CalendarEvent {
   facebook_post_url?: string;
@@ -22,13 +24,13 @@ function useLiveEventAttendance(eventId: string, enabled: boolean): number {
   useEffect(() => {
     if (!enabled) return;
 
+    // Goes through a SECURITY DEFINER RPC rather than a direct count —
+    // hub_attendance SELECT is now admin-only (see
+    // 064_fix_attendance_pii_leak_and_stat_accuracy.sql), so a plain
+    // anonymous count query would silently come back as 0.
     const fetchCount = async (): Promise<void> => {
-      const { count: c, error } = await supabase
-        .from('hub_attendance')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', eventId)
-        .eq('status', 'active');
-      if (!error) setCount(c ?? 0);
+      const { data, error } = await supabase.rpc('get_live_event_attendance_count', { p_event_id: eventId });
+      if (!error) setCount(data ?? 0);
     };
 
     fetchCount();
@@ -310,13 +312,13 @@ export default function EventCards(): JSX.Element {
 
           {/* View All Link */}
           <div className="text-center mt-10">
-            <a
-              href="/calendar"
+            <Link
+              to="/calendar"
               className="inline-flex items-center gap-2 text-[#0C2340] hover:text-[#F59E0B] font-semibold transition-colors group dark:text-white dark:hover:text-[#F59E0B]"
             >
               View Full Calendar
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -349,11 +351,8 @@ function OngoingEventCard({ event, index, onClick }: OngoingEventCardProps): JSX
   const icons = [Mic, PartyPopper, Users];
   const Icon = icons[index % icons.length];
 
-  const getEventIcon = () => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-    if (isWorkshop) return Zap;
+  const getEventIcon = (): typeof Zap => {
+    if (normalizeEventCategory(event.category) === 'workshops') return Zap;
     if (event.is_featured) return Sparkles;
     return Icon;
   };
@@ -464,11 +463,8 @@ function UpcomingEventCard({ event, index, onClick }: UpcomingEventCardProps): J
   const icons = [Calendar, Sparkles, Users];
   const Icon = icons[index % icons.length];
 
-  const getEventIcon = () => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-    if (isWorkshop) return BookOpen;
+  const getEventIcon = (): typeof BookOpen => {
+    if (normalizeEventCategory(event.category) === 'workshops') return BookOpen;
     if (event.is_featured) return Sparkles;
     return Icon;
   };
@@ -576,11 +572,8 @@ function PastEventCard({ event, index, onClick }: PastEventCardProps): JSX.Eleme
   const icons = [Clock, Calendar, Users];
   const Icon = icons[index % icons.length];
 
-  const getEventIcon = () => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-    if (isWorkshop) return BookOpen;
+  const getEventIcon = (): typeof BookOpen => {
+    if (normalizeEventCategory(event.category) === 'workshops') return BookOpen;
     if (event.is_featured) return Sparkles;
     return Icon;
   };
