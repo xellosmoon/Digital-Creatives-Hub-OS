@@ -3,13 +3,13 @@
 // ============================================================
 import { differenceInMinutes, isWeekend, parseISO } from 'date-fns';
 import type { RentalPackage, HubPriceEstimate } from '../types/hub';
-import { formatPeso } from './pricingEngine';
+import { formatPeso, PRICING_ENABLED } from './pricingEngine';
 
-export { formatPeso };
-
-// ── Pricing Toggle (Open House Mode) ─────────────────────────
-// Set to true to disable all pricing (free/open house mode)
-export const PRICING_ENABLED = false;
+// Re-exported so existing call sites (isPricingDisabled, formatPeso, and
+// PRICING_ENABLED itself) don't need to change their import path — but the
+// toggle now lives in one place, pricingEngine.ts, instead of two constants
+// that had to be kept in sync by hand.
+export { formatPeso, PRICING_ENABLED };
 
 // ── Helper to check if pricing is disabled ─────────────────────
 export function isPricingDisabled(): boolean {
