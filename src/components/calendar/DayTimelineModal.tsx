@@ -1,7 +1,11 @@
 import { format } from 'date-fns';
-import { X, Calendar, Clock, Users, MapPin, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  X, Calendar, Clock, Users, CalendarPlus, Megaphone,
+  Wrench, AlertTriangle, Sparkles,
+} from 'lucide-react';
 import type { CalendarEvent } from '../../types';
-import type { HubBooking } from '../../types/hub';
+import { normalizeEventCategory, getEventCategoryLabel, getEventCategoryStyle } from '../../lib/eventCategories';
 
 interface SimplifiedPackage {
   slug: string;
@@ -9,7 +13,15 @@ interface SimplifiedPackage {
   is_bundle: boolean;
 }
 
-interface TimelineBooking extends Omit<HubBooking, 'package'> {
+// Deliberately narrow — this comes from the public calendar's PII-free
+// RPC, so there's no guest_name/guest_email/purpose to render here (see
+// 062_fix_public_pii_exposure.sql).
+interface TimelineBooking {
+  id: string;
+  start_time: string;
+  end_time: string;
+  is_workshop: boolean;
+  seats_used: number;
   package?: SimplifiedPackage;
 }
 
@@ -18,85 +30,101 @@ interface DayTimelineModalProps {
   events: CalendarEvent[];
   bookings: TimelineBooking[];
   activeUsers: number;
+  /** Whether this date can still be booked (today or later) — hides the
+   *  booking/propose CTAs for past days instead of offering a dead end. */
+  bookable: boolean;
   onClose: () => void;
   onEventClick: (event: CalendarEvent) => void;
-  getEventCategory: (event: CalendarEvent) => string;
+  onBookSpace: () => void;
 }
 
+type AgendaItem =
+  | { kind: 'event'; start: Date; event: CalendarEvent }
+  | { kind: 'booking'; start: Date; booking: TimelineBooking };
+
+/**
+ * A day's full agenda, as a chronological card list — replaced the old
+ * absolute-positioned hour-by-hour track (6 AM–10 PM grid lines with
+ * floating blocks), which read as bland and didn't actually let you do
+ * anything beyond look. Every event and booking is a real card now, and
+ * the footer always offers a way to act on this date: book a seat, or
+ * propose your own event here.
+ */
 export default function DayTimelineModal({
   date,
   events,
   bookings,
   activeUsers,
+  bookable,
   onClose,
   onEventClick,
-  getEventCategory,
+  onBookSpace,
 }: DayTimelineModalProps): JSX.Element {
-  // Hour slots from 6 AM to 10 PM
-  const hours = Array.from({ length: 17 }, (_, i) => i + 6); // 6-22
+  const navigate = useNavigate();
 
-  const getCategoryStyles = (category: string) => {
-    switch (category) {
-      case 'Tech & Dev':
-        return 'bg-cyan-500 text-white border-cyan-400 shadow-cyan-200/50';
-      case 'Workshops':
-        return 'bg-amber-500 text-white border-amber-400 shadow-amber-200/50';
-      case 'Community':
-        return 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-200/50';
-      default:
-        return 'bg-blue-500 text-white border-blue-400 shadow-blue-200/50';
-    }
-  };
+  const agenda: AgendaItem[] = [
+    ...events.map((event): AgendaItem => ({ kind: 'event', start: new Date(event.start_time), event })),
+    ...bookings.map((booking): AgendaItem => ({ kind: 'booking', start: new Date(booking.start_time), booking })),
+  ].sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const getBookingStyle = (booking: TimelineBooking) => {
+  const bookingLabel = (booking: TimelineBooking): { label: string; icon: typeof Wrench; style: ReturnType<typeof getEventCategoryStyle> } => {
     if (booking.is_workshop) {
-      return 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-red-400 shadow-red-200/50';
+      return { label: 'Workshop / Event Block', icon: AlertTriangle, style: getEventCategoryStyle('workshops') };
     }
     if (booking.package?.is_bundle) {
-      return 'bg-gradient-to-r from-purple-500 to-violet-500 text-white border-purple-400 shadow-purple-200/50';
+      return { label: booking.package.name, icon: Wrench, style: getEventCategoryStyle('other') };
     }
-    return 'bg-gradient-to-r from-slate-500 to-gray-500 text-white border-slate-400 shadow-slate-200/50';
+    return { label: booking.package?.name ?? 'Coworking', icon: Users, style: getEventCategoryStyle('community') };
   };
 
-  // Calculate position and height for a block
-  const getBlockStyle = (startTime: string, endTime: string) => {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
-    const duration = endHour - startHour;
-    
-    // Each hour is 60px tall
-    const top = (startHour - 6) * 60;
-    const height = Math.max(duration * 60, 30); // Minimum 30px height
-    
-    return { top: `${Math.max(0, top)}px`, height: `${height}px` };
+  const handlePropose = (): void => {
+    onClose();
+    navigate('/propose-event');
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
       onClick={onClose}
     >
-      <div 
-        className="relative w-full max-w-3xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-2xl rounded-3xl overflow-hidden transition-all"
+      <div
+        className="relative w-full max-w-2xl bg-white dark:bg-slate-800 shadow-2xl rounded-3xl overflow-hidden transition-all max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#0C2340] via-[#0C2340] to-blue-600 text-white px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-6 h-6 text-violet-200" />
-              <div>
-                <h2 className="text-xl font-bold">{format(date, 'EEEE, MMMM d, yyyy')}</h2>
-                <p className="text-sm text-violet-200 mt-0.5">
-                  {events.length} event{events.length !== 1 ? 's' : ''} · {bookings.length} booking{bookings.length !== 1 ? 's' : ''} · {activeUsers} active user{activeUsers !== 1 ? 's' : ''} on floor
-                </p>
+        <div className="relative bg-gradient-to-r from-[#0C2340] via-indigo-800 to-fuchsia-700 text-white px-6 py-6 flex-shrink-0 overflow-hidden">
+          {/* Decorative glow — same trick EventDetailsModal uses for its
+              poster fallback, so the two modals feel like one family. */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none">
+            <div className="absolute -top-8 -right-8 w-48 h-48 bg-fuchsia-400/40 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-300/30 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-violet-200 font-bold mb-1">
+                {format(date, 'MMMM yyyy')}
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight drop-shadow-sm">{format(date, 'EEEE, MMMM d')}</h2>
+              <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-bold">
+                  {events.length} event{events.length !== 1 ? 's' : ''}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-bold">
+                  {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-bold">
+                  {activeUsers > 0 && <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                  </span>}
+                  {activeUsers} active on floor
+                </span>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80 hover:text-white"
+              className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80 hover:text-white flex-shrink-0"
               aria-label="Close"
             >
               <X className="w-6 h-6" />
@@ -104,123 +132,103 @@ export default function DayTimelineModal({
           </div>
         </div>
 
-        {/* Timeline */}
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
-          <div className="relative">
-            {/* Time slots */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 space-y-0">
-              {hours.map(hour => (
-                <div key={hour} className="h-[60px] flex items-center justify-end pr-3 text-xs text-gray-400 dark:text-slate-500 font-medium">
-                  {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-                </div>
-              ))}
+        {/* Agenda */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-3">
+          {agenda.length === 0 ? (
+            <div className="text-center py-14">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/30 rotate-3">
+                <Sparkles className="w-9 h-9 text-white" />
+              </div>
+              <p className="font-extrabold text-lg text-slate-900 dark:text-white">This day is wide open</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Be the first to fill it — book a seat or bring your own event.</p>
             </div>
-
-            {/* Timeline content */}
-            <div className="ml-16 relative h-[1020px]">
-              {/* Hour lines */}
-              {hours.map(hour => (
-                <div key={hour} className="absolute w-full border-t border-gray-100 dark:border-slate-700/50" style={{ top: `${(hour - 6) * 60}px` }} />
-              ))}
-
-              {/* Events */}
-              {events.map(ev => {
-                const category = getEventCategory(ev);
-                const style = getBlockStyle(ev.start_time, ev.end_time);
-                const catStyle = getCategoryStyles(category);
-                
+          ) : (
+            agenda.map((item) => {
+              if (item.kind === 'event') {
+                const category = normalizeEventCategory(item.event.category);
+                const style = getEventCategoryStyle(category);
                 return (
                   <button
-                    key={ev.id}
-                    onClick={() => onEventClick(ev)}
-                    className={`absolute left-2 right-2 rounded-xl border-2 p-3 text-left transition-all hover:scale-[1.02] hover:shadow-lg ${catStyle}`}
-                    style={style}
+                    key={`event-${item.event.id}`}
+                    onClick={() => onEventClick(item.event)}
+                    className="group w-full text-left flex items-stretch gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-200 overflow-hidden"
                   >
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate">{ev.title}</p>
-                        <p className="text-xs opacity-90 mt-0.5">
-                          {format(new Date(ev.start_time), 'h:mm a')} – {format(new Date(ev.end_time), 'h:mm a')}
-                        </p>
-                        {ev.organization || ev.organizer ? (
-                          <p className="text-xs opacity-80 mt-0.5 flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            {ev.organization || ev.organizer}
-                          </p>
-                        ) : null}
+                    <div className={`w-1.5 flex-shrink-0 bg-gradient-to-b ${style.gradient}`} />
+                    {item.event.poster_url ? (
+                      <img src={item.event.poster_url} alt="" className="w-20 flex-shrink-0 object-cover group-hover:scale-110 transition-transform duration-300" />
+                    ) : (
+                      <div className={`w-20 flex-shrink-0 bg-gradient-to-br ${style.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                        {item.event.is_featured ? <Sparkles className="w-6 h-6 text-white" /> : <Calendar className="w-6 h-6 text-white" />}
                       </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border border-white/30 ${catStyle}`}>
-                        {category}
-                      </span>
+                    )}
+                    <div className="py-3 pr-4 pl-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${style.chip} ${style.text}`}>
+                          {getEventCategoryLabel(category)}
+                        </span>
+                        {item.event.is_featured && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                            <Sparkles className="w-2.5 h-2.5" /> Featured
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{item.event.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {format(new Date(item.event.start_time), 'h:mm a')} – {format(new Date(item.event.end_time), 'h:mm a')}
+                      </p>
                     </div>
                   </button>
                 );
-              })}
+              }
 
-              {/* Bookings */}
-              {bookings.map(b => {
-                const style = getBlockStyle(b.start_time, b.end_time);
-                const bookingStyle = getBookingStyle(b);
-                
-                return (
-                  <div
-                    key={b.id}
-                    className={`absolute left-2 right-2 rounded-xl border-2 p-3 transition-all ${bookingStyle}`}
-                    style={style}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm truncate">{b.package?.name ?? 'Coworking'}</p>
-                          {b.is_workshop && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/20 border border-white/30">
-                              Workshop
-                            </span>
-                          )}
-                          {b.package?.is_bundle && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/20 border border-white/30">
-                              Bundle
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs opacity-90 mt-0.5">
-                          {format(new Date(b.start_time), 'h:mm a')} – {format(new Date(b.end_time), 'h:mm a')}
-                        </p>
-                        {b.guest_name && (
-                          <p className="text-xs opacity-80 mt-0.5 flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            {b.guest_name}
-                          </p>
-                        )}
-                        {b.purpose && Array.isArray(b.purpose) && b.purpose.length > 0 && (
-                          <p className="text-[10px] opacity-70 mt-0.5">
-                            {b.purpose.slice(0, 2).join(', ')}
-                            {b.purpose.length > 2 && ` +${b.purpose.length - 2} more`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center text-xs font-semibold bg-white/20 px-2 py-1 rounded-lg">
-                        <Users className="w-3 h-3 mr-1" />
-                        {b.seats_used}
-                      </div>
-                    </div>
+              const { label, icon: Icon, style } = bookingLabel(item.booking);
+              return (
+                <div
+                  key={`booking-${item.booking.id}`}
+                  className="group w-full flex items-stretch gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/60 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+                >
+                  <div className={`w-14 flex-shrink-0 flex items-center justify-center ${style.chip} border-r group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`w-5 h-5 ${style.text}`} />
                   </div>
-                );
-              })}
-
-              {/* Empty state */}
-              {events.length === 0 && bookings.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-gray-400 dark:text-slate-500">
-                    <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm font-medium">No events or bookings</p>
-                    <p className="text-xs mt-1">This day is free</p>
+                  <div className="py-3 pr-4 flex-1 min-w-0 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{label}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {format(new Date(item.booking.start_time), 'h:mm a')} – {format(new Date(item.booking.end_time), 'h:mm a')}
+                      </p>
+                    </div>
+                    <span className={`flex-shrink-0 inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border ${style.chip} ${style.text}`}>
+                      <Users className="w-3 h-3" /> {item.booking.seats_used}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+              );
+            })
+          )}
         </div>
+
+        {/* Footer — the calendar's own copy promises "click a date to book
+            a seat," and now proposing an event is one tap away too. */}
+        {bookable && (
+          <div className="px-5 py-4 border-t border-gray-100 dark:border-slate-700 flex-shrink-0 flex flex-col sm:flex-row gap-2.5">
+            <button
+              onClick={onBookSpace}
+              className="group flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] via-indigo-600 to-fuchsia-600 bg-[length:200%_auto] hover:bg-[right_center] shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-fuchsia-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+            >
+              <CalendarPlus className="h-4 w-4 group-hover:rotate-6 transition-transform" />
+              Book This Date
+            </button>
+            <button
+              onClick={handlePropose}
+              className="group flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 hover:border-fuchsia-300 dark:hover:border-fuchsia-500 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+            >
+              <Megaphone className="h-4 w-4 group-hover:rotate-6 transition-transform" />
+              Propose an Event
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

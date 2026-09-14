@@ -4,7 +4,7 @@ import {
   isSameMonth, isSameDay, isAfter, startOfDay, eachDayOfInterval,
 } from 'date-fns';
 import {
-  ChevronLeft, ChevronRight, Plus, Clock, Users, Wrench, AlertTriangle, Calendar,
+  ChevronLeft, ChevronRight, Plus, Users, Wrench, AlertTriangle, Calendar,
   BookOpen, Sparkles, CalendarClock, History,
 } from 'lucide-react';
 
@@ -15,19 +15,40 @@ interface EventDate {
 }
 import { supabase } from '../../lib/supabase';
 import { useEvents } from '../../lib/useEvents';
+import { useNextFeaturedEvent } from '../../lib/useNextFeaturedEvent';
+import { normalizeEventCategory, getEventCategoryLabel, getEventCategoryStyle } from '../../lib/eventCategories';
 import type { CalendarEvent } from '../../types';
-import type { HubBooking, DailyOccupancy, HubCapacityConfig } from '../../types/hub';
+import type { DailyOccupancy, HubCapacityConfig } from '../../types/hub';
 import QuickBookingModal from './QuickBookingModal';
 import EventDetailsModal from './EventDetailsModal';
-import EventPopover from './EventPopover';
+import EventSpotlight from './EventSpotlight';
 import DayTimelineModal from './DayTimelineModal';
 import BrandedLoader from '../shared/BrandedLoader';
 
 // ── Categories for UI filters ──────────────────────────────────────
 const EVENT_CATEGORIES = ['All', 'Coworking', 'Workshops', 'Tech & Dev', 'Community'];
 
-// ── Hub booking with only the joined package columns we SELECT ──────
-interface CalendarHubBooking extends Omit<HubBooking, 'package'> {
+// ── Row shape returned by the get_public_calendar_bookings RPC — no
+//    guest name/email/phone, just what's needed for occupancy/category
+//    display on the public calendar (see 062_fix_public_pii_exposure.sql).
+//    'pending' bookings are never returned here at all (see
+//    063_add_event_category_and_hide_pending.sql) — an anonymous visitor
+//    has no use for "awaiting admin review," it's purely internal state.
+interface PublicCalendarBookingRow {
+  id: string;
+  booking_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  is_workshop: boolean;
+  seats_used: number;
+  package_id: string | null;
+  package_slug: string | null;
+  package_name: string | null;
+  package_is_bundle: boolean | null;
+}
+
+interface CalendarHubBooking extends Omit<PublicCalendarBookingRow, 'package_slug' | 'package_name' | 'package_is_bundle'> {
   package?: { slug: string; name: string; is_bundle: boolean };
 }
 
@@ -36,11 +57,10 @@ interface DaySummary {
   totalSeats: number;       // from config
   bookedSeats: number;      // from daily_occupancy or sum of hub_bookings
   activeCheckIns: number;   // # of active check-ins from hub_attendance
-  totalAttendance: number;  // all check-ins that day (any status) — for historic peak
+  totalAttendance: number;  // genuine (active/checked_out) visits that day — for historic peak
   workshopQ2: boolean;
   workshopQ4: boolean;
   coworkingCount: number;   // # of individual coworking bookings
-  pendingCount: number;      // # of pending bookings
   bundleBookings: CalendarHubBooking[];
   workshopBookings: CalendarHubBooking[];
 }
@@ -49,7 +69,6 @@ export default function PublicCalendar(): JSX.Element {
   // ── State ────────────────────────────────────────────────────────
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hubBookings, setHubBookings] = useState<CalendarHubBooking[]>([]);
-  const [pendingBookings, setPendingBookings] = useState<CalendarHubBooking[]>([]);
   const [occupancyMap, setOccupancyMap] = useState<Record<string, DailyOccupancy>>({});
   const [activeCheckInsMap, setActiveCheckInsMap] = useState<Record<string, number>>({});
   const [attendanceTotalsMap, setAttendanceTotalsMap] = useState<Record<string, number>>({});
@@ -63,17 +82,10 @@ export default function PublicCalendar(): JSX.Element {
 
   // New UI states
   const [activeFilter, setActiveFilter] = useState('All');
-  const [popoverEvent, setPopoverEvent] = useState<CalendarEvent | null>(null);
 
-  // Helper to determine category from event fields
-  const getEventCategory = (ev: CalendarEvent): string => {
-    const title = (ev.title || '').toLowerCase();
-    const desc = (ev.description || '').toLowerCase();
-    if (title.includes('workshop') || title.includes('training') || desc.includes('workshop')) return 'Workshops';
-    if (title.includes('tech') || title.includes('dev') || title.includes('code') || desc.includes('tech')) return 'Tech & Dev';
-    if (title.includes('community') || title.includes('social') || desc.includes('social')) return 'Community';
-    return 'Events';
-  };
+  // The next upcoming featured event, shown as a hero banner above the
+  // grid — independent of whichever month happens to be on screen.
+  const { event: spotlightEvent } = useNextFeaturedEvent();
 
   // Events from the dedicated `events` table
   const { events, loading: eventsLoading } = useEvents(currentDate);
@@ -107,22 +119,15 @@ export default function PublicCalendar(): JSX.Element {
       const gridStartISO = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate(), 0, 0, 0, 0).toISOString();
       const gridEndISO = new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59, 999).toISOString();
 
-      // Parallel: bookings, pending bookings, occupancy rows, capacity config, active check-ins
-      const [bookingsRes, pendingRes, occRes, configRes, attendanceRes] = await Promise.all([
-        supabase
-          .from('hub_bookings')
-          .select('*, package:rental_packages(slug, name, is_bundle)')
-          .in('status', ['approved', 'active'])
-          .gte('booking_date', gridStartStr)
-          .lte('booking_date', gridEndStr)
-          .order('start_time', { ascending: true }),
-        supabase
-          .from('hub_bookings')
-          .select('*, package:rental_packages(slug, name, is_bundle)')
-          .eq('status', 'pending')
-          .gte('booking_date', gridStartStr)
-          .lte('booking_date', gridEndStr)
-          .order('start_time', { ascending: true }),
+      // Parallel: bookings, occupancy rows, capacity config, active check-ins.
+      // Bookings come through a SECURITY DEFINER RPC that only ever returns
+      // occupancy/category columns (dates, times, seat counts, workshop/
+      // bundle flags, approved/active status only) — no guest name/email/
+      // phone, no pending bookings — since this data is fetched on the
+      // fully public /calendar page (see 062_fix_public_pii_exposure.sql
+      // and 063_add_event_category_and_hide_pending.sql).
+      const [bookingsRes, occRes, configRes, attendanceRes] = await Promise.all([
+        supabase.rpc('get_public_calendar_bookings', { range_start: gridStartStr, range_end: gridEndStr }),
         supabase
           .from('daily_occupancy')
           .select('*')
@@ -133,15 +138,23 @@ export default function PublicCalendar(): JSX.Element {
           .select('*')
           .limit(1)
           .single(),
-        supabase
-          .from('hub_attendance')
-          .select('check_in_time, status')
-          .gte('check_in_time', gridStartISO)
-          .lte('check_in_time', gridEndISO),
+        // PII-free RPC — hub_attendance SELECT is admin-only now (see
+        // 064_fix_attendance_pii_leak_and_stat_accuracy.sql), so this
+        // returns just check_in_time/status for the range, nothing else.
+        supabase.rpc('get_public_attendance_totals', { range_start: gridStartISO, range_end: gridEndISO }),
       ]);
 
-      setHubBookings((bookingsRes.data as CalendarHubBooking[]) ?? []);
-      setPendingBookings((pendingRes.data as CalendarHubBooking[]) ?? []);
+      // Belt-and-suspenders: the RPC itself only returns approved/active
+      // rows (see 063_add_event_category_and_hide_pending.sql), but this
+      // filter keeps the grid correct even before that migration has run
+      // against a given environment, rather than silently miscounting a
+      // still-pending booking as confirmed.
+      setHubBookings(((bookingsRes.data as PublicCalendarBookingRow[]) ?? [])
+        .filter((b) => b.status === 'approved' || b.status === 'active')
+        .map((b) => ({
+          ...b,
+          package: b.package_id ? { slug: b.package_slug!, name: b.package_name!, is_bundle: b.package_is_bundle! } : undefined,
+        })));
 
       // Index occupancy by date string for fast lookup
       const occMap: Record<string, DailyOccupancy> = {};
@@ -150,10 +163,15 @@ export default function PublicCalendar(): JSX.Element {
       }
       setOccupancyMap(occMap);
 
-      // Index attendance by date: active check-ins (live) and all-status totals (historic peak)
+      // Index attendance by date: active check-ins (live) and genuine-visit
+      // totals (historic peak). 'pending_entrance' (submitted a mobile
+      // number, not let in yet) and 'rejected' (check-in denied) never
+      // actually occupied a seat — counting them inflated the historic
+      // "Peak" figure past the hub's real capacity.
       const checkInsMap: Record<string, number> = {};
       const attendanceTotals: Record<string, number> = {};
       for (const row of (attendanceRes.data ?? [])) {
+        if (row.status !== 'active' && row.status !== 'checked_out') continue;
         const dateStr = format(new Date(row.check_in_time), 'yyyy-MM-dd');
         attendanceTotals[dateStr] = (attendanceTotals[dateStr] || 0) + 1;
         if (row.status === 'active') {
@@ -194,7 +212,6 @@ export default function PublicCalendar(): JSX.Element {
     const dateStr = format(date, 'yyyy-MM-dd');
     const occ = occupancyMap[dateStr];
     const dayBookings = hubBookings.filter(b => b.booking_date === dateStr);
-    const dayPending = pendingBookings.filter(b => b.booking_date === dateStr);
     const activeCheckIns = activeCheckInsMap[dateStr] ?? 0;
     const totalAttendance = attendanceTotalsMap[dateStr] ?? 0;
 
@@ -215,7 +232,6 @@ export default function PublicCalendar(): JSX.Element {
       workshopQ2: occ?.workshop_block_q2 ?? false,
       workshopQ4: occ?.workshop_block_q4 ?? false,
       coworkingCount,
-      pendingCount: dayPending.length,
       bundleBookings,
       workshopBookings,
     };
@@ -234,394 +250,358 @@ export default function PublicCalendar(): JSX.Element {
     setShowEventModal(true);
   };
 
-  // ── Occupancy bar color helper ───────────────────────────────────
-  const occBarColor = (pct: number, isFullBlock: boolean): string => {
-    if (isFullBlock) return 'bg-red-400';
-    if (pct >= 90) return 'bg-red-400';
-    if (pct >= 60) return 'bg-orange-400';
-    if (pct >= 30) return 'bg-yellow-400';
-    return 'bg-green-400';
-  };
-
   // ── JSX ──────────────────────────────────────────────────────────
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
-      {/* Calendar Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {format(currentDate, 'MMMM yyyy')}
-          </h2>
-          <div className="flex space-x-2">
-            <button onClick={() => navigateMonth('prev')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
-              <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            </button>
-            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300">
-              Today
-            </button>
-            <button onClick={() => navigateMonth('next')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
-              <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            </button>
+    <div>
+      {spotlightEvent && (
+        <EventSpotlight event={spotlightEvent} onSelect={() => handleEventClick(spotlightEvent)} />
+      )}
+
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
+        {/* Calendar Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {format(currentDate, 'MMMM yyyy')}
+            </h2>
+            <div className="flex space-x-2">
+              <button onClick={() => navigateMonth('prev')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
+                <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </button>
+              <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300">
+                Today
+              </button>
+              <button onClick={() => navigateMonth('next')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md">
+                <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Category Filter Bar */}
-      <div className="px-6 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2 overflow-x-auto no-scrollbar">
-        {EVENT_CATEGORIES.map(category => {
-          const isActive = activeFilter === category;
-          return (
-            <button
-              key={category}
-              onClick={() => setActiveFilter(category)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ease-out whitespace-nowrap ${
-                isActive
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 scale-105'
-                  : 'bg-slate-100/80 dark:bg-slate-700/80 hover:bg-slate-200/80 dark:hover:bg-slate-600/80 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-600/50'
-              }`}
-            >
-              {category}
-            </button>
-          );
-        })}
-      </div>
+        {/* Category Filter Bar */}
+        <div className="px-6 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {EVENT_CATEGORIES.map(category => {
+            const isActive = activeFilter === category;
+            return (
+              <button
+                key={category}
+                onClick={() => setActiveFilter(category)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ease-out whitespace-nowrap ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 scale-105'
+                    : 'bg-slate-100/80 dark:bg-slate-700/80 hover:bg-slate-200/80 dark:hover:bg-slate-600/80 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-600/50'
+                }`}
+              >
+                {category}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Calendar Grid */}
-      <div className="p-6">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <BrandedLoader size="md" />
-          </div>
-        ) : (
-          <>
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-px mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                <div key={d} className="text-center text-sm font-medium text-gray-700 dark:text-gray-300 py-2">{d}</div>
-              ))}
+        {/* Calendar Grid */}
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <BrandedLoader size="md" />
             </div>
+          ) : (
+            <>
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 gap-px mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="text-center text-sm font-medium text-gray-700 dark:text-gray-300 py-2">{d}</div>
+                ))}
+              </div>
 
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-slate-700">
-              {getDaysInMonth().map((day, idx) => {
-                const dayEvents = getEventsForDay(day);
-                const summary   = getDaySummary(day);
-                const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday    = isSameDay(day, new Date());
-                const isSelected = selectedDate && isSameDay(day, selectedDate);
-                const isFuture   = isAfter(startOfDay(day), startOfDay(new Date())) || isToday;
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-slate-700">
+                {getDaysInMonth().map((day, idx) => {
+                  const dayEvents = getEventsForDay(day);
+                  const summary   = getDaySummary(day);
+                  const isCurrentMonth = isSameMonth(day, currentDate);
+                  const isToday    = isSameDay(day, new Date());
+                  const isSelected = selectedDate && isSameDay(day, selectedDate);
+                  const isFuture   = isAfter(startOfDay(day), startOfDay(new Date())) || isToday;
 
-                const bookedPct = summary.totalSeats > 0
-                  ? Math.round((summary.bookedSeats / summary.totalSeats) * 100)
-                  : 0;
-                const livePct = summary.totalSeats > 0
-                  ? Math.round((summary.activeCheckIns / summary.totalSeats) * 100)
-                  : 0;
-                const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
+                  const bookedPct = summary.totalSeats > 0
+                    ? Math.round((summary.bookedSeats / summary.totalSeats) * 100)
+                    : 0;
+                  const livePct = summary.totalSeats > 0
+                    ? Math.round((summary.activeCheckIns / summary.totalSeats) * 100)
+                    : 0;
+                  const isFullBlock = summary.workshopQ2 && summary.workshopQ4;
 
-                const occPct = Math.max(bookedPct, livePct);
+                  const occPct = Math.max(bookedPct, livePct);
 
-                // Heatmap logic
-                let heatmapClass = 'border-slate-200/60';
-                if (occPct > 75 || isFullBlock) {
-                  heatmapClass = 'border-amber-400/80 shadow-[0_0_16px_rgba(251,191,36,0.25)] z-10 relative';
-                } else if (occPct >= 40) {
-                  heatmapClass = 'border-indigo-300/80 shadow-[0_0_12px_rgba(99,102,241,0.15)] z-10 relative';
-                }
+                  // Heatmap logic
+                  let heatmapClass = 'border-slate-200/60';
+                  if (occPct > 75 || isFullBlock) {
+                    heatmapClass = 'border-amber-400/80 shadow-[0_0_16px_rgba(251,191,36,0.25)] z-10 relative';
+                  } else if (occPct >= 40) {
+                    heatmapClass = 'border-indigo-300/80 shadow-[0_0_12px_rgba(99,102,241,0.15)] z-10 relative';
+                  }
 
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setSelectedDate(day);
-                      setShowTimelineModal(true);
-                    }}
-                    className={`
-                      bg-white dark:bg-slate-900 p-2 min-h-[110px] relative group border overflow-hidden
-                      ${heatmapClass}
-                      ${!isCurrentMonth ? 'text-gray-400 dark:text-gray-500' : ''}
-                      ${isToday ? 'bg-primary-50 dark:bg-primary-900/20' : ''}
-                      ${isSelected ? 'ring-2 ring-primary-500' : ''}
-                      transition-all duration-200 ease-out
-                      ${isFuture ? 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:z-20 hover:shadow-xl hover:border-indigo-400/80 hover:bg-white dark:hover:bg-slate-800' : 'cursor-not-allowed opacity-60'}
-                    `}
-                  >
-                    {/* Day number + add icon */}
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-sm text-gray-700 dark:text-gray-300 transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:font-bold">{format(day, 'd')}</span>
-                      {isFuture && (
-                        <Plus className="w-4 h-4 text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
-                    </div>
+                  // Subtle category-tinted wash so a day with events reads
+                  // as "something's happening here" at a glance, instead
+                  // of every cell being flat white regardless of content.
+                  const dominantCategory = dayEvents.length > 0 ? normalizeEventCategory(dayEvents[0].category) : null;
+                  const categoryWashClass = dominantCategory
+                    ? {
+                        tech_dev: 'bg-cyan-50/60 dark:bg-cyan-950/20',
+                        workshops: 'bg-amber-50/60 dark:bg-amber-950/20',
+                        community: 'bg-emerald-50/60 dark:bg-emerald-950/20',
+                        other: 'bg-blue-50/60 dark:bg-blue-950/20',
+                      }[dominantCategory]
+                    : '';
 
-                    {/* ── Occupancy mini-bars ── */}
-                    {isCurrentMonth && (() => {
-                      const isPast = !isFuture; // isFuture is isAfter(...) || isToday
-                      const isStrictlyFuture = isAfter(startOfDay(day), startOfDay(new Date()));
-
-                      // Past Days: Frozen Peak
-                      if (isPast) {
-                        const historicHigh = Math.max(summary.bookedSeats, summary.totalAttendance);
-                        if (historicHigh === 0 && !isFullBlock) return null;
-                        const histPct = summary.totalSeats > 0
-                          ? Math.round((historicHigh / summary.totalSeats) * 100)
-                          : 0;
-                        return (
-                          <div className="mb-1 space-y-1">
-                            <div title={isFullBlock ? 'Full hub blocked' : `${historicHigh} attendees at peak`}>
-                              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                <div
-                                  className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 h-1.5 rounded-full transition-all opacity-80"
-                                  style={{ width: `${isFullBlock ? 100 : Math.min(histPct, 100)}%` }}
-                                />
-                              </div>
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                <History className="w-3 h-3 text-gray-400" />
-                                <span className="text-[10px] text-gray-500">
-                                  Peak: {isFullBlock ? 'Full hub blocked' : `${historicHigh}/${summary.totalSeats}`}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // Today & Future Days: Dynamic Reserved + Checked In
-                      const showReserved = (summary.bookedSeats > 0 || isFullBlock);
-                      const showCheckedIn = summary.activeCheckIns > 0 && !isStrictlyFuture;
-
-                      if (!showReserved && !showCheckedIn) return null;
-
-                      return (
-                        <div className="mb-1 space-y-1">
-                          {/* Reserved Bar (Indigo) */}
-                          {showReserved && (
-                            <div>
-                              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                <div
-                                  className={`${isFullBlock ? 'bg-red-400' : 'bg-indigo-400'} h-1.5 rounded-full transition-all`}
-                                  style={{ width: `${isFullBlock ? 100 : Math.min(bookedPct, 100)}%` }}
-                                />
-                              </div>
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                <CalendarClock className="w-3 h-3 text-indigo-400" />
-                                <span className="text-[10px] text-gray-500">
-                                  Reserved: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {/* Checked In Bar (Gradient) */}
-                          {showCheckedIn && (
-                            <div>
-                              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                <div
-                                  className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 h-1.5 rounded-full transition-all"
-                                  style={{ width: `${Math.min(livePct, 100)}%` }}
-                                />
-                              </div>
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                <Users className="w-3 h-3 text-gray-400" />
-                                <span className="text-[10px] text-gray-500">
-                                  Creatives at the Hub: {summary.activeCheckIns}/{summary.totalSeats}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Category color hints (small dots) */}
-                    {dayEvents.length > 0 && (
-                      <div className="mt-2 flex items-center gap-1">
-                        {(() => {
-                          const categories = Array.from(new Set(dayEvents.map(ev => getEventCategory(ev))));
-                          const categoryColors: Record<string, string> = {
-                            'Tech & Dev': 'bg-cyan-500',
-                            'Workshops': 'bg-amber-500',
-                            'Community': 'bg-emerald-500',
-                            'Events': 'bg-blue-500',
-                          };
-                          return categories.slice(0, 4).map(cat => (
-                            <div
-                              key={cat}
-                              className={`w-2 h-2 rounded-full ${categoryColors[cat] || 'bg-blue-500'}`}
-                              title={cat}
-                            />
-                          ));
-                        })()}
-                        {dayEvents.length > 4 && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400">+{dayEvents.length - 4}</span>
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setSelectedDate(day);
+                        setShowTimelineModal(true);
+                      }}
+                      className={`
+                        ${categoryWashClass || 'bg-white dark:bg-slate-900'} p-2 min-h-[112px] relative group border overflow-hidden
+                        ${heatmapClass}
+                        ${!isCurrentMonth ? 'text-gray-400 dark:text-gray-500' : ''}
+                        ${isToday ? 'ring-2 ring-inset ring-indigo-500' : ''}
+                        ${isSelected ? 'ring-2 ring-primary-500' : ''}
+                        transition-all duration-200 ease-out
+                        ${isFuture ? 'cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:z-20 hover:shadow-xl hover:border-indigo-400/80 hover:bg-white dark:hover:bg-slate-800' : 'cursor-not-allowed opacity-60'}
+                      `}
+                    >
+                      {/* Day number + add icon */}
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-base font-bold transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400 ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {format(day, 'd')}
+                        </span>
+                        {isFuture && (
+                          <Plus className="w-4 h-4 text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                         )}
                       </div>
-                    )}
 
-                    {/* Day content - horizontal badge row */}
-                    <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
-                      {/* ── Event badges with text ── */}
-                      {dayEvents.slice(0, 3).map(ev => {
-                        const category = getEventCategory(ev);
-                        
-                        // Handle filter visibility
-                        const isVisible = activeFilter === 'All' || activeFilter === category || (activeFilter === 'Workshops' && category === 'Workshops') || (activeFilter === 'Tech & Dev' && category === 'Tech & Dev') || (activeFilter === 'Community' && category === 'Community');
-                        const visibilityClass = isVisible ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none';
+                      {/* ── Occupancy mini-bars ── */}
+                      {isCurrentMonth && (() => {
+                        const isPast = !isFuture; // isFuture is isAfter(...) || isToday
+                        const isStrictlyFuture = isAfter(startOfDay(day), startOfDay(new Date()));
 
-                        let bgColor = 'bg-blue-50 border-blue-200';
-                        let textColor = 'text-blue-600';
-                        if (category === 'Tech & Dev') {
-                          bgColor = 'bg-cyan-500/10 border-cyan-300/50';
-                          textColor = 'text-cyan-700';
-                        } else if (category === 'Workshops') {
-                          bgColor = 'bg-amber-500/10 border-amber-300/50';
-                          textColor = 'text-amber-700';
-                        } else if (category === 'Community') {
-                          bgColor = 'bg-emerald-500/10 border-emerald-300/50';
-                          textColor = 'text-emerald-700';
+                        // Past Days: Frozen Peak
+                        if (isPast) {
+                          const historicHigh = Math.max(summary.bookedSeats, summary.totalAttendance);
+                          if (historicHigh === 0 && !isFullBlock) return null;
+                          const histPct = summary.totalSeats > 0
+                            ? Math.round((historicHigh / summary.totalSeats) * 100)
+                            : 0;
+                          return (
+                            <div className="mb-1 space-y-1">
+                              <div title={isFullBlock ? 'Full hub blocked' : `${historicHigh} attendees at peak`}>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                  <div
+                                    className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 h-1.5 rounded-full transition-all opacity-80"
+                                    style={{ width: `${isFullBlock ? 100 : Math.min(histPct, 100)}%` }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-0.5 mt-0.5">
+                                  <History className="w-3 h-3 text-gray-400" />
+                                  <span className="text-[10px] text-gray-500">
+                                    Peak: {isFullBlock ? 'Full hub blocked' : `${historicHigh}/${summary.totalSeats}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
                         }
 
+                        // Today & Future Days: Dynamic Reserved + Checked In
+                        const showReserved = (summary.bookedSeats > 0 || isFullBlock);
+                        const showCheckedIn = summary.activeCheckIns > 0 && !isStrictlyFuture;
+
+                        if (!showReserved && !showCheckedIn) return null;
+
                         return (
-                          <div
-                            key={ev.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEventClick(ev);
-                            }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-full border min-w-0 max-w-full ${bgColor} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
-                            title={ev.title}
-                          >
-                            {category === 'Workshops' ? (
-                              <BookOpen className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
-                            ) : ev.is_featured ? (
-                              <Sparkles className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
-                            ) : (
-                              <Calendar className={`w-4 h-4 flex-shrink-0 ${textColor}`} style={{ display: 'block' }} />
+                          <div className="mb-1 space-y-1">
+                            {/* Reserved Bar (Indigo) */}
+                            {showReserved && (
+                              <div>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                  <div
+                                    className={`${isFullBlock ? 'bg-red-400' : 'bg-indigo-400'} h-1.5 rounded-full transition-all`}
+                                    style={{ width: `${isFullBlock ? 100 : Math.min(bookedPct, 100)}%` }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-0.5 mt-0.5">
+                                  <CalendarClock className="w-3 h-3 text-indigo-400" />
+                                  <span className="text-[10px] text-gray-500">
+                                    Reserved: {isFullBlock ? 'Full hub blocked' : `${summary.bookedSeats}/${summary.totalSeats}`}
+                                  </span>
+                                </div>
+                              </div>
                             )}
-                            <span className={`text-xs font-medium ${textColor} truncate min-w-0`}>
-                              {ev.title}
-                            </span>
+                            {/* Checked In Bar (Gradient) */}
+                            {showCheckedIn && (
+                              <div>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                  <div
+                                    className="bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 h-1.5 rounded-full transition-all"
+                                    style={{ width: `${Math.min(livePct, 100)}%` }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-0.5 mt-0.5">
+                                  <Users className="w-3 h-3 text-gray-400" />
+                                  <span className="text-[10px] text-gray-500">
+                                    Creatives at the Hub: {summary.activeCheckIns}/{summary.totalSeats}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
-                      })}
+                      })()}
 
-                      {/* ── Overflow counter ── */}
-                      {dayEvents.length > 3 && (
-                        <div className={`flex items-center justify-center px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 transition-all duration-300 ${activeFilter !== 'All' ? 'opacity-20 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
-                          +{dayEvents.length - 3} more
+                      {/* Category color hints (small dots) */}
+                      {dayEvents.length > 0 && (
+                        <div className="mt-2 flex items-center gap-1">
+                          {Array.from(new Set(dayEvents.map(ev => normalizeEventCategory(ev.category))))
+                            .slice(0, 4)
+                            .map(cat => (
+                              <div
+                                key={cat}
+                                className={`w-2 h-2 rounded-full ${getEventCategoryStyle(cat).dot}`}
+                                title={getEventCategoryLabel(cat)}
+                              />
+                            ))}
+                          {dayEvents.length > 4 && (
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">+{dayEvents.length - 4}</span>
+                          )}
                         </div>
                       )}
 
-                      {/* ── Workshop booking indicator ── */}
-                      {summary.workshopBookings.length > 0 && (
-                        <div
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 border border-red-200 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Workshops' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
-                          title={`${summary.workshopBookings.length} workshop booking${summary.workshopBookings.length > 1 ? 's' : ''}`}
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                          <span className="text-xs font-medium text-red-700">
-                            {summary.workshopBookings.length} Workshop{summary.workshopBookings.length > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
+                      {/* Day content - horizontal badge row */}
+                      <div className="mt-2 flex flex-row items-center gap-1.5 flex-wrap">
+                        {/* ── Event badges with text ── */}
+                        {dayEvents.slice(0, 3).map(ev => {
+                          const category = normalizeEventCategory(ev.category);
+                          const categoryLabel = getEventCategoryLabel(category);
+                          const style = getEventCategoryStyle(category);
+                          const isVisible = activeFilter === 'All' || activeFilter === categoryLabel;
+                          const visibilityClass = isVisible ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none';
 
-                      {/* ── Bundle booking indicator ── */}
-                      {summary.bundleBookings.length > 0 && (
-                        <div
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-purple-50 border border-purple-200 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Coworking' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
-                          title={`${summary.bundleBookings.length} bundle booking${summary.bundleBookings.length > 1 ? 's' : ''}`}
-                        >
-                          <Wrench className="w-3.5 h-3.5 text-purple-500" />
-                          <span className="text-xs font-medium text-purple-700">
-                            {summary.bundleBookings.length} Bundle{summary.bundleBookings.length > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
+                          return (
+                            <div
+                              key={ev.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEventClick(ev);
+                              }}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-full border min-w-0 max-w-full ${style.chip} hover:scale-105 hover:shadow-sm transition-all duration-300 ease-out cursor-pointer ${visibilityClass}`}
+                              title={ev.title}
+                            >
+                              {category === 'workshops' ? (
+                                <BookOpen className={`w-4 h-4 flex-shrink-0 ${style.text}`} style={{ display: 'block' }} />
+                              ) : ev.is_featured ? (
+                                <Sparkles className={`w-4 h-4 flex-shrink-0 ${style.text}`} style={{ display: 'block' }} />
+                              ) : (
+                                <Calendar className={`w-4 h-4 flex-shrink-0 ${style.text}`} style={{ display: 'block' }} />
+                              )}
+                              <span className={`text-xs font-medium ${style.text} truncate min-w-0`}>
+                                {ev.title}
+                              </span>
+                            </div>
+                          );
+                        })}
 
-                      {/* ── Regular coworking indicator (non-workshop, non-bundle) ── */}
-                      {summary.coworkingCount > 0 && (
-                        <div
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 border border-slate-300 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Coworking' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
-                          title={`${summary.coworkingCount} coworking booking${summary.coworkingCount > 1 ? 's' : ''}`}
-                        >
-                          <Users className="w-3.5 h-3.5 text-slate-600" />
-                          <span className="text-xs font-medium text-slate-700">
-                            {summary.coworkingCount} Coworking{summary.coworkingCount > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
+                        {/* ── Overflow counter ── */}
+                        {dayEvents.length > 3 && (
+                          <div className={`flex items-center justify-center px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 transition-all duration-300 ${activeFilter !== 'All' ? 'opacity-20 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+                            +{dayEvents.length - 3} more
+                          </div>
+                        )}
 
-                      {/* ── Pending bookings indicator ── */}
-                      {summary.pendingCount > 0 && (
-                        <div
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-50 border border-yellow-300 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
-                          title={`${summary.pendingCount} pending booking${summary.pendingCount > 1 ? 's' : ''} awaiting approval`}
-                        >
-                          <Clock className="w-3.5 h-3.5 text-yellow-600" />
-                          <span className="text-xs font-medium text-yellow-800">
-                            {summary.pendingCount} Pending{summary.pendingCount > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      )}
+                        {/* ── Workshop booking indicator ── */}
+                        {summary.workshopBookings.length > 0 && (
+                          <div
+                            className={`flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 border border-red-200 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Workshops' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
+                            title={`${summary.workshopBookings.length} workshop booking${summary.workshopBookings.length > 1 ? 's' : ''}`}
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                            <span className="text-xs font-medium text-red-700">
+                              {summary.workshopBookings.length} Workshop{summary.workshopBookings.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
 
+                        {/* ── Bundle booking indicator ── */}
+                        {summary.bundleBookings.length > 0 && (
+                          <div
+                            className={`flex items-center gap-1 px-2 py-1 rounded-full bg-purple-50 border border-purple-200 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Coworking' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
+                            title={`${summary.bundleBookings.length} bundle booking${summary.bundleBookings.length > 1 ? 's' : ''}`}
+                          >
+                            <Wrench className="w-3.5 h-3.5 text-purple-500" />
+                            <span className="text-xs font-medium text-purple-700">
+                              {summary.bundleBookings.length} Bundle{summary.bundleBookings.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* ── Regular coworking indicator (non-workshop, non-bundle) ── */}
+                        {summary.coworkingCount > 0 && (
+                          <div
+                            className={`flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 border border-slate-300 hover:scale-105 transition-all duration-300 ease-out cursor-pointer ${activeFilter === 'All' || activeFilter === 'Coworking' ? 'opacity-100 scale-100' : 'opacity-20 scale-95 pointer-events-none'}`}
+                            title={`${summary.coworkingCount} coworking booking${summary.coworkingCount > 1 ? 's' : ''}`}
+                          >
+                            <Users className="w-3.5 h-3.5 text-slate-600" />
+                            <span className="text-xs font-medium text-slate-700">
+                              {summary.coworkingCount} Coworking{summary.coworkingCount > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Quick Booking Modal */}
+        {showBookingModal && selectedDate && (
+          <QuickBookingModal
+            date={selectedDate}
+            onClose={() => { setShowBookingModal(false); setSelectedDate(null); }}
+          />
+        )}
+
+        {/* Event Details Modal */}
+        {showEventModal && selectedEvent && (
+          <EventDetailsModal
+            event={selectedEvent}
+            onClose={() => { setShowEventModal(false); setSelectedEvent(null); }}
+            onBookSpace={() => {
+              setShowEventModal(false);
+              const eventDate = new Date(selectedEvent.start_time);
+              setSelectedEvent(null);
+              setSelectedDate(eventDate);
+              setShowBookingModal(true);
+            }}
+          />
+        )}
+
+        {/* Day Timeline Modal */}
+        {showTimelineModal && selectedDate && (
+          <DayTimelineModal
+            date={selectedDate}
+            events={getEventsForDay(selectedDate)}
+            bookings={hubBookings.filter(b => b.booking_date === format(selectedDate, 'yyyy-MM-dd'))}
+            activeUsers={activeCheckInsMap[format(selectedDate, 'yyyy-MM-dd')] || 0}
+            bookable={isAfter(startOfDay(selectedDate), startOfDay(new Date())) || isSameDay(selectedDate, new Date())}
+            onClose={() => { setShowTimelineModal(false); setSelectedDate(null); }}
+            onEventClick={handleEventClick}
+            onBookSpace={() => { setShowTimelineModal(false); setShowBookingModal(true); }}
+          />
         )}
       </div>
-
-      {/* Quick Booking Modal */}
-      {showBookingModal && selectedDate && (
-        <QuickBookingModal
-          date={selectedDate}
-          onClose={() => { setShowBookingModal(false); setSelectedDate(null); }}
-        />
-      )}
-
-      {/* Event Details Modal */}
-      {showEventModal && selectedEvent && (
-        <EventDetailsModal
-          event={selectedEvent}
-          onClose={() => { setShowEventModal(false); setSelectedEvent(null); }}
-          onBookSpace={() => {
-            setShowEventModal(false);
-            const eventDate = new Date(selectedEvent.start_time);
-            setSelectedEvent(null);
-            setSelectedDate(eventDate);
-            setShowBookingModal(true);
-          }}
-        />
-      )}
-
-      {/* Event Popover */}
-      {popoverEvent && (
-        <EventPopover
-          event={popoverEvent}
-          categoryName={getEventCategory(popoverEvent)}
-          onClose={() => setPopoverEvent(null)}
-          onBookSpace={() => {
-            setPopoverEvent(null);
-            const eventDate = new Date(popoverEvent.start_time);
-            setSelectedDate(eventDate);
-            setShowBookingModal(true);
-          }}
-        />
-      )}
-
-      {/* Day Timeline Modal */}
-      {showTimelineModal && selectedDate && (
-        <DayTimelineModal
-          date={selectedDate}
-          events={getEventsForDay(selectedDate)}
-          bookings={hubBookings.filter(b => b.booking_date === format(selectedDate, 'yyyy-MM-dd'))}
-          activeUsers={activeCheckInsMap[format(selectedDate, 'yyyy-MM-dd')] || 0}
-          onClose={() => { setShowTimelineModal(false); setSelectedDate(null); }}
-          onEventClick={handleEventClick}
-          getEventCategory={getEventCategory}
-        />
-      )}
     </div>
   );
 }

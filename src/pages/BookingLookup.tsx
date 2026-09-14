@@ -30,28 +30,25 @@ export default function BookingLookup(): JSX.Element {
     setLoading(true);
     setSearched(true);
     try {
-      let bookingQuery = supabase
-        .from('hub_bookings')
-        .select('booking_reference, guest_name, guest_email, guest_phone, booking_date, start_time, end_time, status, booking_type, gathering_type, group_size, package:rental_packages(name)')
-        .order('created_at', { ascending: false });
-      let proposalQuery = supabase
-        .from('hub_events')
-        .select('proposal_reference, organizer_name, organizer_email, organizer_phone, title, event_dates, status, facebook_page')
-        .order('created_at', { ascending: false });
+      // Both go through SECURITY DEFINER RPCs rather than a direct table
+      // query — hub_bookings/hub_events SELECT is now scoped to the row's
+      // own owner/admin, so a guest looking up someone else's reference or
+      // email has to prove they already know it; the function does that
+      // matching server-side instead of relying on an open RLS policy the
+      // client's own .eq() could otherwise be bypassed around (see
+      // 062_fix_public_pii_exposure.sql).
+      const reference = method === 'reference' ? value.toUpperCase() : null;
+      const email = method === 'email' ? value : null;
 
-      if (method === 'reference') {
-        bookingQuery = bookingQuery.eq('booking_reference', value.toUpperCase());
-        proposalQuery = proposalQuery.eq('proposal_reference', value.toUpperCase());
-      } else {
-        bookingQuery = bookingQuery.eq('guest_email', value);
-        proposalQuery = proposalQuery.eq('organizer_email', value);
-      }
-
-      const [bookingRes, proposalRes] = await Promise.all([bookingQuery, proposalQuery]);
+      const [bookingRes, proposalRes] = await Promise.all([
+        supabase.rpc('lookup_hub_booking', { p_reference: reference, p_email: email }),
+        supabase.rpc('lookup_event_proposal', { p_reference: reference, p_email: email }),
+      ]);
       if (bookingRes.error) throw bookingRes.error;
       if (proposalRes.error) throw proposalRes.error;
 
-      const foundBookings = (bookingRes.data as unknown as BookingTicketData[]) || [];
+      const foundBookings = ((bookingRes.data as unknown as (Omit<BookingTicketData, 'package'> & { package_name: string | null })[]) || [])
+        .map(({ package_name, ...rest }) => ({ ...rest, package: package_name ? { name: package_name } : null }));
       const foundProposals = (proposalRes.data as unknown as EventProposalTicketData[]) || [];
       setBookings(foundBookings);
       setProposals(foundProposals);

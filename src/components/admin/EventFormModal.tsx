@@ -4,6 +4,7 @@ import { X, Calendar, Image, Link2, User, Mail, Phone, Loader2, Building2, Users
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
+import { EVENT_CATEGORY_OPTIONS, getEventCategoryStyle, type EventCategory } from '../../lib/eventCategories';
 
 interface EventDate {
   date: string;
@@ -91,6 +92,7 @@ export default function EventFormModal({ event, onClose, onSaved, prefill }: Eve
       return [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), start_time: '14:00', end_time: '17:00' }];
     })(),
     is_featured: event?.is_featured ?? false,
+    category: (event?.category ?? 'other') as EventCategory,
     status: event?.status ?? 'published' as 'draft' | 'published' | 'cancelled',
   });
 
@@ -247,6 +249,7 @@ export default function EventFormModal({ event, onClose, onSaved, prefill }: Eve
         end_time: endISO,
         event_dates: form.eventDates,
         is_featured: form.is_featured,
+        category: form.category,
         status: form.status,
         ...(isEditing ? {} : { created_by: user?.id ?? null, promoted_booking_id: prefill?.promotedBookingId ?? null }),
       };
@@ -663,6 +666,33 @@ export default function EventFormModal({ event, onClose, onSaved, prefill }: Eve
               className="w-full rounded-md border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Facebook page or profile name for easier contact</p>
+          </div>
+
+          {/* ── Category — drives the color/group this event shows under
+              on the public calendar. Explicit choice instead of the old
+              keyword-guessing, which is why colors used to look random. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {EVENT_CATEGORY_OPTIONS.map((opt) => {
+                const style = getEventCategoryStyle(opt.value);
+                const isActive = form.category === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateField('category', opt.value)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      isActive
+                        ? `bg-gradient-to-r ${style.gradient} text-white border-transparent shadow-sm scale-105`
+                        : `${style.chip} ${style.text} hover:scale-105`
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* ── Toggles row ───────────────────────────────────── */}

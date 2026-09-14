@@ -99,17 +99,17 @@ export default function QuickBookingModal({ date, onClose }: QuickBookingModalPr
       if (pkg.daily_rate) {
         return (
           <>
-            <span className="line-through text-gray-400 text-xs">₱${pkg.daily_rate}/day</span>
+            <span className="line-through text-gray-400 text-xs">₱{pkg.daily_rate}/day</span>
             <span className="text-emerald-600 font-bold ml-1">FREE</span>
           </>
         );
       }
       return <span className="text-emerald-600 font-bold">FREE</span>;
     }
-    
+
     if (pkg.hourly_rate && pkg.daily_rate) return <span>₱{pkg.hourly_rate}/hr or ₱{pkg.daily_rate}/day</span>;
     if (pkg.hourly_rate) return <span>₱{pkg.hourly_rate}/hr</span>;
-    if (pkg.daily_rate) return <span>₱${pkg.daily_rate}/day</span>;
+    if (pkg.daily_rate) return <span>₱{pkg.daily_rate}/day</span>;
     return <span></span>;
   };
 

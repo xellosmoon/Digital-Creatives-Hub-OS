@@ -6,6 +6,7 @@ import {
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../../types';
+import { getEventCategoryStyle } from '../../lib/eventCategories';
 
 interface EventDate {
   date: string;
@@ -30,24 +31,20 @@ interface EventDetailsModalProps {
 export default function EventDetailsModal({ event, onClose, onBookSpace }: EventDetailsModalProps): JSX.Element {
   const [imageError, setImageError] = useState(false);
 
-  // ── Event type detection ─────────────────────────────────────────
+  // ── Event type styling — driven by the event's own category, the same
+  //    one source of truth the calendar grid and day modal use, instead
+  //    of each guessing independently from title keywords. ────────────
+  const categoryStyle = getEventCategoryStyle(event.category);
+
   const getEventIcon = () => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-    if (isWorkshop) return Zap;
+    if (event.category === 'workshops') return Zap;
     if (event.is_featured) return Sparkles;
     return Calendar;
   };
 
-  const getEventGradient = () => {
-    const isWorkshop = event.title.toLowerCase().includes('workshop') ||
-                       event.title.toLowerCase().includes('training') ||
-                       event.title.toLowerCase().includes('bootcamp');
-    if (isWorkshop) return 'from-orange-500 via-amber-500 to-red-500';
-    if (event.is_featured) return 'from-purple-500 via-pink-500 to-indigo-500';
-    return 'from-blue-500 via-cyan-500 to-indigo-500';
-  };
+  const getEventGradient = () => event.is_featured
+    ? 'from-purple-500 via-pink-500 to-indigo-500'
+    : categoryStyle.gradient;
 
   // ── Social sharing helpers ──────────────────────────────────────
   const handleShare = async (): Promise<void> => {

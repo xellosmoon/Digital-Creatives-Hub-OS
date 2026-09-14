@@ -368,28 +368,33 @@ export default function Bookings(): JSX.Element {
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id ?? null;
 
-      // Create hub booking
-      const { data: booking, error: bookingError } = await supabase.from('hub_bookings').insert({
-        user_id: userId,
-        package_id: pkg.id,
-        guest_name: form.name,
-        guest_email: form.email,
-        guest_phone: form.phone || null,
-        booking_date: form.date,
-        start_time: startISO,
-        end_time: endISO,
-        seats_used: bookingType === 'group' ? pkg.seats_consumed * groupSize : pkg.seats_consumed,
-        total_price: estimate.totalPrice + equipmentTotal,
-        status: 'pending',
-        purpose: form.purposes.length > 0 ? form.purposes : null,
-        booking_type: bookingType || 'individual',
-        group_size: bookingType === 'group' ? groupSize : null,
-        gathering_type: bookingType === 'group' ? form.gathering_type || null : null,
-        notes: agreementNotes || null,
-        organization: form.organization || null,
-        designation: form.designation || null,
-        facebook_link: form.facebook_link || null,
-      }).select().single();
+      // Create hub booking. Goes through a SECURITY DEFINER RPC rather than
+      // a plain insert().select() — guests have no auth.uid(), and RLS now
+      // scopes hub_bookings SELECT to the row's own user_id/admin, so a
+      // direct insert-and-return would come back empty for every guest
+      // booking (see 062_fix_public_pii_exposure.sql).
+      const { data: booking, error: bookingError } = await supabase.rpc('create_hub_booking', {
+        payload: {
+          user_id: userId,
+          package_id: pkg.id,
+          guest_name: form.name,
+          guest_email: form.email,
+          guest_phone: form.phone || null,
+          booking_date: form.date,
+          start_time: startISO,
+          end_time: endISO,
+          seats_used: bookingType === 'group' ? pkg.seats_consumed * groupSize : pkg.seats_consumed,
+          total_price: estimate.totalPrice + equipmentTotal,
+          purpose: form.purposes.length > 0 ? form.purposes : null,
+          booking_type: bookingType || 'individual',
+          group_size: bookingType === 'group' ? groupSize : null,
+          gathering_type: bookingType === 'group' ? form.gathering_type || null : null,
+          notes: agreementNotes || null,
+          organization: form.organization || null,
+          designation: form.designation || null,
+          facebook_link: form.facebook_link || null,
+        },
+      });
 
       if (bookingError) throw bookingError;
 

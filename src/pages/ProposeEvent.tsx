@@ -151,7 +151,12 @@ export default function ProposeEvent(): JSX.Element {
         insertData.facebook_page = form.facebook_page.trim();
       }
 
-      const { data, error } = await supabase.from('hub_events').insert(insertData).select().single();
+      // Goes through a SECURITY DEFINER RPC rather than a plain
+      // insert().select() — organizers submit with no auth.uid(), and RLS
+      // now scopes hub_events SELECT to admins only, so a direct
+      // insert-and-return would come back empty (see
+      // 062_fix_public_pii_exposure.sql).
+      const { data, error } = await supabase.rpc('create_event_proposal', { payload: insertData });
 
       if (error) throw error;
 

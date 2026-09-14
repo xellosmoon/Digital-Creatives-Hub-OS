@@ -102,6 +102,7 @@ export interface CalendarEvent {
   start_time: string;
   end_time: string;
   is_featured: boolean;
+  category: 'tech_dev' | 'workshops' | 'community' | 'other';
   status: 'draft' | 'published' | 'cancelled';
   created_by: string | null;
   created_at: string;
