@@ -8,15 +8,18 @@ import {
   Package, Star, Laptop, X,
   Coffee, Palette, Film, Camera, CheckCircle, AlertCircle,
   Zap, Shield, Monitor, Sparkles, BookOpen, PartyPopper,
+  Sunrise, Sun, Sunset, Briefcase, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { calculatePackagePrice, formatPeso, isPricingDisabled } from '../lib/hubPricingEngine';
 import { calculateTotalRate, formatPeso as formatPesoGadgets, PRICING_ENABLED as GADGETS_PRICING_ENABLED } from '../lib/pricingEngine';
-import type { RentalPackage, HubPriceEstimate, PackageRequiredAsset } from '../types/hub';
+import type { RentalPackage, HubPriceEstimate, PackageRequiredAsset, Purpose } from '../types/hub';
 import type { Asset, Item, PricingTier, AssetAvailability } from '../types/gadgets';
 import { BUNDLE_SLUGS } from '../types/hub';
 import PurposeBlockGrid from '../components/shared/PurposeBlockGrid';
+import { CHIP_GRADIENTS } from '../components/shared/ChipGrid';
+import BookingTicket, { type BookingTicketData } from '../components/booking/BookingTicket';
 
 // ── Time slot definitions ──────────────────────────────────────────
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -26,6 +29,17 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
     label: h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`,
   };
 });
+
+// ── Quick time presets — the common cases, so most people never need to
+//    scroll through all 24+23 individual hour buttons below. "Overnight"
+//    isn't offered yet: it would need start/end to span two calendar dates,
+//    which the seat-availability and pricing logic here isn't set up for.
+const TIME_PRESETS = [
+  { key: 'morning', label: 'Morning', start: '08:00', end: '12:00', icon: Sunrise, gradient: 'from-amber-400 to-orange-500', border: 'border-amber-500', ring: 'ring-amber-500/20' },
+  { key: 'afternoon', label: 'Afternoon', start: '13:00', end: '17:00', icon: Sun, gradient: 'from-sky-400 to-blue-500', border: 'border-sky-500', ring: 'ring-sky-500/20' },
+  { key: 'fullday', label: 'Full Office Day', start: '09:00', end: '17:00', icon: Briefcase, gradient: 'from-[#0C2340] to-indigo-600', border: 'border-indigo-600', ring: 'ring-indigo-600/20' },
+  { key: 'evening', label: 'Evening', start: '17:00', end: '21:00', icon: Sunset, gradient: 'from-fuchsia-500 to-purple-600', border: 'border-fuchsia-500', ring: 'ring-fuchsia-500/20' },
+] as const;
 
 // ── Package visual mapping ─────────────────────────────────────────
 const PKG_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -44,6 +58,16 @@ const PKG_GRAD: Record<string, string> = {
   creative_suite: 'from-[#0C2340] to-purple-600',
   production_access: 'from-indigo-500 to-blue-600',
 };
+// Selected-state border/ring color for each package, matching its own
+// gradient identity above instead of one uniform navy highlight everywhere.
+const PKG_RING: Record<string, { border: string; ring: string }> = {
+  coworking_hourly: { border: 'border-sky-500', ring: 'ring-sky-500/20' },
+  student_pass: { border: 'border-emerald-500', ring: 'ring-emerald-500/20' },
+  coworker_lite: { border: 'border-amber-500', ring: 'ring-amber-500/20' },
+  weekend_creator: { border: 'border-rose-500', ring: 'ring-rose-500/20' },
+  creative_suite: { border: 'border-purple-500', ring: 'ring-purple-500/20' },
+  production_access: { border: 'border-indigo-500', ring: 'ring-indigo-500/20' },
+};
 const PKG_PATTERN: Record<string, string> = {
   coworking_hourly: 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/5 via-transparent to-transparent',
   student_pass: 'bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent',
@@ -54,7 +78,7 @@ const PKG_PATTERN: Record<string, string> = {
 };
 
 // ── Step metadata ──────────────────────────────────────────────────
-type Step = 'bookingType' | 'package' | 'datetime' | 'details' | 'equipment' | 'agreement' | 'confirm';
+type Step = 'bookingType' | 'package' | 'datetime' | 'details' | 'equipment' | 'agreement' | 'confirm' | 'ticket';
 const STEP_META: { key: Step; label: string }[] = [
   { key: 'bookingType', label: 'Booking Type' },
   { key: 'package', label: 'Package' },
@@ -68,6 +92,15 @@ const STEP_META: { key: Step; label: string }[] = [
 type BookingType = 'individual' | 'group' | 'event';
 
 const GATHERING_TYPES = ['Meeting', 'Workshop', 'Seminar', 'Other'] as const;
+
+// Each gathering type gets its own color/icon identity instead of a single
+// uniform highlight color, so the four cards read as distinct choices.
+const GATHERING_STYLE: Record<typeof GATHERING_TYPES[number], { icon: React.ComponentType<{ className?: string }>; gradient: string; border: string; ring: string; iconText: string }> = {
+  Meeting: { icon: Users, gradient: 'from-indigo-500 to-blue-600', border: 'border-indigo-500', ring: 'ring-indigo-500/20', iconText: 'text-indigo-600' },
+  Workshop: { icon: Monitor, gradient: 'from-amber-500 to-orange-600', border: 'border-amber-500', ring: 'ring-amber-500/20', iconText: 'text-amber-600' },
+  Seminar: { icon: BookOpen, gradient: 'from-teal-500 to-emerald-600', border: 'border-teal-500', ring: 'ring-teal-500/20', iconText: 'text-teal-600' },
+  Other: { icon: Sparkles, gradient: 'from-pink-500 to-rose-600', border: 'border-pink-500', ring: 'ring-pink-500/20', iconText: 'text-pink-600' },
+};
 
 // ── Extended package type ──────────────────────────────────────────
 interface PkgExtra extends RentalPackage {
@@ -101,6 +134,8 @@ export default function Bookings(): JSX.Element {
   const [allItems, setAllItems] = useState<Item[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<SelectedEquipment[]>([]);
   const [equipmentTotal, setEquipmentTotal] = useState(0);
+  const [showCustomTime, setShowCustomTime] = useState(false);
+  const [ticketData, setTicketData] = useState<BookingTicketData | null>(null);
 
   const [form, setForm] = useState({
     gathering_type: '',
@@ -112,12 +147,9 @@ export default function Bookings(): JSX.Element {
     name: preselected.prefillProfile?.name || '',
     email: preselected.prefillProfile?.email || '',
     phone: preselected.prefillProfile?.phone || '',
-    purposes: [] as string[],
-    gender: '',
-    sector: '',
+    purposes: [] as Purpose[],
     organization: '',
     designation: '',
-    creative_domain: '',
     facebook_link: '',
   });
 
@@ -268,6 +300,18 @@ export default function Bookings(): JSX.Element {
   // ── Helpers ───────────────────────────────────────────────────────
   const update = (patch: Partial<typeof form>): void => setForm(prev => ({ ...prev, ...patch }));
 
+  // Which preset (if any) matches the currently selected start/end — used to
+  // highlight a preset card as active, or fall back to "Custom" when the
+  // times were hand-picked from the full hour grid instead.
+  const activePreset = TIME_PRESETS.find(p => p.start === form.start && p.end === form.end);
+
+  const selectedTimeRangeLabel = (): string => {
+    const startLabel = HOURS.find(h => h.value === form.start)?.label ?? form.start;
+    const endLabel = HOURS.find(h => h.value === form.end)?.label ?? form.end;
+    const hours = (parseInt(form.end, 10) - parseInt(form.start, 10)) || 0;
+    return `${startLabel} – ${endLabel} (${hours} hr${hours === 1 ? '' : 's'})`;
+  };
+
   const canProceed = (): boolean => {
     switch (step) {
       case 'bookingType': return !!bookingType;
@@ -342,11 +386,8 @@ export default function Bookings(): JSX.Element {
         group_size: bookingType === 'group' ? groupSize : null,
         gathering_type: bookingType === 'group' ? form.gathering_type || null : null,
         notes: agreementNotes || null,
-        gender: form.gender || null,
-        sector: form.sector || null,
         organization: form.organization || null,
         designation: form.designation || null,
-        creative_domain: form.creative_domain || null,
         facebook_link: form.facebook_link || null,
       }).select().single();
 
@@ -391,11 +432,21 @@ export default function Bookings(): JSX.Element {
       }
 
       toast.success('Booking submitted! We\u2019ll notify you once approved.');
-      setPkg(null);
-      setSelectedEquipment([]);
-      setEquipmentTotal(0);
-      setStep('package');
-      setForm({ gathering_type: '', date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], gender: '', sector: '', organization: '', designation: '', creative_domain: '', facebook_link: '' });
+      setTicketData({
+        booking_reference: booking.booking_reference,
+        guest_name: booking.guest_name,
+        guest_email: booking.guest_email,
+        guest_phone: booking.guest_phone,
+        booking_date: booking.booking_date,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        status: booking.status,
+        booking_type: booking.booking_type,
+        gathering_type: booking.gathering_type,
+        group_size: booking.group_size,
+        package: bookingType !== 'group' ? { name: pkg.name } : null,
+      });
+      setStep('ticket');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
@@ -406,12 +457,47 @@ export default function Bookings(): JSX.Element {
     }
   };
 
+  const handleBookAnother = (): void => {
+    setPkg(null);
+    setBookingType(null);
+    setGroupSize(1);
+    setSelectedEquipment([]);
+    setEquipmentTotal(0);
+    setTicketData(null);
+    setStep('bookingType');
+    setForm({ gathering_type: '', date: format(new Date(), 'yyyy-MM-dd'), start: '09:00', end: '17:00', name: '', email: '', phone: '', purposes: [], organization: '', designation: '', facebook_link: '' });
+  };
+
   // ── Loading state ─────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-violet-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0C2340]" />
       </div>
+    );
+  }
+
+  // ── Ticket state (post-submission) — full-screen takeover, no wizard
+  //    chrome/step indicator, since the booking is already done. ──────
+  if (step === 'ticket' && ticketData) {
+    return (
+      <>
+        <Helmet>
+          <title>Booking Confirmed - Digital Creatives Hub Iligan</title>
+        </Helmet>
+        <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-blue-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md space-y-4">
+            <BookingTicket booking={ticketData} />
+            <button
+              type="button"
+              onClick={handleBookAnother}
+              className="w-full px-6 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700 shadow-lg shadow-violet-200 transition-all duration-300"
+            >
+              Book Another Space
+            </button>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -424,12 +510,14 @@ export default function Bookings(): JSX.Element {
         <title>Book a Space - Digital Creatives Hub Iligan</title>
         <meta name="description" content="Book your space at Digital Creatives Hub Iligan. Choose from hourly, daily, and package options for individuals and groups." />
       </Helmet>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-blue-50">
       {/* ── Gradient hero strip ── */}
-      <div className="bg-gradient-to-r from-[#0C2340] via-[#0C2340] to-blue-600 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#0C2340] via-indigo-700 to-fuchsia-600 text-white">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-fuchsia-400/30 to-violet-400/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-br from-sky-400/20 to-blue-400/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="h-6 w-6 opacity-80" />
+            <Sparkles className="h-6 w-6 text-amber-300" />
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Book Your Spot</h1>
           </div>
           <p className="text-violet-200 text-sm sm:text-base max-w-lg">
@@ -478,7 +566,7 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: BOOKING TYPE ═══ */}
               {step === 'bookingType' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">What are you booking for?</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 dark:from-violet-300 dark:to-fuchsia-300 bg-clip-text text-transparent mb-1">What are you booking for?</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Choose the type of booking that fits your needs</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -487,8 +575,8 @@ export default function Bookings(): JSX.Element {
                       onClick={() => setBookingType('individual')}
                       className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
                         bookingType === 'individual'
-                          ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
-                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'
+                          ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-900/30 ring-4 ring-sky-500/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-sky-300 dark:hover:border-sky-500 hover:shadow-md hover:scale-[1.01]'
                       }`}
                     >
                       <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white mb-3 shadow-sm mx-auto">
@@ -498,7 +586,7 @@ export default function Bookings(): JSX.Element {
                       <p className="text-xs text-gray-500 dark:text-gray-400">For solo work or study</p>
                       {bookingType === 'individual' && (
                         <div className="absolute top-4 right-4">
-                          <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                          <CheckCircle className="h-5 w-5 text-sky-600" />
                         </div>
                       )}
                     </button>
@@ -507,8 +595,8 @@ export default function Bookings(): JSX.Element {
                       onClick={() => setBookingType('group')}
                       className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
                         bookingType === 'group'
-                          ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
-                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'
+                          ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/30 ring-4 ring-emerald-500/20 scale-[1.02] shadow-lg'
+                          : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-500 hover:shadow-md hover:scale-[1.01]'
                       }`}
                     >
                       <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white mb-3 shadow-sm mx-auto">
@@ -518,7 +606,7 @@ export default function Bookings(): JSX.Element {
                       <p className="text-xs text-gray-500 dark:text-gray-400">For meetings, study groups, team coworking</p>
                       {bookingType === 'group' && (
                         <div className="absolute top-4 right-4">
-                          <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                          <CheckCircle className="h-5 w-5 text-emerald-600" />
                         </div>
                       )}
                     </button>
@@ -543,29 +631,37 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: MEETING TYPE (Group Booking) ═══ */}
               {step === 'package' && bookingType === 'group' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">What kind of gathering is this?</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">What kind of gathering is this?</h2>
                   <p className="text-sm text-gray-500 mb-6">This helps admin know what to call it on the calendar</p>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {GATHERING_TYPES.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => update({ gathering_type: type })}
-                        className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
-                          form.gathering_type === type
-                            ? 'border-[#0C2340] bg-violet-50/60 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg'
-                            : 'border-gray-200/80 bg-white hover:border-violet-300 hover:shadow-md hover:scale-[1.01]'
-                        }`}
-                      >
-                        <h3 className="font-bold text-gray-900 text-base">{type}</h3>
-                        {form.gathering_type === type && (
-                          <div className="absolute top-3 right-3">
-                            <CheckCircle className="h-5 w-5 text-[#0C2340]" />
+                    {GATHERING_TYPES.map((type) => {
+                      const s = GATHERING_STYLE[type];
+                      const Icon = s.icon;
+                      const selected = form.gathering_type === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => update({ gathering_type: type })}
+                          className={`relative text-center rounded-2xl border-2 p-6 transition-all duration-300 ${
+                            selected
+                              ? `${s.border} bg-gray-50/80 ring-4 ${s.ring} scale-[1.02] shadow-lg`
+                              : 'border-gray-200/80 bg-white hover:border-gray-300 hover:shadow-md hover:scale-[1.01]'
+                          }`}
+                        >
+                          <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br ${s.gradient} text-white mb-2 shadow-sm mx-auto`}>
+                            <Icon className="h-5 w-5" />
                           </div>
-                        )}
-                      </button>
-                    ))}
+                          <h3 className="font-bold text-gray-900 text-base">{type}</h3>
+                          {selected && (
+                            <div className="absolute top-3 right-3">
+                              <CheckCircle className={`h-5 w-5 ${s.iconText}`} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -573,13 +669,14 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: PACKAGE ═══ */}
               {step === 'package' && bookingType !== 'group' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Experience</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Choose Your Experience</h2>
                   <p className="text-sm text-gray-500 mb-6">Select the package that fits your vibe</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {packages.map(p => {
                       const Icon = PKG_ICON[p.slug] || Laptop;
                       const grad = PKG_GRAD[p.slug] || 'from-gray-500 to-gray-600';
+                      const ring = PKG_RING[p.slug] || { border: 'border-[#0C2340]', ring: 'ring-[#0C2340]/20' };
                       const pattern = PKG_PATTERN[p.slug] || '';
                       const reason = disabledReason(p);
                       const disabled = !!reason;
@@ -597,8 +694,8 @@ export default function Bookings(): JSX.Element {
                             ${disabled
                               ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
                               : selected
-                              ? 'border-[#0C2340] bg-violet-50/60 dark:bg-violet-900/30 ring-4 ring-[#0C2340]/20 scale-[1.02] shadow-lg shadow-violet-100 dark:shadow-violet-900/20'
-                              : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-md hover:scale-[1.01]'}
+                              ? `${ring.border} bg-gray-50/80 dark:bg-slate-700/40 ring-4 ${ring.ring} scale-[1.02] shadow-lg`
+                              : 'border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-gray-300 dark:hover:border-slate-500 hover:shadow-md hover:scale-[1.01]'}
                           `}
                         >
                           {/* Background pattern */}
@@ -705,7 +802,7 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: DATETIME ═══ */}
               {step === 'datetime' && pkg && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Pick Your Date & Time</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Pick Your Date & Time</h2>
                   <p className="text-sm text-gray-500 mb-6">When would you like to work at the Hub?</p>
 
                   {/* Date */}
@@ -713,13 +810,23 @@ export default function Bookings(): JSX.Element {
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
                       <Calendar className="h-4 w-4 text-[#0C2340]" /> Date
                     </label>
-                    <input
-                      type="date"
-                      value={form.date}
-                      onChange={e => update({ date: e.target.value })}
-                      min={format(new Date(), 'yyyy-MM-dd')}
-                      className="w-full sm:w-72 rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
-                    />
+                    <div className="w-full sm:w-80 rounded-2xl border-2 border-gray-200/80 bg-white p-3 flex items-center gap-3 hover:border-violet-300 focus-within:border-[#0C2340] focus-within:ring-4 focus-within:ring-[#0C2340]/20 transition-all duration-300">
+                      <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-gradient-to-br from-[#0C2340] to-indigo-600 text-white shadow-sm flex-shrink-0">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="date"
+                          value={form.date}
+                          onChange={e => update({ date: e.target.value })}
+                          min={format(new Date(), 'yyyy-MM-dd')}
+                          className="w-full bg-transparent text-lg font-bold text-gray-900 focus:outline-none"
+                        />
+                        <p className="text-xs text-gray-500 truncate">
+                          {form.date ? format(new Date(form.date + 'T00:00'), 'EEEE, MMM d, yyyy') : 'Select a date'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Capacity meter */}
@@ -754,72 +861,125 @@ export default function Bookings(): JSX.Element {
                     </div>
                   )}
 
-                  {/* Time slot grid — start */}
+                  {/* Quick time presets — the default, uncluttered view */}
                   {!isDaily && (
-                    <div className="space-y-5">
+                    <div className="space-y-4">
                       <div>
                         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                          <Clock className="h-4 w-4 text-[#0C2340]" /> Start Time
+                          <Clock className="h-4 w-4 text-[#0C2340]" /> Time
                         </label>
-                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                          {HOURS.slice(0, -1).map(h => {
-                            const active = form.start === h.value;
+                        <div className="grid grid-cols-2 gap-3">
+                          {TIME_PRESETS.map(p => {
+                            const Icon = p.icon;
+                            const active = !showCustomTime && activePreset?.key === p.key;
                             return (
                               <button
-                                key={h.value}
+                                key={p.key}
                                 type="button"
-                                onClick={() => {
-                                  const patch: Partial<typeof form> = { start: h.value };
-                                  if (h.value >= form.end) {
-                                    const nextIdx = HOURS.findIndex(x => x.value === h.value) + 1;
-                                    if (nextIdx < HOURS.length) patch.end = HOURS[nextIdx].value;
-                                  }
-                                  update(patch);
-                                }}
-                                className={`
-                                  px-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300
-                                  ${active
-                                    ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
-                                `}
+                                onClick={() => { update({ start: p.start, end: p.end }); setShowCustomTime(false); }}
+                                className={`relative text-left rounded-2xl border-2 p-4 transition-all duration-300 ${
+                                  active
+                                    ? `${p.border} bg-gray-50/80 ring-4 ${p.ring} scale-[1.02] shadow-lg`
+                                    : 'border-gray-200/80 bg-white hover:border-gray-300 hover:shadow-md hover:scale-[1.01]'
+                                }`}
                               >
-                                {h.label}
+                                <div className={`inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br ${p.gradient} text-white mb-2 shadow-sm`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <p className="font-semibold text-gray-900 text-sm">{p.label}</p>
+                                <p className="text-xs text-gray-500">
+                                  {HOURS.find(h => h.value === p.start)?.label} – {HOURS.find(h => h.value === p.end)?.label}
+                                </p>
                               </button>
                             );
                           })}
                         </div>
                       </div>
 
-                      {/* Time slot grid — end */}
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                          <Clock className="h-4 w-4 text-[#0C2340]" /> End Time
-                        </label>
-                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-                          {HOURS.slice(1).map(h => {
-                            const active = form.end === h.value;
-                            const slotDisabled = h.value <= form.start;
-                            return (
-                              <button
-                                key={h.value}
-                                type="button"
-                                disabled={slotDisabled}
-                                onClick={() => update({ end: h.value })}
-                                className={`
-                                  px-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300
-                                  ${slotDisabled
-                                    ? 'bg-gray-100/60 text-gray-300 cursor-not-allowed line-through'
-                                    : active
-                                    ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
-                                `}
-                              >
-                                {h.label}
-                              </button>
-                            );
-                          })}
-                        </div>
+                      {/* Selected time summary + custom toggle */}
+                      <div className="flex items-center justify-between rounded-2xl bg-gray-50/80 px-4 py-3">
+                        <span className="text-sm text-gray-700">
+                          Selected: <span className="font-semibold text-gray-900">{selectedTimeRangeLabel()}</span>
+                          {!activePreset && !showCustomTime && <span className="text-gray-400"> (custom)</span>}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomTime(v => !v)}
+                          className="flex items-center gap-1 text-xs font-semibold text-[#0C2340] hover:text-[#F59E0B] transition-colors flex-shrink-0"
+                        >
+                          {showCustomTime ? 'Hide custom time' : 'Need a different time? Choose custom'}
+                          {showCustomTime ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </button>
                       </div>
+
+                      {/* Full hour grid — collapsed by default, opened on demand */}
+                      {showCustomTime && (
+                        <div className="space-y-5 pt-2">
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                              <Clock className="h-4 w-4 text-[#0C2340]" /> Start Time
+                            </label>
+                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                              {HOURS.slice(0, -1).map(h => {
+                                const active = form.start === h.value;
+                                return (
+                                  <button
+                                    key={h.value}
+                                    type="button"
+                                    onClick={() => {
+                                      const patch: Partial<typeof form> = { start: h.value };
+                                      if (h.value >= form.end) {
+                                        const nextIdx = HOURS.findIndex(x => x.value === h.value) + 1;
+                                        if (nextIdx < HOURS.length) patch.end = HOURS[nextIdx].value;
+                                      }
+                                      update(patch);
+                                    }}
+                                    className={`
+                                      px-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300
+                                      ${active
+                                        ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
+                                    `}
+                                  >
+                                    {h.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Time slot grid — end */}
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                              <Clock className="h-4 w-4 text-[#0C2340]" /> End Time
+                            </label>
+                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                              {HOURS.slice(1).map(h => {
+                                const active = form.end === h.value;
+                                const slotDisabled = h.value <= form.start;
+                                return (
+                                  <button
+                                    key={h.value}
+                                    type="button"
+                                    disabled={slotDisabled}
+                                    onClick={() => update({ end: h.value })}
+                                    className={`
+                                      px-2 py-3 rounded-xl text-sm font-semibold transition-all duration-300
+                                      ${slotDisabled
+                                        ? 'bg-gray-100/60 text-gray-300 cursor-not-allowed line-through'
+                                        : active
+                                        ? 'bg-[#0C2340] text-white shadow-lg shadow-violet-300/50 scale-105'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-violet-50 hover:text-[#F59E0B] hover:scale-[1.03]'}
+                                    `}
+                                  >
+                                    {h.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -848,7 +1008,7 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: DETAILS ═══ */}
               {step === 'details' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Your Details</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Your Details</h2>
                   <p className="text-sm text-gray-500 mb-6">So we know who to expect at the hub</p>
 
                   <div className="space-y-5">
@@ -906,7 +1066,23 @@ export default function Bookings(): JSX.Element {
                             className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                           />
                         </div>
+                        {/* Right next to Organization — this is the booker's
+                            standing within it, not a separate unrelated
+                            question, so it shouldn't live several fields
+                            away in "Additional information" like it used to. */}
                         <div>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                            Designation
+                          </label>
+                          <input
+                            type="text"
+                            value={form.designation}
+                            onChange={e => update({ designation: e.target.value })}
+                            placeholder="e.g. Executive Director, Program Officer"
+                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
                             Facebook Page *
                           </label>
@@ -941,8 +1117,8 @@ export default function Bookings(): JSX.Element {
                     )}
                     <div>
                       <PurposeBlockGrid
-                        selectedValues={form.purposes as any}
-                        onChange={(values) => update({ purposes: values as string[] })}
+                        selectedValues={form.purposes}
+                        onChange={(values) => update({ purposes: values })}
                         label="What will you be working on?"
                         description="Select all that apply"
                         gridCols={2}
@@ -950,41 +1126,23 @@ export default function Bookings(): JSX.Element {
                       />
                     </div>
 
-                    {/* Additional Info Section (matching check-in fields) */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <p className="text-xs text-gray-500 mb-4">Additional information (optional, helps us serve you better)</p>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Gender
-                          </label>
-                          <select
-                            value={form.gender}
-                            onChange={e => update({ gender: e.target.value })}
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
-                          >
-                            <option value="">Select...</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
+                    {/* Additional Info Section — individual bookings only.
+                        Group bookings ask Organization + Designation
+                        together up top (right where Organization is
+                        required) and Facebook Page alongside it, so there's
+                        nothing left to ask here — showing an empty
+                        "Additional information" header would be confusing.
+                        Gender/Sector/Creative Domain used to live here too,
+                        matching Check-In's fields, but nothing in the app
+                        actually reads them back off a booking (they were
+                        only ever meant to feed create_attendance_from_booking(),
+                        an admin auto-check-in shortcut that was never wired
+                        up client-side) — so they were just extra friction. */}
+                    {bookingType !== 'group' && (
+                      <div className="pt-4 border-t border-gray-200">
+                        <p className="text-xs text-gray-500 mb-4">Additional information (optional, helps us serve you better)</p>
 
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Sector
-                          </label>
-                          <input
-                            type="text"
-                            value={form.sector}
-                            onChange={e => update({ sector: e.target.value })}
-                            placeholder="e.g. Government, Private, Academic"
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
-                          />
-                        </div>
-
-                        {bookingType !== 'group' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
                               Organization
@@ -997,35 +1155,20 @@ export default function Bookings(): JSX.Element {
                               className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                             />
                           </div>
-                        )}
 
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Designation
-                          </label>
-                          <input
-                            type="text"
-                            value={form.designation}
-                            onChange={e => update({ designation: e.target.value })}
-                            placeholder="e.g. Graphic Designer, Student"
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
-                          />
-                        </div>
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
+                              Designation
+                            </label>
+                            <input
+                              type="text"
+                              value={form.designation}
+                              onChange={e => update({ designation: e.target.value })}
+                              placeholder="e.g. Executive Director, Program Officer"
+                              className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
+                            />
+                          </div>
 
-                        <div className="sm:col-span-2">
-                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                            Creative Domain
-                          </label>
-                          <input
-                            type="text"
-                            value={form.creative_domain}
-                            onChange={e => update({ creative_domain: e.target.value })}
-                            placeholder="e.g. Visual Arts, Film & Animation, Music"
-                            className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
-                          />
-                        </div>
-
-                        {bookingType !== 'group' && (
                           <div className="sm:col-span-2">
                             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
                               Facebook Profile Link
@@ -1038,9 +1181,9 @@ export default function Bookings(): JSX.Element {
                               className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300 placeholder:text-gray-300"
                             />
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1048,79 +1191,105 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: EQUIPMENT ═══ */}
               {step === 'equipment' && !isBundle && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Add Equipment</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Add Equipment</h2>
                   <p className="text-sm text-gray-500 mb-6">Optional: Add equipment to your booking</p>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                        <Package className="h-4 w-4 text-[#0C2340]" /> Select Equipment
+                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                        <Package className="h-4 w-4 text-[#0C2340]" /> Available Equipment
                       </label>
-                      <select
-                        className="w-full rounded-xl border-gray-200 bg-gray-50/80 px-4 py-3 text-sm focus:ring-2 focus:ring-[#0C2340] focus:border-[#0C2340] transition-all duration-300"
-                        onChange={(e) => {
-                          const asset = assets.find((a) => a.asset.id === e.target.value);
-                          if (asset) handleAddEquipment(asset.asset);
-                        }}
-                        value=""
-                      >
-                        <option value="">Select equipment to add...</option>
-                        {assets.map((avail) => (
-                          <option key={avail.asset.id} value={avail.asset.id}>
-                            {avail.asset.name} ({avail.availableItems} available)
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {assets
+                          .filter((avail) => !selectedEquipment.some((e) => e.asset.id === avail.asset.id))
+                          .map((avail) => {
+                            // Colored by the asset's stable position in the full
+                            // list, so a given piece of equipment keeps the same
+                            // color whether it's here or in "Selected Equipment".
+                            const colorIndex = assets.findIndex(a => a.asset.id === avail.asset.id);
+                            const gradient = CHIP_GRADIENTS[colorIndex % CHIP_GRADIENTS.length];
+                            return (
+                              <button
+                                key={avail.asset.id}
+                                type="button"
+                                onClick={() => handleAddEquipment(avail.asset)}
+                                className="relative text-left rounded-2xl border-2 border-gray-200/80 bg-white p-4 transition-all duration-300 hover:border-gray-300 hover:shadow-md hover:scale-[1.01]"
+                              >
+                                <div className={`inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br ${gradient} text-white mb-2 shadow-sm`}>
+                                  <Package className="h-4 w-4" />
+                                </div>
+                                <p className="font-semibold text-gray-900 text-sm">{avail.asset.name}</p>
+                                <p className="text-xs text-gray-500">{avail.availableItems} available</p>
+                              </button>
+                            );
+                          })}
+                        {assets.filter((avail) => !selectedEquipment.some((e) => e.asset.id === avail.asset.id)).length === 0 && (
+                          <p className="col-span-full text-sm text-gray-400 italic">
+                            {assets.length === 0 ? 'No equipment currently available.' : 'All available equipment has been added below.'}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {selectedEquipment.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700">Selected Equipment:</p>
-                        {selectedEquipment.map(({ asset, quantity }) => (
-                          <div key={asset.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{asset.name}</p>
-                              <p className="text-xs text-gray-500">Inside Hub usage</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {bookingType === 'group' && (
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSetEquipmentQuantity(asset.id, quantity - 1)}
-                                    className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="text-sm font-semibold text-gray-900 w-4 text-center">{quantity}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSetEquipmentQuantity(asset.id, quantity + 1)}
-                                    className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                                  >
-                                    +
-                                  </button>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-3">Selected Equipment</p>
+                        <div className="space-y-2">
+                          {selectedEquipment.map(({ asset, quantity }) => {
+                            const colorIndex = assets.findIndex(a => a.asset.id === asset.id);
+                            const gradient = CHIP_GRADIENTS[colorIndex >= 0 ? colorIndex % CHIP_GRADIENTS.length : 0];
+                            return (
+                            <div key={asset.id} className="flex items-center justify-between p-3 rounded-2xl border-2 border-violet-200 bg-violet-50/60">
+                              <div className="flex items-center gap-3">
+                                <div className={`inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm flex-shrink-0`}>
+                                  <Package className="h-4 w-4" />
                                 </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveEquipment(asset.id)}
-                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">{asset.name}</p>
+                                  <p className="text-xs text-gray-500">Inside Hub usage</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {bookingType === 'group' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetEquipmentQuantity(asset.id, quantity - 1)}
+                                      className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="text-sm font-semibold text-gray-900 w-4 text-center">{quantity}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetEquipmentQuantity(asset.id, quantity + 1)}
+                                      className="h-6 w-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveEquipment(asset.id)}
+                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
+                            );
+                          })}
+                          <div className="text-right text-sm font-medium text-gray-700">
+                            Equipment Total: {!GADGETS_PRICING_ENABLED ? (
+                              <>
+                                <span className="line-through text-gray-400">{formatPesoGadgets(equipmentTotal)}</span>
+                                <span className="text-emerald-600 font-bold ml-1">FREE</span>
+                              </>
+                            ) : (
+                              formatPesoGadgets(equipmentTotal)
+                            )}
                           </div>
-                        ))}
-                        <div className="text-right text-sm font-medium text-gray-700">
-                          Equipment Total: {!GADGETS_PRICING_ENABLED ? (
-                            <>
-                              <span className="line-through text-gray-400">{formatPesoGadgets(equipmentTotal)}</span>
-                              <span className="text-emerald-600 font-bold ml-1">FREE</span>
-                            </>
-                          ) : (
-                            formatPesoGadgets(equipmentTotal)
-                          )}
                         </div>
                       </div>
                     )}
@@ -1131,7 +1300,7 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: AGREEMENT ═══ */}
               {step === 'agreement' && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Booking Agreement</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Booking Agreement</h2>
                   <p className="text-sm text-gray-500 mb-6">Please read and confirm the following to proceed</p>
 
                   <div className="bg-violet-50/60 border-2 border-violet-200/60 rounded-2xl p-6 mb-6">
@@ -1189,13 +1358,13 @@ export default function Bookings(): JSX.Element {
               {/* ═══ STEP: CONFIRM ═══ */}
               {step === 'confirm' && pkg && estimate && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Review & Confirm</h2>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent mb-1">Review & Confirm</h2>
                   <p className="text-sm text-gray-500 mb-6">Make sure everything looks good</p>
 
                   <div className="space-y-4">
                     {/* Package summary (or gathering type for group bookings) */}
                     {bookingType === 'group' ? (
-                      <div className="rounded-2xl bg-gray-50/80 p-4 flex items-center gap-4">
+                      <div className="rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border-l-4 border-indigo-400 p-4 flex items-center gap-4">
                         <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#0C2340] to-indigo-600 text-white flex items-center justify-center shadow-sm">
                           <Users className="h-5 w-5" />
                         </div>
@@ -1205,7 +1374,7 @@ export default function Bookings(): JSX.Element {
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-2xl bg-gray-50/80 p-4 flex items-center gap-4">
+                      <div className="rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border-l-4 border-indigo-400 p-4 flex items-center gap-4">
                         <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${PKG_GRAD[pkg.slug] || 'from-gray-500 to-gray-600'} text-white flex items-center justify-center shadow-sm`}>
                           {(() => { const I = PKG_ICON[pkg.slug] || Laptop; return <I className="h-5 w-5" />; })()}
                         </div>
@@ -1217,19 +1386,19 @@ export default function Bookings(): JSX.Element {
                     )}
 
                     {/* Date & Time */}
-                    <div className="rounded-2xl bg-gray-50/80 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div className="rounded-2xl bg-gradient-to-r from-sky-50 to-blue-50 border-l-4 border-sky-400 p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-[#0C2340]" />
+                        <Calendar className="h-4 w-4 text-sky-600" />
                         <span className="font-medium text-gray-900">{format(new Date(form.date + 'T00:00'), 'EEE, MMM d, yyyy')}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-[#0C2340]" />
+                        <Clock className="h-4 w-4 text-sky-600" />
                         <span className="font-medium text-gray-900">
                           {isDaily ? 'Full day' : `${HOURS.find(h => h.value === form.start)?.label} – ${HOURS.find(h => h.value === form.end)?.label}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-[#0C2340]" />
+                        <Zap className="h-4 w-4 text-sky-600" />
                         <span className="font-extrabold text-gray-900">
                           {isPricingDisabled() ? (
                             <>
@@ -1244,31 +1413,32 @@ export default function Bookings(): JSX.Element {
                     </div>
 
                     {/* Personal details */}
-                    <div className="rounded-2xl bg-gray-50/80 p-4 space-y-1.5 text-sm">
-                      <div className="flex items-center gap-2"><User className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.name}</span></div>
-                      <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.email}</span></div>
-                      {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.phone}</span></div>}
+                    <div className="rounded-2xl bg-gradient-to-r from-violet-50 to-fuchsia-50 border-l-4 border-violet-400 p-4 space-y-1.5 text-sm">
+                      <div className="flex items-center gap-2"><User className="h-4 w-4 text-violet-600" /><span className="text-gray-900">{form.name}</span></div>
+                      <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-violet-600" /><span className="text-gray-900">{form.email}</span></div>
+                      {form.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-violet-600" /><span className="text-gray-900">{form.phone}</span></div>}
                       {bookingType === 'group' && form.organization && (
-                        <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[#0C2340]" /><span className="text-gray-900">{form.organization}</span></div>
+                        <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-violet-600" /><span className="text-gray-900">{form.organization}</span></div>
                       )}
                       {bookingType === 'group' && form.facebook_link && (
-                        <div className="flex items-center gap-2"><Info className="h-4 w-4 text-[#0C2340] flex-shrink-0" /><a href={form.facebook_link} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline truncate">{form.facebook_link}</a></div>
+                        <div className="flex items-center gap-2"><Info className="h-4 w-4 text-violet-600 flex-shrink-0" /><a href={form.facebook_link} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline truncate">{form.facebook_link}</a></div>
                       )}
                       {form.purposes && form.purposes.length > 0 && (
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-[#0C2340]" />
+                          <FileText className="h-4 w-4 text-violet-600" />
                           <span className="text-gray-500 italic">
                             {form.purposes.slice(0, 2).join(', ')}
                             {form.purposes.length > 2 && ` +${form.purposes.length - 2} more`}
                           </span>
                         </div>
                       )}
+                    </div>
 
                     {/* Equipment summary */}
                     {selectedEquipment.length > 0 && (
-                      <div className="rounded-2xl bg-gray-50/80 p-4">
+                      <div className="rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-400 p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <Package className="h-4 w-4 text-[#0C2340]" />
+                          <Package className="h-4 w-4 text-emerald-600" />
                           <p className="font-semibold text-gray-900 text-sm">Equipment Reserved</p>
                         </div>
                         <div className="space-y-2">
@@ -1278,9 +1448,9 @@ export default function Bookings(): JSX.Element {
                               <span className="text-gray-500">Inside Hub</span>
                             </div>
                           ))}
-                          <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-medium">
+                          <div className="pt-2 border-t border-emerald-200 flex justify-between text-sm font-medium">
                             <span className="text-gray-700">Equipment Total</span>
-                            <span className="text-[#0C2340]">
+                            <span className="text-emerald-700">
                               {!GADGETS_PRICING_ENABLED ? (
                                 <>
                                   <span className="line-through text-gray-400">{formatPesoGadgets(equipmentTotal)}</span>
@@ -1294,14 +1464,13 @@ export default function Bookings(): JSX.Element {
                         </div>
                       </div>
                     )}
-                    </div>
 
                     {/* Disclaimer */}
-                    <div className="rounded-2xl bg-violet-50/80 border border-violet-100 p-4 flex items-start gap-3 text-xs text-[#F59E0B]">
-                      <Shield className="h-5 w-5 text-[#0C2340] flex-shrink-0 mt-0.5" />
+                    <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-4 flex items-start gap-3 text-xs text-amber-800">
+                      <Shield className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <p>
                         Your booking will be <span className="font-semibold">pending approval</span> by a hub admin.
-                        You&apos;ll receive a confirmation email once approved. Payment is collected on-site.
+                        We&apos;ll follow up by email{form.phone ? ', phone,' : ''}{bookingType === 'group' && form.facebook_link ? ' or Facebook Messenger' : ''} once it&apos;s reviewed — please keep an eye out. Payment is collected on-site.
                       </p>
                     </div>
                   </div>
@@ -1325,7 +1494,7 @@ export default function Bookings(): JSX.Element {
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-[#0C2340] hover:from-[#F59E0B] hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     {submitting ? (
                       <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1339,7 +1508,7 @@ export default function Bookings(): JSX.Element {
                     type="button"
                     onClick={next}
                     disabled={!canProceed()}
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-[#0C2340] hover:from-[#F59E0B] hover:to-indigo-700 shadow-lg shadow-violet-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0C2340] to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700 shadow-lg shadow-violet-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     Continue <ArrowRight className="h-4 w-4" />
                   </button>
@@ -1353,8 +1522,10 @@ export default function Bookings(): JSX.Element {
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-4">
               {/* Price card */}
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-100/30 border border-white/60 p-6 transition-all duration-300">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Booking Summary</h3>
+              <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-100/30 border-2 border-violet-100 p-6 transition-all duration-300">
+                <h3 className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                  <Zap className="h-3.5 w-3.5 text-amber-500" /> Booking Summary
+                </h3>
 
                 {pkg ? (
                   <div className="space-y-4">
@@ -1413,7 +1584,7 @@ export default function Bookings(): JSX.Element {
                       )}
                       <div className="border-t border-gray-100 pt-3 flex justify-between">
                         <span className="font-bold text-gray-900">Total</span>
-                        <span className="font-extrabold text-[#0C2340] text-lg">
+                        <span className="font-extrabold bg-gradient-to-r from-[#0C2340] to-fuchsia-600 bg-clip-text text-transparent text-lg">
                           {isPricingDisabled() && !GADGETS_PRICING_ENABLED ? (
                             <>
                               <span className="line-through text-gray-400 text-sm">{formatPeso((estimate?.totalPrice ?? 0) + equipmentTotal)}</span>
@@ -1444,19 +1615,24 @@ export default function Bookings(): JSX.Element {
                           <span className="text-xs text-gray-400">{estimate.breakdown}</span>
                         </div>
                       )}
-                      {bookingType === 'group' && form.organization && (
+                      {/* Organization/Phone/Facebook are only shown here on
+                          earlier steps, where the sidebar is the only place
+                          summarizing what's been entered so far — on Confirm
+                          itself, the main card already shows all of this in
+                          full, so repeating it here was pure duplication. */}
+                      {step !== 'confirm' && bookingType === 'group' && form.organization && (
                         <div className="flex justify-between text-gray-500 gap-3">
                           <span className="flex-shrink-0">Organization</span>
                           <span className="font-medium text-gray-900 text-right truncate">{form.organization}</span>
                         </div>
                       )}
-                      {bookingType === 'group' && form.phone && (
+                      {step !== 'confirm' && bookingType === 'group' && form.phone && (
                         <div className="flex justify-between text-gray-500">
                           <span>Phone</span>
                           <span className="font-medium text-gray-900">{form.phone}</span>
                         </div>
                       )}
-                      {bookingType === 'group' && form.facebook_link && (
+                      {step !== 'confirm' && bookingType === 'group' && form.facebook_link && (
                         <div className="flex justify-between text-gray-500 gap-3">
                           <span className="flex-shrink-0">Facebook Page</span>
                           <span className="font-medium text-gray-900 text-right truncate">{form.facebook_link}</span>
