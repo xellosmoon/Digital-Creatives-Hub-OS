@@ -4,44 +4,10 @@ import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import EventFormModal, { type EventFormPrefill } from './EventFormModal';
-
-interface HubBookingRow {
-  id: string;
-  booking_reference: string;
-  guest_name: string | null;
-  guest_email: string | null;
-  guest_phone: string | null;
-  booking_date: string;
-  start_time: string;
-  end_time: string;
-  seats_used: number;
-  total_price: number;
-  status: string;
-  purpose: string | string[] | null;
-  notes: string | null;
-  is_workshop: boolean;
-  created_at: string;
-  admin_contacted: boolean;
-  admin_contacted_at: string | null;
-  booking_type: string | null;
-  group_size: number | null;
-  organization: string | null;
-  gathering_type: string | null;
-  package?: {
-    id: string;
-    slug: string;
-    name: string;
-    hourly_rate: number | null;
-    daily_rate: number | null;
-    billing_mode: string;
-    seats_consumed: number;
-    is_bundle: boolean;
-  } | null;
-  borrowings?: { id: string; asset: { name: string } | null }[];
-}
+import type { AdminBookingRow } from '../../types/hub';
 
 interface BookingApprovalCardProps {
-  booking: HubBookingRow;
+  booking: AdminBookingRow;
   onUpdate: () => void;
 }
 
@@ -158,12 +124,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
         .eq('id', booking.id);
 
       if (error) throw error;
+      toast.success('Booking promoted to event successfully');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Event was published, but failed to resolve the original booking request';
       toast.error(errorMessage);
     } finally {
       setShowPromoteModal(false);
-      toast.success('Booking promoted to event successfully');
       onUpdate();
     }
   };

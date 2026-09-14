@@ -220,6 +220,7 @@ export default function Bookings(): JSX.Element {
         setAssets(avail.filter((a) => a.availableItems > 0));
       } catch (err) {
         console.error('Failed to load equipment', err);
+        toast.error('Failed to load equipment');
       }
     })();
   }, []);

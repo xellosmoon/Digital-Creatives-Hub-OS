@@ -97,6 +97,47 @@ export interface HubBooking {
   package?: RentalPackage;
 }
 
+/**
+ * The shape returned by the admin bookings list query (a narrower,
+ * differently-typed projection of HubBooking used by AdminBookings.tsx
+ * and BookingApprovalCard.tsx) — declared once here so the two don't
+ * drift out of sync with each other.
+ */
+export interface AdminBookingRow {
+  id: string;
+  booking_reference: string;
+  guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
+  booking_date: string;
+  start_time: string;
+  end_time: string;
+  seats_used: number;
+  total_price: number;
+  status: string;
+  purpose: string | string[] | null;
+  notes: string | null;
+  is_workshop: boolean;
+  created_at: string;
+  admin_contacted: boolean;
+  admin_contacted_at: string | null;
+  booking_type: string | null;
+  group_size: number | null;
+  organization: string | null;
+  gathering_type: string | null;
+  package?: {
+    id: string;
+    slug: string;
+    name: string;
+    hourly_rate: number | null;
+    daily_rate: number | null;
+    billing_mode: string;
+    seats_consumed: number;
+    is_bundle: boolean;
+  } | null;
+  borrowings?: { id: string; asset: { name: string } | null }[];
+}
+
 // ----- Derived / UI Types -----
 
 export interface HubLiveStatus {

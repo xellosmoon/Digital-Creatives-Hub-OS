@@ -6,44 +6,10 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { exportToCSV, formatBookingForExport } from '../utils/csvExport';
 import BookingApprovalCard from '../components/admin/BookingApprovalCard';
-
-interface AdminBooking {
-  id: string;
-  booking_reference: string;
-  guest_name: string | null;
-  guest_email: string | null;
-  guest_phone: string | null;
-  booking_date: string;
-  start_time: string;
-  end_time: string;
-  seats_used: number;
-  total_price: number;
-  status: string;
-  purpose: string | string[] | null;
-  notes: string | null;
-  is_workshop: boolean;
-  created_at: string;
-  admin_contacted: boolean;
-  admin_contacted_at: string | null;
-  booking_type: string | null;
-  group_size: number | null;
-  organization: string | null;
-  gathering_type: string | null;
-  package?: {
-    id: string;
-    slug: string;
-    name: string;
-    hourly_rate: number | null;
-    daily_rate: number | null;
-    billing_mode: string;
-    seats_consumed: number;
-    is_bundle: boolean;
-  } | null;
-  borrowings?: { id: string; asset: { name: string } | null }[];
-}
+import type { AdminBookingRow } from '../types/hub';
 
 export default function AdminBookings(): JSX.Element {
-  const [allBookings, setAllBookings] = useState<AdminBooking[]>([]);
+  const [allBookings, setAllBookings] = useState<AdminBookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled' | 'rejected'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,7 +72,7 @@ export default function AdminBookings(): JSX.Element {
       
       if (error) throw error;
       
-      const exportData = (data || []).map((b: AdminBooking) => formatBookingForExport(b as unknown as Record<string, unknown>));
+      const exportData = (data || []).map((b: AdminBookingRow) => formatBookingForExport(b as unknown as Record<string, unknown>));
       exportToCSV(exportData, `Admin_Bookings_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       
       toast.dismiss('export');
