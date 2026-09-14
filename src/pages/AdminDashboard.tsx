@@ -3,11 +3,13 @@ import {
   Bell, Filter, RefreshCw, BarChart3, Download, CalendarDays,
   Package, Armchair, Users, UserPlus, Zap, Activity, Clock,
   CheckCircle, X, LogOut, Timer, Building2,
-  CreditCard, XCircle, Calendar, Image, AlertTriangle
+  CreditCard, XCircle, Calendar, Image, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import BookingApprovalCard from '../components/admin/BookingApprovalCard';
+import EventProposalCard, { EventProposalEmptyState, prefillFromProposal, type EventProposalData } from '../components/admin/EventProposalCard';
+import EventFormModal from '../components/admin/EventFormModal';
 import toast from 'react-hot-toast';
 import { exportToCSV, formatBookingForExport, formatAttendanceForDTIExport } from '../utils/csvExport';
 import { format, differenceInMinutes } from 'date-fns';
@@ -34,7 +36,9 @@ export default function AdminDashboard(): JSX.Element {
   const [attendance, setAttendance] = useState<HubAttendance[]>([]);
   const [showManualCheckIn, setShowManualCheckIn] = useState(false);
   const [showForceBook, setShowForceBook] = useState(false);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'floor'>('floor');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'floor' | 'events'>('floor');
+  const [proposals, setProposals] = useState<EventProposalData[]>([]);
+  const [promotingProposal, setPromotingProposal] = useState<EventProposalData | null>(null);
   const [floorView, setFloorView] = useState<'pending' | 'active' | 'checked_out'>('pending');
   
   // Assign Event Modal
@@ -59,6 +63,7 @@ export default function AdminDashboard(): JSX.Element {
     fetchAttendance();
     fetchTodayEvents();
     fetchPendingCounts();
+    fetchProposals();
 
     // Real-time subscriptions
     const subscription = supabase
@@ -73,12 +78,65 @@ export default function AdminDashboard(): JSX.Element {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hub_events' }, () => {
         toast('New event proposal!', { icon: '📅', duration: 5000 });
         fetchPendingCounts();
+        fetchProposals();
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hub_events' }, () => { fetchProposals(); fetchPendingCounts(); })
       .subscribe();
 
     return () => { subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  const fetchProposals = async (): Promise<void> => {
+    try {
+      const { data, error } = await supabase
+        .from('hub_events')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setProposals((data as EventProposalData[]) ?? []);
+    } catch (err) {
+      console.error('Error fetching proposals:', err);
+    }
+  };
+
+  // Same "open the real event form pre-filled" flow as EventManagement.tsx —
+  // approving isn't a status flip, it creates a real calendar event.
+  const onProposalPublished = async (eventId: string): Promise<void> => {
+    if (!promotingProposal) return;
+    try {
+      const { error } = await supabase
+        .from('hub_events')
+        .update({ status: 'approved', published_event_id: eventId })
+        .eq('id', promotingProposal.id);
+      if (error) throw error;
+      toast.success('Proposal published as an event');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Event was created, but failed to link it back to the proposal';
+      toast.error(errorMessage);
+    } finally {
+      setPromotingProposal(null);
+      fetchProposals();
+      fetchPendingCounts();
+    }
+  };
+
+  const handleRejectProposal = async (id: string): Promise<void> => {
+    if (!window.confirm('Are you sure you want to reject this proposal?')) return;
+    try {
+      const { error } = await supabase
+        .from('hub_events')
+        .update({ status: 'rejected' })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Event proposal rejected');
+      fetchProposals();
+      fetchPendingCounts();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reject proposal';
+      toast.error(errorMessage);
+    }
+  };
 
   const fetchPendingCounts = async (): Promise<void> => {
     try {
@@ -616,6 +674,14 @@ export default function AdminDashboard(): JSX.Element {
           className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'bookings' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
         >
           <CalendarDays className="h-4 w-4 inline mr-1.5" />Bookings ({bookings.length})
+          {pendingCounts.bookings > 0 && <span className="ml-1.5 inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-500 text-white text-[10px] font-bold">{pendingCounts.bookings}</span>}
+        </button>
+        <button
+          onClick={() => setActiveTab('events')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'events' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+        >
+          <Sparkles className="h-4 w-4 inline mr-1.5" />Events ({proposals.length})
+          {pendingCounts.events > 0 && <span className="ml-1.5 inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-500 text-white text-[10px] font-bold">{pendingCounts.events}</span>}
         </button>
       </div>
 
@@ -813,6 +879,63 @@ export default function AdminDashboard(): JSX.Element {
             )}
           </div>
         </>
+      )}
+
+      {/* ═══ EVENTS TAB ═══ — pending proposals first, so the daily
+          approval pass doesn't require scrolling past already-handled
+          ones; full history/filtering still lives on /admin/events. ═══ */}
+      {activeTab === 'events' && (
+        <div className="space-y-4">
+          {(() => {
+            const pendingProposals = proposals.filter(p => p.status === 'pending_review');
+            const otherProposals = proposals.filter(p => p.status !== 'pending_review');
+            if (proposals.length === 0) {
+              return <EventProposalEmptyState message="No event proposals yet" />;
+            }
+            return (
+              <>
+                {pendingProposals.map((proposal) => (
+                  <EventProposalCard
+                    key={proposal.id}
+                    proposal={proposal}
+                    onApprove={() => setPromotingProposal(proposal)}
+                    onReject={() => handleRejectProposal(proposal.id)}
+                  />
+                ))}
+                {otherProposals.length > 0 && (
+                  <>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pt-2">
+                      Already reviewed
+                    </p>
+                    {otherProposals.map((proposal) => (
+                      <EventProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        onApprove={() => setPromotingProposal(proposal)}
+                        onReject={() => handleRejectProposal(proposal.id)}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
+            );
+          })()}
+          <div className="text-center pt-2">
+            <Link to="/admin/events" className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">
+              Full event management & bulk export →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PUBLISH-A-PROPOSAL MODAL ═══ */}
+      {promotingProposal && (
+        <EventFormModal
+          event={null}
+          prefill={prefillFromProposal(promotingProposal)}
+          onClose={() => setPromotingProposal(null)}
+          onSaved={onProposalPublished}
+        />
       )}
 
       {/* ═══ MANUAL CHECK-IN MODAL ═══ */}
