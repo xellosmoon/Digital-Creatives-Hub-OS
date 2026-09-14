@@ -11,6 +11,7 @@ import {
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { PCIDA_DOMAINS } from '../types/hub';
+import EventProposalTicket, { type EventProposalTicketData } from '../components/booking/EventProposalTicket';
 
 type Step = 'organizer' | 'logistics' | 'domains' | 'review';
 const STEP_META: { key: Step; label: string }[] = [
@@ -36,7 +37,7 @@ const DOMAIN_ICONS: Record<string, React.ElementType> = {
 export default function ProposeEvent(): JSX.Element {
   const [step, setStep] = useState<Step>('organizer');
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [ticketData, setTicketData] = useState<EventProposalTicketData | null>(null);
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
 
   const [form, setForm] = useState({
@@ -108,21 +109,20 @@ export default function ProposeEvent(): JSX.Element {
   const handleSubmit = async (): Promise<void> => {
     setSubmitting(true);
     try {
-      console.log('Submitting proposal:', {
-        organizer_name: form.fullName,
-        organizer_email: form.email,
-        organizer_phone: form.phone,
-        organization: form.organization || null,
-        role: form.role || null,
-        title: form.title,
-        description: form.description,
-        expected_guests: parseInt(form.expectedGuests) || null,
-        event_dates: form.eventDates,
-        creative_domains: selectedDomains,
-        status: 'pending_review',
-      });
-
-      const insertData: any = {
+      const insertData: {
+        organizer_name: string;
+        organizer_email: string;
+        organizer_phone: string;
+        organization: string | null;
+        role: string | null;
+        title: string;
+        description: string;
+        expected_guests: number | null;
+        event_dates: { date: string; start_time: string; end_time: string }[];
+        creative_domains: string[];
+        status: string;
+        facebook_page?: string;
+      } = {
         // Organizer details
         organizer_name: form.fullName,
         organizer_email: form.email,
@@ -151,13 +151,20 @@ export default function ProposeEvent(): JSX.Element {
         insertData.facebook_page = form.facebook_page.trim();
       }
 
-      const { data, error } = await supabase.from('hub_events').insert(insertData).select();
-
-      console.log('Insert result:', { data, error });
+      const { data, error } = await supabase.from('hub_events').insert(insertData).select().single();
 
       if (error) throw error;
 
-      setSubmitted(true);
+      setTicketData({
+        proposal_reference: data.proposal_reference,
+        organizer_name: data.organizer_name,
+        organizer_email: data.organizer_email,
+        organizer_phone: data.organizer_phone,
+        title: data.title,
+        event_dates: data.event_dates,
+        status: data.status,
+        facebook_page: data.facebook_page,
+      });
       toast.success('Event proposal submitted!');
     } catch (err: unknown) {
       console.error('Error submitting proposal:', err);
@@ -168,29 +175,34 @@ export default function ProposeEvent(): JSX.Element {
     }
   };
 
-  // ── Success state ──
-  if (submitted) {
+  const handleProposeAnother = (): void => {
+    setTicketData(null);
+    setSelectedDomains([]);
+    setStep('organizer');
+    setForm({
+      fullName: '', email: '', phone: '', organization: '', role: '', facebook_page: '',
+      title: '', description: '', expectedGuests: '',
+      eventDates: [{ date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), startTime: '14:00', endTime: '17:00' }],
+    });
+  };
+
+  // ── Success state (ticket) ──
+  if (ticketData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-amber-50/30 dark:to-slate-900 flex items-center justify-center px-4">
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/60 dark:border-slate-700/60 p-8 sm:p-12 max-w-lg text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Proposal Submitted!</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Thanks for proposing your event with us.
-          </p>
-          <div className="text-left rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 p-4 mb-6 flex items-start gap-3">
-            <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              <span className="font-bold">Please wait for our admin to contact you at <span className="underline">{form.email}</span>.</span>{' '}
-              Your event is not yet confirmed — an admin will review your proposal and email you within 1–2 business days to confirm or discuss details.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-slate-900 via-white dark:via-slate-900 to-amber-50/30 dark:to-slate-900 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md space-y-4">
+          <EventProposalTicket proposal={ticketData} />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleProposeAnother}
+              className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-200 transition-all duration-300"
+            >
+              Propose Another Event
+            </button>
             <Link
               to="/"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg transition-all duration-300"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-300"
             >
               Back to Home
             </Link>
@@ -570,8 +582,8 @@ export default function ProposeEvent(): JSX.Element {
                 <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-300 dark:border-amber-700 p-4 flex items-start gap-3 text-sm text-amber-800 dark:text-amber-200">
                   <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <p>
-                    <span className="font-bold">This is not a confirmed booking.</span> After you submit, please wait for our admin to contact you by email
-                    ({form.email || 'the address you provide'}) within <span className="font-semibold">1–2 business days</span> to confirm or discuss details.
+                    <span className="font-bold">This is not a confirmed booking.</span> After you submit, please wait for our admin to reach out by
+                    {form.facebook_page ? ' email, phone, or Facebook Messenger' : ' email or phone'} within <span className="font-semibold">1–2 business days</span> to confirm or discuss details.
                     There's no charge for submitting a proposal.
                   </p>
                 </div>

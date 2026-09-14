@@ -132,8 +132,12 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 </span>
               </Link>
 
-              {/* Desktop Navigation Links */}
-              <div className="hidden lg:ml-8 lg:flex lg:space-x-6">
+              {/* Desktop Navigation Links — lg:items-center keeps every pill's
+                  own height regardless of neighbors; without it, flex's
+                  default align-items:stretch pulls every link to match the
+                  tallest one, and combined with rounded-full that turns the
+                  active pill into a circle instead of a pill. */}
+              <div className="hidden lg:ml-8 lg:flex lg:items-center lg:space-x-6">
                 <Link to="/" className={navLinkClass('/')}>
                   Home
                 </Link>
@@ -143,7 +147,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Link to="/calendar" className={navLinkClass('/calendar')}>
                   Calendar
                 </Link>
-                <Link to="/propose-event" className={navLinkClass('/propose-event')}>
+                <Link to="/propose-event" className={`${navLinkClass('/propose-event')} whitespace-nowrap`}>
                   Propose Event
                 </Link>
                 <Link to="/gadgets" className={navLinkClass('/gadgets')}>
@@ -152,11 +156,13 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Link to="/about" className={navLinkClass('/about')}>
                   About
                 </Link>
-                {!session && (
-                  <Link to="/booking-lookup" className={navLinkClass('/booking-lookup')}>
-                    Find Booking
-                  </Link>
-                )}
+                <Link
+                  to="/booking-lookup"
+                  className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold px-3 py-1.5 rounded-full border-2 border-[#0C2340]/20 text-[#0C2340] dark:border-white/30 dark:text-white whitespace-nowrap transition-all duration-300 hover:bg-[#0C2340]/5 dark:hover:bg-white/10 hover:border-[#0C2340]/40 dark:hover:border-white/50 active:scale-95"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Find Booking
+                </Link>
               </div>
             </div>
 
@@ -365,12 +371,10 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Info className="w-4 h-4 mr-3" />
                 About
               </Link>
-              {!session && (
-                <Link to="/booking-lookup" className={mobileNavLinkClass('/booking-lookup')}>
-                  <Search className="w-4 h-4 mr-3" />
-                  Find Booking
-                </Link>
-              )}
+              <Link to="/booking-lookup" className={mobileNavLinkClass('/booking-lookup')}>
+                <Search className="w-4 h-4 mr-3" />
+                Find Booking
+              </Link>
             </div>
 
             {/* Mobile auth buttons */}
