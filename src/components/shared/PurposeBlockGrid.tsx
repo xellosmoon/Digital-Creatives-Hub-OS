@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { PURPOSE_OPTIONS } from '../../types/hub';
 import type { Purpose } from '../../types/hub';
+import { CHIP_GRADIENTS, CHIP_TINTS } from './ChipGrid';
 
 interface PurposeBlockGridProps {
   selectedValues: Purpose[];
@@ -47,15 +48,17 @@ export default function PurposeBlockGrid({
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{description}</p>
       )}
       <div className={`grid ${gridColsClass} gap-3`}>
-        {purposeOptions.map((purpose: Purpose) => {
+        {purposeOptions.map((purpose: Purpose, index: number) => {
           const isSelected = selectedValues.includes(purpose);
+          const gradient = CHIP_GRADIENTS[index % CHIP_GRADIENTS.length];
+          const tint = CHIP_TINTS[index % CHIP_TINTS.length];
           return (
             <label
               key={purpose}
               className={`group relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
                 isSelected
-                  ? 'border-amber-500 dark:border-amber-400 bg-amber-50/80 dark:bg-amber-900/30 shadow-md shadow-amber-100/50 dark:shadow-none'
-                  : 'border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-900/50 hover:border-amber-300 dark:hover:border-amber-500 hover:bg-amber-50/30 dark:hover:bg-amber-900/10'
+                  ? `bg-gradient-to-r ${gradient} border-transparent text-white shadow-md scale-[1.02]`
+                  : `${tint} border-2`
               }`}
             >
               <input
@@ -65,13 +68,13 @@ export default function PurposeBlockGrid({
                 onChange={() => togglePurpose(purpose)}
               />
               <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                  isSelected ? 'border-amber-500 dark:border-amber-400 bg-amber-500 dark:bg-amber-400' : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-amber-400'
+                <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                  isSelected ? 'border-white/40 bg-white/20' : 'border-current/30 bg-white/60 dark:bg-slate-800'
                 }`}>
                   {isSelected && <Check className="w-3 h-3 text-white" />}
                 </div>
                 <div className="flex-1">
-                  <span className={`text-sm font-medium ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                  <span className="text-sm font-medium">
                     {purpose}
                   </span>
                 </div>

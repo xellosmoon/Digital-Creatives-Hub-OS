@@ -3,62 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import {
-  ArrowLeft, ArrowRight, Check, Phone, ChevronDown, ShieldCheck,
+  ArrowLeft, ArrowRight, Check, Phone, ShieldCheck,
   UserCheck, Sparkles, X, CalendarClock, Building, Palette,
   CheckCircle, Building2, BadgeCheck, Loader2, PartyPopper, Mail, User, Pencil,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import confetti from 'canvas-confetti';
-import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS } from '../types/hub';
+import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS, SECTOR_OPTIONS, GENDER_OPTIONS } from '../types/hub';
+import ChipGrid, { CHIP_GRADIENTS, CHIP_TINTS } from '../components/shared/ChipGrid';
 
 type Step = 'privacy' | 'event' | 'mobile' | 'identify' | 'purpose' | 'newUser' | 'success';
-
-const SECTOR_OPTIONS = [
-  'Teacher/Academe',
-  'Government Employee',
-  'MSME/Entrepreneur',
-  'Private Sector Employee',
-  'Freelancer/Remote Worker',
-  'Creative Professional',
-  'Startup Founder/Innovator',
-  'Civil Society/NGO',
-  'Student/Researcher',
-  'Other'
-];
-
-const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
 // Email is one of the hub's main channels for reaching visitors afterward
 // (newsletters, event invites), so it's required at check-in — the same
 // weight as the mobile number, not an optional nice-to-have.
 const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
-// Shared per-item color treatment for chip/tile grids (purposes, creative domains)
-const CHIP_GRADIENTS = [
-  'from-pink-500 to-rose-500',
-  'from-purple-500 to-indigo-500',
-  'from-blue-500 to-cyan-500',
-  'from-teal-500 to-emerald-500',
-  'from-green-500 to-lime-500',
-  'from-yellow-500 to-amber-500',
-  'from-orange-500 to-red-500',
-  'from-red-500 to-pink-500',
-  'from-indigo-500 to-purple-500',
-  'from-violet-500 to-fuchsia-500',
-];
-const CHIP_TINTS = [
-  'bg-pink-500/10 border-pink-400/30 text-pink-100 hover:bg-pink-500/20',
-  'bg-purple-500/10 border-purple-400/30 text-purple-100 hover:bg-purple-500/20',
-  'bg-blue-500/10 border-blue-400/30 text-blue-100 hover:bg-blue-500/20',
-  'bg-teal-500/10 border-teal-400/30 text-teal-100 hover:bg-teal-500/20',
-  'bg-green-500/10 border-green-400/30 text-green-100 hover:bg-green-500/20',
-  'bg-yellow-500/10 border-yellow-400/30 text-yellow-100 hover:bg-yellow-500/20',
-  'bg-orange-500/10 border-orange-400/30 text-orange-100 hover:bg-orange-500/20',
-  'bg-red-500/10 border-red-400/30 text-red-100 hover:bg-red-500/20',
-  'bg-indigo-500/10 border-indigo-400/30 text-indigo-100 hover:bg-indigo-500/20',
-  'bg-violet-500/10 border-violet-400/30 text-violet-100 hover:bg-violet-500/20',
-];
+// Age is optional, but if someone taps in "500" it should be caught before
+// submit rather than silently stored — a blank value is valid (not required).
+const isValidAge = (value: string): boolean => {
+  if (!value.trim()) return true;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 120;
+};
 
 // ══════════════════════════════════════════════════════════════════
 export default function CheckIn(): JSX.Element {
@@ -347,6 +315,10 @@ export default function CheckIn(): JSX.Element {
       toast.error('Please enter a valid email address');
       return;
     }
+    if (!isValidAge(form.age)) {
+      toast.error('Please enter a valid age (1–120)');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -445,9 +417,9 @@ export default function CheckIn(): JSX.Element {
 
       // Navigate back to privacy notice after celebration
       const timer = setTimeout(() => {
-        setForm({ 
-          mobile: '', 
-          name: '', 
+        setForm({
+          mobile: '',
+          name: '',
           sector: '',
           creative_domains: [],
           purpose_of_visit: [],
@@ -469,6 +441,17 @@ export default function CheckIn(): JSX.Element {
   // just typed this visit (form) — either satisfies the requirement.
   const effectiveEmail = (form.email || foundUser?.email || '').trim();
 
+  // Radio-style single-select: pass a 1-item `selected` array and have
+  // `onSelect` replace the value outright (never toggle it back off).
+  const renderSingleSelectChips = (
+    options: readonly string[],
+    value: string,
+    onSelect: (value: string) => void,
+    size: 'sm' | 'lg' = 'lg'
+  ): JSX.Element => (
+    <ChipGrid options={options} selected={value ? [value] : []} onSelect={onSelect} size={size} />
+  );
+
   // ══════════════════════════════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════════════════════════════
@@ -478,17 +461,17 @@ export default function CheckIn(): JSX.Element {
         <title>Check-In - Digital Creatives Hub Iligan</title>
         <meta name="description" content="Walk-in check-in kiosk for Digital Creatives Hub Iligan. Register your visit and check into available events." />
       </Helmet>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-fuchsia-600 via-violet-600 to-indigo-600 dark:from-fuchsia-900 dark:via-violet-900 dark:to-indigo-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* ── Glassmorphism Card ── */}
-        <div className="bg-white/10 backdrop-blur-2xl rounded-[2rem] shadow-2xl shadow-black/20 border border-white/20 p-6 sm:p-8">
+        {/* ── Bright kiosk card ── */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl shadow-black/30 border-4 border-white/50 dark:border-slate-700/60 p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-violet-300" />
-              <span className="text-[11px] font-semibold text-violet-200 uppercase tracking-wider">DCIH Check-In Kiosk</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-md mb-3">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
+              <span className="text-[11px] font-bold text-white uppercase tracking-wider">DCIH Check-In Kiosk</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-violet-600 to-fuchsia-600 dark:from-violet-300 dark:to-fuchsia-300 bg-clip-text text-transparent">
               {step === 'privacy' && 'Data Privacy Notice'}
               {step === 'event' && "Joining Today's Event?"}
               {step === 'mobile' && 'Enter Your Mobile Number'}
@@ -497,7 +480,7 @@ export default function CheckIn(): JSX.Element {
               {step === 'newUser' && 'Welcome!'}
               {step === 'success' && 'Welcome to the Hub!'}
             </h1>
-            <p className="text-sm text-white/50 mt-1">
+            <p className="text-sm text-slate-500 dark:text-white/50 mt-1 font-medium">
               {step === 'privacy' && 'Please read before proceeding'}
               {step === 'event' && 'Select an event, or continue as a general visit'}
               {step === 'mobile' && 'Use the keypad below or type on keyboard'}
@@ -511,32 +494,32 @@ export default function CheckIn(): JSX.Element {
           {/* ═══ STEP 0: DATA PRIVACY CONSENT (RA 10173) ═══ */}
           {step === 'privacy' && (
             <div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-5 max-h-[50vh] overflow-y-auto">
+              <div className="bg-violet-50 dark:bg-violet-900/20 border-2 border-violet-200 dark:border-violet-800 rounded-2xl p-5 mb-5 max-h-[50vh] overflow-y-auto">
                 <div className="flex items-center gap-2 mb-3">
-                  <ShieldCheck className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                  <span className="text-sm font-bold text-white">Republic Act 10173</span>
+                  <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                  <span className="text-sm font-bold text-slate-800 dark:text-white">Republic Act 10173</span>
                 </div>
-                <div className="space-y-3 text-[13px] leading-relaxed text-white/70">
+                <div className="space-y-3 text-[13px] leading-relaxed text-slate-600 dark:text-white/70">
                   <p>
-                    The <span className="text-white font-medium">Digital Creatives Innovation Hub (DCIH)</span>, 
+                    The <span className="text-slate-900 dark:text-white font-semibold">Digital Creatives Innovation Hub (DCIH)</span>,
                     a DTI Shared Service Facility, collects your personal information for the following purposes:
                   </p>
                   <ul className="space-y-1.5 pl-4">
                     <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-0.5">•</span>
-                      <span><span className="text-white/90 font-medium">DTI SSF Monitoring</span> — Attendance tracking required by the Department of Trade and Industry</span>
+                      <span className="text-emerald-500 mt-0.5">•</span>
+                      <span><span className="text-slate-900 dark:text-white/90 font-semibold">DTI SSF Monitoring</span> — Attendance tracking required by the Department of Trade and Industry</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-0.5">•</span>
-                      <span><span className="text-white/90 font-medium">PCIDA Reporting</span> — Creative industry data per Republic Act 11904</span>
+                      <span className="text-emerald-500 mt-0.5">•</span>
+                      <span><span className="text-slate-900 dark:text-white/90 font-semibold">PCIDA Reporting</span> — Creative industry data per Republic Act 11904</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-emerald-400 mt-0.5">•</span>
-                      <span><span className="text-white/90 font-medium">Hub Services</span> — To provide you with coworking and creative services</span>
+                      <span className="text-emerald-500 mt-0.5">•</span>
+                      <span><span className="text-slate-900 dark:text-white/90 font-semibold">Hub Services</span> — To provide you with coworking and creative services</span>
                     </li>
                   </ul>
-                  <p className="text-white/50 text-xs border-t border-white/10 pt-3 mt-3">
-                    Your data will <span className="text-white/70 font-medium">not</span> be shared with third parties for commercial purposes. 
+                  <p className="text-slate-400 dark:text-white/50 text-xs border-t border-violet-200 dark:border-white/10 pt-3 mt-3">
+                    Your data will <span className="text-slate-600 dark:text-white/70 font-medium">not</span> be shared with third parties for commercial purposes.
                     You may request access, correction, or deletion of your data by contacting the Hub Secretariat.
                   </p>
                 </div>
@@ -548,16 +531,16 @@ export default function CheckIn(): JSX.Element {
                 onClick={() => setPrivacyConsent(!privacyConsent)}
                 className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 ${
                   privacyConsent
-                    ? 'bg-emerald-500/20 border-2 border-emerald-400/50'
-                    : 'bg-white/5 border-2 border-white/10 hover:border-white/20'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/20 border-2 border-emerald-400'
+                    : 'bg-slate-50 dark:bg-white/5 border-2 border-slate-200 dark:border-white/10 hover:border-violet-300 dark:hover:border-white/20'
                 }`}
               >
                 <div className={`h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                  privacyConsent ? 'bg-emerald-500 text-white' : 'bg-white/10'
+                  privacyConsent ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10'
                 }`}>
                   {privacyConsent && <CheckCircle className="h-4 w-4" />}
                 </div>
-                <span className={`text-sm font-semibold text-left ${privacyConsent ? 'text-emerald-300' : 'text-white/60'}`}>
+                <span className={`text-sm font-semibold text-left ${privacyConsent ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-white/60'}`}>
                   I understand and consent to the collection and use of my data
                 </span>
               </button>
@@ -567,10 +550,10 @@ export default function CheckIn(): JSX.Element {
           {/* ═══ STEP: TODAY'S EVENT ═══ */}
           {step === 'event' && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-2 border-amber-400/30 rounded-2xl p-4">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border-2 border-amber-300 dark:border-amber-400/30 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <PartyPopper className="h-5 w-5 text-amber-400" />
-                  <p className="text-sm font-semibold text-amber-200">Are you here for one of today's events?</p>
+                  <PartyPopper className="h-5 w-5 text-amber-500" />
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">Are you here for one of today's events?</p>
                 </div>
                 <div className="space-y-2">
                   <button
@@ -578,13 +561,13 @@ export default function CheckIn(): JSX.Element {
                     onClick={() => handleSelectEvent(null)}
                     className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                       selectedEventId === null
-                        ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
-                        : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                        ? 'bg-amber-100 dark:bg-amber-500/20 border-2 border-amber-400 text-amber-800 dark:text-amber-200'
+                        : 'bg-white dark:bg-white/5 border-2 border-slate-200 dark:border-white/20 text-slate-600 dark:text-white/70 hover:border-amber-300 dark:hover:bg-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        selectedEventId === null ? 'bg-amber-500' : 'bg-white/10'
+                        selectedEventId === null ? 'bg-amber-500' : 'bg-slate-200 dark:bg-white/10'
                       }`}>
                         {selectedEventId === null && <Check className="h-3 w-3 text-white" />}
                       </div>
@@ -600,19 +583,19 @@ export default function CheckIn(): JSX.Element {
                       onClick={() => handleSelectEvent(event.id)}
                       className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                         selectedEventId === event.id
-                          ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-200'
-                          : 'bg-white/5 border border-white/20 text-white/70 hover:bg-white/10'
+                          ? 'bg-amber-100 dark:bg-amber-500/20 border-2 border-amber-400 text-amber-800 dark:text-amber-200'
+                          : 'bg-white dark:bg-white/5 border-2 border-slate-200 dark:border-white/20 text-slate-600 dark:text-white/70 hover:border-amber-300 dark:hover:bg-white/10'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          selectedEventId === event.id ? 'bg-amber-500' : 'bg-white/10'
+                          selectedEventId === event.id ? 'bg-amber-500' : 'bg-slate-200 dark:bg-white/10'
                         }`}>
                           {selectedEventId === event.id && <Check className="h-3 w-3 text-white" />}
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-sm">{event.title}</p>
-                          <p className="text-xs text-white/50">
+                          <p className="text-xs text-slate-400 dark:text-white/50">
                             {format(new Date(event.start_time), 'h:mm a')} – {format(new Date(event.end_time), 'h:mm a')}
                           </p>
                         </div>
@@ -623,7 +606,7 @@ export default function CheckIn(): JSX.Element {
               </div>
 
               {selectedEventId && (
-                <p className="text-center text-xs text-white/40">
+                <p className="text-center text-xs text-slate-400 dark:text-white/40">
                   Your purpose of visit will be set to "Event" — no need to pick from the other options later.
                 </p>
               )}
@@ -634,10 +617,10 @@ export default function CheckIn(): JSX.Element {
           {step === 'mobile' && (
             <div>
               {/* Display with Input */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+              <div className="bg-violet-50 dark:bg-white/5 border-2 border-violet-200 dark:border-white/10 rounded-2xl p-4 mb-4">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <Phone className="h-4 w-4 text-violet-300" />
-                  <span className="text-xs text-white/40 font-medium">PH Mobile</span>
+                  <Phone className="h-4 w-4 text-violet-500" />
+                  <span className="text-xs text-slate-500 dark:text-white/40 font-semibold">PH Mobile</span>
                 </div>
                 <input
                   type="tel"
@@ -649,7 +632,7 @@ export default function CheckIn(): JSX.Element {
                   onKeyDown={handleMobileKeyDown}
                   autoFocus
                   placeholder="09XX XXX XXXX"
-                  className="w-full bg-transparent text-3xl sm:text-4xl font-mono font-bold text-white tracking-wider text-center focus:outline-none placeholder:text-white/20"
+                  className="w-full bg-transparent text-3xl sm:text-4xl font-mono font-extrabold text-slate-900 dark:text-white tracking-wider text-center focus:outline-none placeholder:text-slate-300 dark:placeholder:text-white/20"
                 />
               </div>
 
@@ -667,8 +650,8 @@ export default function CheckIn(): JSX.Element {
                     className={`
                       h-14 sm:h-16 rounded-2xl text-xl sm:text-2xl font-bold transition-all duration-200
                       ${!key ? 'invisible' : key === '⌫'
-                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 active:scale-95'
-                        : 'bg-white/10 text-white hover:bg-white/20 active:scale-95 active:bg-violet-500/30'}
+                        ? 'bg-red-100 dark:bg-red-500/20 text-red-500 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-500/30 active:scale-95'
+                        : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-violet-100 dark:hover:bg-white/20 active:scale-95 active:bg-violet-200 dark:active:bg-violet-500/30'}
                     `}
                   >
                     {key}
@@ -681,19 +664,19 @@ export default function CheckIn(): JSX.Element {
           {/* ═══ STEP: IDENTIFY (Colorful "Is this you?" check) ═══ */}
           {step === 'identify' && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-br from-violet-500/20 to-purple-600/20 border-2 border-violet-400/30 rounded-3xl p-6 text-center relative overflow-hidden">
+              <div className="bg-gradient-to-br from-violet-100 to-fuchsia-100 dark:from-violet-500/20 dark:to-purple-600/20 border-2 border-violet-300 dark:border-violet-400/30 rounded-3xl p-6 text-center relative overflow-hidden">
                 {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/20 to-violet-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-300/40 to-violet-300/40 dark:from-pink-500/20 dark:to-violet-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-cyan-300/40 to-blue-300/40 dark:from-cyan-500/20 dark:to-blue-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
                 <div className="relative">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 mb-4 shadow-lg shadow-emerald-500/30">
                     <UserCheck className="h-10 w-10 text-white" />
                   </div>
-                  <p className="text-sm font-semibold text-violet-200 mb-3">We found this visitor:</p>
-                  
+                  <p className="text-sm font-semibold text-violet-700 dark:text-violet-200 mb-3">We found this visitor:</p>
+
                   {/* User info card */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-5 border border-white/20">
+                  <div className="bg-white dark:bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-5 border-2 border-violet-200 dark:border-white/20 shadow-md">
                     {editingName ? (
                       <input
                         type="text"
@@ -701,24 +684,24 @@ export default function CheckIn(): JSX.Element {
                         onChange={e => update({ name: e.target.value })}
                         onBlur={() => setEditingName(false)}
                         autoFocus
-                        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-3xl font-bold text-white text-center mb-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                        className="w-full bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-xl px-3 py-2 text-3xl font-bold text-slate-900 dark:text-white text-center mb-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                       />
                     ) : (
                       <p
-                        className="text-3xl font-bold text-white mb-2 cursor-pointer hover:text-violet-200 transition-colors inline-flex items-center gap-2"
+                        className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 cursor-pointer hover:text-violet-600 dark:hover:text-violet-200 transition-colors inline-flex items-center gap-2"
                         onClick={() => setEditingName(true)}
                       >
                         {form.name || foundUser?.full_name}
-                        <Pencil className="h-4 w-4 text-white/30 flex-shrink-0" />
+                        <Pencil className="h-4 w-4 text-slate-300 dark:text-white/30 flex-shrink-0" />
                       </p>
                     )}
-                    <p className="text-lg text-violet-200 mb-3">{form.mobile}</p>
-                    <p className="text-[11px] text-white/30 -mt-2 mb-3">Tap your name to correct it</p>
+                    <p className="text-lg text-violet-600 dark:text-violet-200 mb-3 font-semibold">{form.mobile}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-white/30 -mt-2 mb-3">Tap your name to correct it</p>
 
                     {/* Email — same weight as name/phone here, not deferred
                         to a later screen, so there's no confusing dead end
                         after they've already confirmed their identity. */}
-                    <div className="border-t border-white/10 pt-3">
+                    <div className="border-t border-slate-200 dark:border-white/10 pt-3">
                       {editingEmail ? (
                         <input
                           type="email"
@@ -727,21 +710,21 @@ export default function CheckIn(): JSX.Element {
                           onBlur={() => setEditingEmail(false)}
                           autoFocus
                           placeholder="juan@example.com"
-                          className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-lg font-semibold text-white text-center focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          className="w-full bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-xl px-3 py-2 text-lg font-semibold text-slate-900 dark:text-white text-center focus:outline-none focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
                         <p
                           className={`text-lg font-semibold cursor-pointer transition-colors inline-flex items-center gap-2 justify-center w-full ${
-                            isValidEmail(effectiveEmail) ? 'text-violet-200 hover:text-white' : 'text-red-300'
+                            isValidEmail(effectiveEmail) ? 'text-violet-600 dark:text-violet-200 hover:text-violet-800 dark:hover:text-white' : 'text-red-500 dark:text-red-300'
                           }`}
                           onClick={() => setEditingEmail(true)}
                         >
                           {form.email || foundUser?.email || 'Add your email *'}
-                          <Pencil className="h-4 w-4 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-4 w-4 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </p>
                       )}
                       {!isValidEmail(effectiveEmail) && (
-                        <p className="text-[11px] text-red-400 mt-1">Required to continue — tap to add</p>
+                        <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">Required to continue — tap to add</p>
                       )}
                     </div>
                   </div>
@@ -779,35 +762,26 @@ export default function CheckIn(): JSX.Element {
             <div className="space-y-4">
               {/* Your details (shown only now that identity is confirmed) */}
               {foundUser && (
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                    Your Details <span className="normal-case font-normal text-white/30">— tap any field to edit</span>
+                <div className="bg-white dark:bg-white/10 backdrop-blur-sm rounded-2xl p-5 border-2 border-violet-200 dark:border-white/20 shadow-sm">
+                  <p className="text-xs font-bold text-slate-400 dark:text-white/50 uppercase tracking-wider mb-3">
+                    Your Details <span className="normal-case font-normal text-slate-300 dark:text-white/30">— tap any field to edit</span>
                   </p>
-                  <div className="space-y-2 text-left text-sm">
-                    <div className="flex items-center gap-2 text-white/70">
-                      <Building2 className="h-4 w-4" />
+                  <div className="space-y-3 text-left text-sm">
+                    <div className="flex items-start gap-2 text-slate-600 dark:text-white/70">
+                      <Building2 className="h-4 w-4 mt-1 text-violet-500 flex-shrink-0" />
                       {editingSector ? (
-                        <select
-                          value={form.sector}
-                          onChange={e => update({ sector: e.target.value })}
-                          onBlur={() => setEditingSector(false)}
-                          autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                        >
-                          <option value="" className="bg-slate-900">Select sector</option>
-                          {SECTOR_OPTIONS.map(opt => (
-                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                          ))}
-                        </select>
+                        <div className="flex-1">
+                          {renderSingleSelectChips(SECTOR_OPTIONS, form.sector, (opt) => { update({ sector: opt }); setEditingSector(false); }, 'sm')}
+                        </div>
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingSector(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingSector(true)}>
                           {form.sector || foundUser?.sector || 'Add sector'}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/70">
-                      <Building className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                      <Building className="h-4 w-4 text-violet-500" />
                       {editingOrganization ? (
                         <input
                           type="text"
@@ -815,17 +789,17 @@ export default function CheckIn(): JSX.Element {
                           onChange={e => update({ organization: e.target.value })}
                           onBlur={() => setEditingOrganization(false)}
                           autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          className="flex-1 bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-lg px-2 py-1 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingOrganization(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingOrganization(true)}>
                           {form.organization || foundUser?.organization || 'Add office/agency/business'}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/70">
-                      <BadgeCheck className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                      <BadgeCheck className="h-4 w-4 text-violet-500" />
                       {editingDesignation ? (
                         <input
                           type="text"
@@ -833,17 +807,17 @@ export default function CheckIn(): JSX.Element {
                           onChange={e => update({ designation: e.target.value })}
                           onBlur={() => setEditingDesignation(false)}
                           autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          className="flex-1 bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-lg px-2 py-1 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingDesignation(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingDesignation(true)}>
                           {form.designation || foundUser?.designation || 'Add designation'}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/70">
-                      <Mail className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                      <Mail className="h-4 w-4 text-violet-500" />
                       {editingEmail ? (
                         <input
                           type="email"
@@ -851,67 +825,64 @@ export default function CheckIn(): JSX.Element {
                           onChange={e => update({ email: e.target.value })}
                           onBlur={() => setEditingEmail(false)}
                           autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          className="flex-1 bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-lg px-2 py-1 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-violet-500"
                         />
                       ) : (
                         <span
-                          className={`flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white ${!isValidEmail(effectiveEmail) ? 'text-red-300' : ''}`}
+                          className={`flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white ${!isValidEmail(effectiveEmail) ? 'text-red-500 dark:text-red-300' : ''}`}
                           onClick={() => setEditingEmail(true)}
                         >
                           {form.email || foundUser?.email || 'Add email *'}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/70">
-                      <User className="h-4 w-4" />
+                    <div className="flex items-start gap-2 text-slate-600 dark:text-white/70">
+                      <User className="h-4 w-4 mt-1 text-violet-500 flex-shrink-0" />
                       {editingGender ? (
-                        <select
-                          value={form.gender}
-                          onChange={e => update({ gender: e.target.value })}
-                          onBlur={() => setEditingGender(false)}
-                          autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                        >
-                          <option value="" className="bg-slate-900">Select gender</option>
-                          {GENDER_OPTIONS.map(opt => (
-                            <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                          ))}
-                        </select>
+                        <div className="flex-1">
+                          {renderSingleSelectChips(GENDER_OPTIONS, form.gender, (opt) => { update({ gender: opt }); setEditingGender(false); }, 'sm')}
+                        </div>
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingGender(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingGender(true)}>
                           {form.gender || foundUser?.gender || 'Add gender'}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-white/70">
-                      <CalendarClock className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-white/70">
+                      <CalendarClock className="h-4 w-4 text-violet-500" />
                       {editingAge ? (
-                        <input
-                          type="number"
-                          value={form.age}
-                          onChange={e => update({ age: e.target.value })}
-                          onBlur={() => setEditingAge(false)}
-                          placeholder="Age"
-                          min="1"
-                          max="120"
-                          autoFocus
-                          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-sm focus:ring-2 focus:ring-violet-500"
-                        />
+                        <div className="flex-1">
+                          <input
+                            type="number"
+                            value={form.age}
+                            onChange={e => update({ age: e.target.value })}
+                            onBlur={() => setEditingAge(false)}
+                            placeholder="Age"
+                            min="1"
+                            max="120"
+                            autoFocus
+                            className="w-full bg-slate-50 dark:bg-white/10 border-2 border-violet-300 dark:border-white/20 rounded-lg px-2 py-1 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-violet-500"
+                          />
+                          {!isValidAge(form.age) && (
+                            <p className="text-[11px] text-red-500 dark:text-red-400 mt-1">Enter a real age between 1 and 120</p>
+                          )}
+                        </div>
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingAge(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingAge(true)}>
                           {form.age ? `${form.age} years old` : (foundUser?.age ? `${foundUser.age} years old` : 'Add age')}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
-                    <div className="flex items-start gap-2 text-white/70">
-                      <Palette className="h-4 w-4 mt-0.5" />
+                    <div className="flex items-start gap-2 text-slate-600 dark:text-white/70">
+                      <Palette className="h-4 w-4 mt-0.5 text-violet-500 flex-shrink-0" />
                       {editingCreativeDomains ? (
                         <div className="flex-1 flex flex-wrap gap-1.5">
-                          {PCIDA_DOMAINS.map(domain => {
+                          {PCIDA_DOMAINS.map((domain, index) => {
                             const isSelected = form.creative_domains.includes(domain);
+                            const tintClass = CHIP_TINTS[index % CHIP_TINTS.length];
                             return (
                               <button
                                 key={domain}
@@ -921,10 +892,10 @@ export default function CheckIn(): JSX.Element {
                                     ? form.creative_domains.filter(d => d !== domain)
                                     : [...form.creative_domains, domain]
                                 })}
-                                className={`px-2 py-1 rounded-lg text-[11px] transition-all ${
+                                className={`px-2 py-1 rounded-lg text-[11px] border-2 transition-all ${
                                   isSelected
-                                    ? 'bg-violet-500/30 border border-violet-400/60 text-violet-200'
-                                    : 'bg-white/10 border border-white/20 text-white/60 hover:bg-white/20'
+                                    ? 'bg-violet-500 border-violet-500 text-white'
+                                    : tintClass
                                 }`}
                               >
                                 {domain}
@@ -934,17 +905,17 @@ export default function CheckIn(): JSX.Element {
                           <button
                             type="button"
                             onClick={() => setEditingCreativeDomains(false)}
-                            className="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                            className="px-2 py-1 rounded-lg text-[11px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-400/40"
                           >
                             Done
                           </button>
                         </div>
                       ) : (
-                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
+                        <span className="flex-1 flex items-center gap-1.5 cursor-pointer hover:text-violet-600 dark:hover:text-white" onClick={() => setEditingCreativeDomains(true)}>
                           {form.creative_domains.length > 0
                             ? form.creative_domains.join(', ')
                             : (foundUser?.creative_domains?.length ? foundUser.creative_domains.join(', ') : (foundUser?.creative_domain || 'Add creative domain'))}
-                          <Pencil className="h-3 w-3 text-white/30 flex-shrink-0" />
+                          <Pencil className="h-3 w-3 text-slate-300 dark:text-white/30 flex-shrink-0" />
                         </span>
                       )}
                     </div>
@@ -953,12 +924,12 @@ export default function CheckIn(): JSX.Element {
               )}
 
               {selectedEventId ? (
-                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-400/30 rounded-2xl p-4 text-center">
-                  <PartyPopper className="h-6 w-6 text-emerald-300 mx-auto mb-2" />
-                  <p className="text-sm text-white/80">
-                    Purpose of visit: <span className="font-semibold text-white">Event</span>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-2 border-emerald-300 dark:border-emerald-400/30 rounded-2xl p-4 text-center">
+                  <PartyPopper className="h-6 w-6 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-sm text-slate-700 dark:text-white/80">
+                    Purpose of visit: <span className="font-semibold text-slate-900 dark:text-white">Event</span>
                   </p>
-                  <p className="text-xs text-white/50 mt-1">
+                  <p className="text-xs text-slate-400 dark:text-white/50 mt-1">
                     You're checking in for {todayEvents.find(e => e.id === selectedEventId)?.title}
                   </p>
                 </div>
@@ -990,7 +961,7 @@ export default function CheckIn(): JSX.Element {
                         >
                           <div className="flex items-center gap-3">
                             <div className={`h-6 w-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                              isSelected ? 'bg-white/20' : 'bg-white/10'
+                              isSelected ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'
                             }`}>
                               {isSelected && <Check className="h-4 w-4 text-white" />}
                             </div>
@@ -1002,21 +973,26 @@ export default function CheckIn(): JSX.Element {
                   </div>
 
                   {form.purpose_of_visit.length === 0 && (
-                    <p className="text-center text-sm text-red-400 mt-2">Please select at least one purpose</p>
+                    <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">Please select at least one purpose</p>
                   )}
                 </>
               )}
 
               {!isValidEmail(effectiveEmail) && (
-                <p className="text-center text-sm text-red-400 mt-2">
+                <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">
                   {effectiveEmail ? 'Please tap the email above and enter a valid address' : 'Please tap the email above and add one — we need it to keep in touch'}
+                </p>
+              )}
+              {!isValidAge(form.age) && (
+                <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">
+                  Please tap the age above and enter a real age (1–120)
                 </p>
               )}
 
               <button
                 type="button"
                 onClick={handleCheckIn}
-                disabled={form.purpose_of_visit.length === 0 || !isValidEmail(effectiveEmail) || submitting}
+                disabled={form.purpose_of_visit.length === 0 || !isValidEmail(effectiveEmail) || !isValidAge(form.age) || submitting}
                 className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {submitting ? (
@@ -1034,57 +1010,45 @@ export default function CheckIn(): JSX.Element {
           {/* ═══ STEP: NEW USER ═══ */}
           {step === 'newUser' && (
             <div className="space-y-6">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-                <Sparkles className="h-12 w-12 text-violet-400 mx-auto mb-3" />
-                <p className="text-lg text-white/80">New here? Welcome!</p>
-                <p className="text-sm text-white/50">Please enter your name to complete registration</p>
+              <div className="bg-violet-50 dark:bg-white/5 border-2 border-violet-200 dark:border-white/10 rounded-2xl p-6 text-center">
+                <Sparkles className="h-12 w-12 text-violet-500 mx-auto mb-3" />
+                <p className="text-lg text-slate-700 dark:text-white/80 font-semibold">New here? Welcome!</p>
+                <p className="text-sm text-slate-400 dark:text-white/50">Please enter your name to complete registration</p>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Full Name *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Full Name *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => update({ name: e.target.value })}
                   placeholder="Juan Dela Cruz"
                   autoFocus
-                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/10 border-2 border-slate-200 dark:border-white/20 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Email *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Email *</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => update({ email: e.target.value })}
                   placeholder="juan@example.com"
-                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/10 border-2 border-slate-200 dark:border-white/20 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
                 {form.email.trim() && !isValidEmail(form.email) && (
-                  <p className="text-xs text-red-400 mt-1.5">Please enter a valid email address</p>
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">Please enter a valid email address</p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Gender</label>
-                <div className="relative">
-                  <select
-                    value={form.gender}
-                    onChange={e => update({ gender: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white text-sm appearance-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
-                  >
-                    <option value="" className="bg-slate-900">Select gender</option>
-                    {GENDER_OPTIONS.map(opt => (
-                      <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
-                </div>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Gender</label>
+                {renderSingleSelectChips(GENDER_OPTIONS, form.gender, (opt) => update({ gender: opt }), 'lg')}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Age</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Age</label>
                 <input
                   type="number"
                   value={form.age}
@@ -1092,30 +1056,21 @@ export default function CheckIn(): JSX.Element {
                   placeholder="25"
                   min="1"
                   max="120"
-                  className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/10 border-2 border-slate-200 dark:border-white/20 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-white/30 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 />
+                {form.age.trim() && !isValidAge(form.age) && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">Please enter a real age between 1 and 120</p>
+                )}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Sector *</label>
-                <div className="relative">
-                  <select
-                    value={form.sector}
-                    onChange={e => update({ sector: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-white text-sm appearance-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
-                  >
-                    <option value="" className="bg-slate-900">Select your sector</option>
-                    {SECTOR_OPTIONS.map(opt => (
-                      <option key={opt} value={opt} className="bg-slate-900">{opt}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
-                </div>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Sector *</label>
+                {renderSingleSelectChips(SECTOR_OPTIONS, form.sector, (opt) => update({ sector: opt }), 'lg')}
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Creative Domains *</label>
-                <p className="text-xs text-white/40 mb-2">Select all that apply (PCIDA RA 11904)</p>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Creative Domains *</label>
+                <p className="text-xs text-slate-400 dark:text-white/40 mb-2">Select all that apply (PCIDA RA 11904)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {PCIDA_DOMAINS.map((domain, index) => {
                     const isSelected = form.creative_domains.includes(domain);
@@ -1132,14 +1087,14 @@ export default function CheckIn(): JSX.Element {
                               : [...form.creative_domains, domain]
                           });
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-all border ${
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-left transition-all border-2 ${
                           isSelected
                             ? `bg-gradient-to-r ${colorClass} border-transparent text-white shadow-md`
                             : tintClass
                         }`}
                       >
                         <div className={`h-4 w-4 rounded flex items-center justify-center flex-shrink-0 ${
-                          isSelected ? 'bg-white/20' : 'bg-white/10'
+                          isSelected ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'
                         }`}>
                           {isSelected && <Check className="h-3 w-3 text-white" />}
                         </div>
@@ -1151,20 +1106,20 @@ export default function CheckIn(): JSX.Element {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5 block">Purpose of Visit *</label>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/60 uppercase tracking-wider mb-1.5 block">Purpose of Visit *</label>
                 {selectedEventId ? (
-                  <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-400/30 rounded-2xl p-4 text-center">
-                    <PartyPopper className="h-6 w-6 text-emerald-300 mx-auto mb-2" />
-                    <p className="text-sm text-white/80">
-                      Purpose of visit: <span className="font-semibold text-white">Event</span>
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-2 border-emerald-300 dark:border-emerald-400/30 rounded-2xl p-4 text-center">
+                    <PartyPopper className="h-6 w-6 text-emerald-500 mx-auto mb-2" />
+                    <p className="text-sm text-slate-700 dark:text-white/80">
+                      Purpose of visit: <span className="font-semibold text-slate-900 dark:text-white">Event</span>
                     </p>
-                    <p className="text-xs text-white/50 mt-1">
+                    <p className="text-xs text-slate-400 dark:text-white/50 mt-1">
                       You're checking in for {todayEvents.find(e => e.id === selectedEventId)?.title}
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-xs text-white/40 mb-2">Select all that apply</p>
+                    <p className="text-xs text-slate-400 dark:text-white/40 mb-2">Select all that apply</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PURPOSE_OF_VISIT_OPTIONS.map((purpose, index) => {
                         const isSelected = form.purpose_of_visit.includes(purpose);
@@ -1191,7 +1146,7 @@ export default function CheckIn(): JSX.Element {
                           >
                             <div className="flex items-center gap-3">
                               <div className={`h-5 w-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                                isSelected ? 'bg-white/20' : 'bg-white/10'
+                                isSelected ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'
                               }`}>
                                 {isSelected && <Check className="h-3 w-3 text-white" />}
                               </div>
@@ -1202,7 +1157,7 @@ export default function CheckIn(): JSX.Element {
                       })}
                     </div>
                     {form.purpose_of_visit.length === 0 && (
-                      <p className="text-xs text-red-400 mt-2">Please select at least one purpose</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-2">Please select at least one purpose</p>
                     )}
                   </>
                 )}
@@ -1212,7 +1167,7 @@ export default function CheckIn(): JSX.Element {
                 <button
                   type="button"
                   onClick={handleCheckIn}
-                  disabled={!form.name.trim() || !isValidEmail(form.email) || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || submitting}
+                  disabled={!form.name.trim() || !isValidEmail(form.email) || !isValidAge(form.age) || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || submitting}
                   className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-lg font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
                 >
                   {submitting ? (
@@ -1226,7 +1181,7 @@ export default function CheckIn(): JSX.Element {
                 <button
                   type="button"
                   onClick={goBack}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-8 py-3 rounded-2xl text-sm font-semibold text-slate-400 dark:text-white/60 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                 >
                   Change Number
                 </button>
@@ -1240,29 +1195,29 @@ export default function CheckIn(): JSX.Element {
               <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 mb-6 animate-pulse">
                 <CheckCircle className="h-12 w-12 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                 {foundUser ? 'Welcome back!' : 'Welcome to the Hub!'}
               </h2>
               <p className="text-4xl mb-4">
                 {foundUser ? '👋' : '🎉'}
               </p>
-              <p className="text-white/70 text-sm">
-                {foundUser 
-                  ? 'Great to see you again! You\'re all checked in.' 
+              <p className="text-slate-500 dark:text-white/70 text-sm">
+                {foundUser
+                  ? 'Great to see you again! You\'re all checked in.'
                   : 'You\'re all checked in! Enjoy your first visit.'}
               </p>
             </div>
           )}
 
           {/* ── Navigation ── */}
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-white/10">
             {step === 'privacy' ? (
               <div />
             ) : (
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 dark:text-white/60 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
               >
                 <ArrowLeft className="h-4 w-4" /> Back
               </button>
@@ -1273,7 +1228,7 @@ export default function CheckIn(): JSX.Element {
                 type="button"
                 onClick={goNext}
                 disabled={step === 'privacy' && !privacyConsent}
-                className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 shadow-lg shadow-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
+                className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
               >
                 Continue <ArrowRight className="h-4 w-4" />
               </button>
@@ -1284,7 +1239,7 @@ export default function CheckIn(): JSX.Element {
         </div>
 
         {/* Branding footer */}
-        <p className="text-center text-white/30 text-[10px] mt-4">
+        <p className="text-center text-white/70 text-[10px] mt-4 font-medium">
           Digital Creatives Innovation Hub — DTI Region 10
         </p>
       </div>

@@ -220,6 +220,28 @@ export const PCIDA_DOMAINS = [
 
 export type PCIDADomain = (typeof PCIDA_DOMAINS)[number];
 
+// Sector options - shared between bookings and check-in, so the same
+// column holds consistent values regardless of which form wrote it.
+export const SECTOR_OPTIONS = [
+  'Teacher/Academe',
+  'Government Employee',
+  'MSME/Entrepreneur',
+  'Private Sector Employee',
+  'Freelancer/Remote Worker',
+  'Creative Professional',
+  'Startup Founder/Innovator',
+  'Civil Society/NGO',
+  'Student/Researcher',
+  'Other',
+] as const;
+
+export type Sector = (typeof SECTOR_OPTIONS)[number];
+
+// Gender options - shared between bookings and check-in
+export const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'] as const;
+
+export type Gender = (typeof GENDER_OPTIONS)[number];
+
 // Purpose options - shared between bookings and check-in
 export const PURPOSE_OPTIONS = [
   'Explore',
