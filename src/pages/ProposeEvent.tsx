@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { getErrorMessage } from '../lib/getErrorMessage';
 import { PCIDA_DOMAINS } from '../types/hub';
 import EventProposalTicket, { type EventProposalTicketData } from '../components/booking/EventProposalTicket';
 
@@ -173,8 +174,7 @@ export default function ProposeEvent(): JSX.Element {
       toast.success('Event proposal submitted!');
     } catch (err: unknown) {
       console.error('Error submitting proposal:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit proposal';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Failed to submit proposal'));
     } finally {
       setSubmitting(false);
     }
