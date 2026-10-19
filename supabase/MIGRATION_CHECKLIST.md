@@ -31,10 +31,12 @@ flows the migration could plausibly affect:
       as a guest (no account) and paste a real Facebook mobile "Share" link
       (paste one from Messenger/FB mobile — these often exceed 255 chars
       with tracking params). Confirm it submits successfully.
-- [ ] **Guest gadget borrow is rejected; account-holder borrow succeeds.**
-      Since `057_require_account_for_borrowings.sql`, borrowing without an
-      account should fail with a clear message, not a silent/generic error.
-      Confirm both the rejection and the logged-in success path.
+- [ ] **Guest gadget borrow succeeds (no account needed).** Since
+      `066_remove_account_requirement_for_borrowings.sql`, borrowing
+      without an account should work the same as a guest space booking.
+      Confirm a logged-out borrow goes through, and that an
+      admin-assisted borrow (ManualBorrowModal, attaching a known
+      account) still works too.
 - [ ] **A booking that causes `daily_occupancy` to update.** Submit (or
       admin-approve) a booking so its status becomes `approved`/`active`,
       then check the public calendar's "Reserved: X/Y" count actually moves.

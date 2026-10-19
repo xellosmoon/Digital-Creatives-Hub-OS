@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import {
   X, AlertTriangle, Clock, Building2, ExternalLink,
-  Plus, Trash2, Search, Printer, CheckCircle, ArrowLeft, ArrowRight, LogIn,
+  Plus, Trash2, Search, Printer, CheckCircle, ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
@@ -66,19 +65,6 @@ export default function BorrowWizard({
 
   const [submitting, setSubmitting] = useState(false);
   const [formPages, setFormPages] = useState<ReceivingFormData[] | null>(null);
-
-  // Borrowing now requires a real account — every borrowings row must carry
-  // a non-null user_id (see 057_require_account_for_borrowings.sql), so the
-  // wizard checks for a session up front instead of leaving it optional.
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setHasSession(!!data.session);
-      setCheckingSession(false);
-    });
-  }, []);
 
   const nowISO = useMemo(() => {
     const d = new Date();
@@ -335,11 +321,10 @@ export default function BorrowWizard({
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Borrow Equipment</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {!checkingSession && !hasSession && 'Account required'}
-              {(checkingSession || hasSession) && step === 'devices' && 'Step 1 of 3 — Devices & time'}
-              {(checkingSession || hasSession) && step === 'personal' && 'Step 2 of 3 — Your information'}
-              {(checkingSession || hasSession) && step === 'review' && 'Step 3 of 3 — Review & Receiving Form'}
-              {(checkingSession || hasSession) && step === 'done' && 'Submitted'}
+              {step === 'devices' && 'Step 1 of 3 — Devices & time'}
+              {step === 'personal' && 'Step 2 of 3 — Your information'}
+              {step === 'review' && 'Step 3 of 3 — Review & Receiving Form'}
+              {step === 'done' && 'Submitted'}
             </p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
@@ -347,31 +332,6 @@ export default function BorrowWizard({
           </button>
         </div>
 
-        {!checkingSession && !hasSession ? (
-          <div className="px-6 py-8 text-center space-y-4">
-            <LogIn className="h-10 w-10 text-primary-500 mx-auto" />
-            <p className="font-semibold text-gray-900 dark:text-white">Log in to borrow equipment</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              Borrowing a gadget now requires an account, so we can track who has what. Anyone can create one — it
-              only takes a minute.
-            </p>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <Link
-                to="/login"
-                className="px-5 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600"
-              >
-                Log in
-              </Link>
-              <Link
-                to="/register"
-                className="px-5 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700"
-              >
-                Create an account
-              </Link>
-            </div>
-          </div>
-        ) : (
-        <>
         <div className="px-6 py-5 space-y-5">
           {step === 'devices' && (
             <>
@@ -644,8 +604,6 @@ export default function BorrowWizard({
               Done
             </button>
           </div>
-        )}
-        </>
         )}
       </div>
     </div>
