@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase';
 import { getErrorMessage } from '../lib/getErrorMessage';
 import { PCIDA_DOMAINS } from '../types/hub';
 import EventProposalTicket, { type EventProposalTicketData } from '../components/booking/EventProposalTicket';
+import DatePickerPopover from '../components/shared/DatePickerPopover';
 
 type Step = 'organizer' | 'logistics' | 'domains' | 'review';
 const STEP_META: { key: Step; label: string }[] = [
@@ -444,12 +445,10 @@ export default function ProposeEvent(): JSX.Element {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Date *</label>
-                          <input
-                            type="date"
+                          <DatePickerPopover
                             value={eventDate.date}
-                            onChange={e => updateEventDate(index, 'date', e.target.value)}
-                            min={format(addDays(new Date(), 3), 'yyyy-MM-dd')}
-                            className="w-full rounded-lg border-gray-200 dark:border-slate-600 bg-stone-100/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 px-3 py-2 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-300"
+                            onChange={date => updateEventDate(index, 'date', date)}
+                            min={format(addDays(new Date(), 1), 'yyyy-MM-dd')}
                           />
                         </div>
                         <div>
