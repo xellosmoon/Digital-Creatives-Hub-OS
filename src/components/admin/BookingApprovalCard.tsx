@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall, Ban } from 'lucide-react';
+import { Check, X, Clock, User, Mail, Phone, Calendar, Package, Users, PhoneCall, Ban, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import EventFormModal, { type EventFormPrefill } from './EventFormModal';
+import DecisionReasonDialog from './DecisionReasonDialog';
+import { BOOKING_ADMIN_REASONS, describeDecision, type DecisionReason } from '../../lib/decisionReasons';
+import { getErrorMessage } from '../../lib/getErrorMessage';
 import type { AdminBookingRow } from '../../types/hub';
 
 interface BookingApprovalCardProps {
@@ -16,6 +19,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
   const [showOverride, setShowOverride] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [showPromoteModal, setShowPromoteModal] = useState(false);
+  // Which close-out the reason dialog is currently collecting a reason for.
+  const [decisionMode, setDecisionMode] = useState<'reject' | 'cancel' | null>(null);
+
+  // Still awaiting an admin decision — "under review" is not a decision,
+  // so it keeps every action a pending booking has.
+  const isOpen = booking.status === 'pending' || booking.status === 'under_review';
 
   const suggestedEventTitle = [booking.organization, booking.gathering_type].filter(Boolean).join(' ');
 
@@ -38,23 +47,71 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  const handleApproval = async (approved: boolean): Promise<void> => {
+  const handleApprove = async (): Promise<void> => {
     setLoading(true);
     try {
       const { error } = await supabase
         .from('hub_bookings')
         .update({
-          status: approved ? 'approved' : 'rejected',
+          status: 'approved',
           updated_at: new Date().toISOString()
         })
         .eq('id', booking.id);
 
       if (error) throw error;
-      toast.success(`Booking ${approved ? 'approved' : 'rejected'} successfully`);
+      toast.success('Booking approved successfully');
       onUpdate();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error updating booking';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(error, 'Error updating booking'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lets the guest see on their ticket that an admin has actually picked
+  // this up, instead of it looking identical to "nobody's looked yet".
+  const handleStartReview = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('hub_bookings')
+        .update({ status: 'under_review', updated_at: new Date().toISOString() })
+        .eq('id', booking.id);
+
+      if (error) throw error;
+      toast.success('Marked as under review — the guest can see this on their ticket');
+      onUpdate();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Error updating booking'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rejecting (while still open) and cancelling (once approved) both ask
+  // why first — the reason is stored and shown to the guest on their ticket.
+  const handleCloseOut = async (decision: DecisionReason): Promise<void> => {
+    if (!decisionMode) return;
+    const status = decisionMode === 'reject' ? 'rejected' : 'cancelled';
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('hub_bookings')
+        .update({
+          status,
+          status_reason: decision.reason,
+          status_note: decision.note || null,
+          status_changed_by: 'admin',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', booking.id);
+
+      if (error) throw error;
+      toast.success(decisionMode === 'reject' ? 'Booking rejected' : 'Booking cancelled');
+      setDecisionMode(null);
+      onUpdate();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Error updating booking'));
     } finally {
       setLoading(false);
     }
@@ -157,36 +214,12 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  // Frees up the seats an approved/active booking was holding — there was
-  // previously no way to do this short of rejecting it while still
-  // pending, so an approved booking that later fell through kept counting
-  // against capacity forever.
-  const handleCancel = async (): Promise<void> => {
-    if (!window.confirm('Cancel this booking? This frees up its reserved seats.')) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('hub_bookings')
-        .update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', booking.id);
-
-      if (error) throw error;
-      toast.success('Booking cancelled');
-      onUpdate();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error cancelling booking';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const statusLabel = (s: string): string => (s === 'under_review' ? 'under review' : s);
 
   const statusColor = (s: string): string => {
     switch (s) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'under_review': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
       case 'approved': case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'rejected': case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
@@ -203,7 +236,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Ref:</span>
             <span className="text-sm font-mono text-gray-900 dark:text-white">{booking.booking_reference}</span>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(booking.status)}`}>
-              {booking.status}
+              {statusLabel(booking.status)}
             </span>
             {booking.is_workshop && (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300">
@@ -318,11 +351,21 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       </div>
 
       {/* Actions */}
-      {booking.status === 'pending' && (
+      {isOpen && (
         <div className="space-y-3 mt-4">
+          {booking.status === 'pending' && (
+            <button
+              onClick={handleStartReview}
+              disabled={loading}
+              className="w-full inline-flex items-center justify-center px-4 py-2 border border-indigo-300 dark:border-indigo-700 text-sm font-medium rounded-md text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 disabled:opacity-50 transition-colors"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Start Review
+            </button>
+          )}
           <div className="flex gap-3">
             <button
-              onClick={() => handleApproval(true)}
+              onClick={handleApprove}
               disabled={loading}
               className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
@@ -330,7 +373,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               Approve
             </button>
             <button
-              onClick={() => handleApproval(false)}
+              onClick={() => setDecisionMode('reject')}
               disabled={loading}
               className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
@@ -385,11 +428,22 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       )}
 
       {/* Actions for non-pending bookings */}
-      {booking.status !== 'pending' && (
+      {!isOpen && (
         <div className="space-y-3 mt-4">
+          {(booking.status === 'rejected' || booking.status === 'cancelled') && (
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm">
+              <p className="font-semibold text-red-800 dark:text-red-300">
+                {booking.status === 'cancelled' ? 'Cancelled' : 'Rejected'}
+                {booking.status_changed_by === 'guest' ? ' by the guest' : booking.status_changed_by === 'admin' ? ' by an admin' : ''}
+              </p>
+              <p className="text-red-700 dark:text-red-400">
+                {describeDecision(booking) ?? 'No reason recorded'}
+              </p>
+            </div>
+          )}
           {(booking.status === 'approved' || booking.status === 'active') && (
             <button
-              onClick={handleCancel}
+              onClick={() => setDecisionMode('cancel')}
               disabled={loading}
               className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
@@ -417,6 +471,18 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
         <Clock className="h-3 w-3 inline mr-1" />
         Requested {formatDate(booking.created_at, 'MMM d, yyyy h:mm a')}
       </div>
+
+      {decisionMode && (
+        <DecisionReasonDialog
+          title={decisionMode === 'reject' ? 'Reject this booking?' : 'Cancel this booking?'}
+          subtitle={`${booking.guest_name || 'Guest'} · ${booking.booking_reference}${decisionMode === 'cancel' ? ' · frees up its reserved seats' : ''}`}
+          confirmLabel={decisionMode === 'reject' ? 'Reject booking' : 'Cancel booking'}
+          reasons={BOOKING_ADMIN_REASONS}
+          loading={loading}
+          onConfirm={handleCloseOut}
+          onClose={() => setDecisionMode(null)}
+        />
+      )}
 
       {/* Promote to Event — same form the proposal-publish flow uses */}
       {showPromoteModal && (

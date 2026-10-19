@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getErrorMessage } from '../lib/getErrorMessage';
+import type { DecisionReason } from '../lib/decisionReasons';
 import BookingApprovalCard from '../components/admin/BookingApprovalCard';
 import EventProposalCard, { EventProposalEmptyState, prefillFromProposal, type EventProposalData } from '../components/admin/EventProposalCard';
 import EventFormModal from '../components/admin/EventFormModal';
@@ -27,7 +29,7 @@ function timeElapsed(from: string): string {
 
 export default function AdminDashboard(): JSX.Element {
   const [bookings, setBookings] = useState<{ id: string; booking_reference: string; guest_name: string | null; guest_email: string | null; guest_phone: string | null; booking_date: string; start_time: string; end_time: string; seats_used: number; total_price: number; status: string; purpose: string[] | null; notes: string | null; is_workshop: boolean; created_at: string; admin_contacted: boolean; admin_contacted_at: string | null; booking_type: string | null; group_size: number | null; organization: string | null; gathering_type: string | null; package?: { id: string; slug: string; name: string; hourly_rate: number | null; daily_rate: number | null; billing_mode: string; seats_consumed: number; is_bundle: boolean }; borrowings?: { id: string; asset: { name: string } | null }[] }[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'cancelled'>('pending');
   const [loading, setLoading] = useState(true);
   const [pendingCounts, setPendingCounts] = useState({ bookings: 0, events: 0, total: 0 });
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
@@ -121,36 +123,55 @@ export default function AdminDashboard(): JSX.Element {
     }
   };
 
-  const handleRejectProposal = async (id: string): Promise<void> => {
-    if (!window.confirm('Are you sure you want to reject this proposal?')) return;
+  // The card asks the admin for a reason before calling this — it's saved
+  // and shown to the organizer on their ticket.
+  const handleRejectProposal = async (id: string, decision: DecisionReason): Promise<void> => {
     try {
       const { error } = await supabase
         .from('hub_events')
-        .update({ status: 'rejected' })
+        .update({
+          status: 'rejected',
+          status_reason: decision.reason,
+          status_note: decision.note || null,
+          status_changed_by: 'admin',
+        })
         .eq('id', id);
       if (error) throw error;
       toast.success('Event proposal rejected');
       fetchProposals();
       fetchPendingCounts();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to reject proposal';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Failed to reject proposal'));
+    }
+  };
+
+  const handleStartReviewProposal = async (id: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('hub_events')
+        .update({ status: 'under_review' })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Marked as under review — the organizer can see this on their ticket');
+      fetchProposals();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to update proposal'));
     }
   };
 
   const fetchPendingCounts = async (): Promise<void> => {
     try {
-      // Fetch pending bookings count
+      // "Under review" is still awaiting a decision, so it keeps counting
+      // toward what needs attention.
       const { count: pendingBookings } = await supabase
         .from('hub_bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      
-      // Fetch pending event proposals count
+        .in('status', ['pending', 'under_review']);
+
       const { count: pendingEvents } = await supabase
         .from('hub_events')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending_review');
+        .in('status', ['pending_review', 'under_review']);
       
       const total = (pendingBookings || 0) + (pendingEvents || 0);
       setPendingCounts({
@@ -171,7 +192,11 @@ export default function AdminDashboard(): JSX.Element {
         .select('*, package:rental_packages(id, slug, name, hourly_rate, daily_rate, billing_mode, seats_consumed, is_bundle), borrowings(id, asset:assets(name))')
         .order('created_at', { ascending: false });
 
-      if (filter !== 'all') {
+      if (filter === 'pending') {
+        // "Pending" here means "still needs a decision" — includes the ones
+        // an admin has already started reviewing.
+        query = query.in('status', ['pending', 'under_review']);
+      } else if (filter !== 'all') {
         query = query.eq('status', filter);
       }
 
@@ -841,7 +866,7 @@ export default function AdminDashboard(): JSX.Element {
             <div className="flex items-center space-x-4">
               <Filter className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               <nav className="flex space-x-4">
-                {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+                {(['all', 'pending', 'approved', 'rejected', 'cancelled'] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => setFilter(status)}
@@ -887,8 +912,9 @@ export default function AdminDashboard(): JSX.Element {
       {activeTab === 'events' && (
         <div className="space-y-4">
           {(() => {
-            const pendingProposals = proposals.filter(p => p.status === 'pending_review');
-            const otherProposals = proposals.filter(p => p.status !== 'pending_review');
+            const isOpenProposal = (s: string): boolean => s === 'pending_review' || s === 'under_review';
+            const pendingProposals = proposals.filter(p => isOpenProposal(p.status));
+            const otherProposals = proposals.filter(p => !isOpenProposal(p.status));
             if (proposals.length === 0) {
               return <EventProposalEmptyState message="No event proposals yet" />;
             }
@@ -899,7 +925,8 @@ export default function AdminDashboard(): JSX.Element {
                     key={proposal.id}
                     proposal={proposal}
                     onApprove={() => setPromotingProposal(proposal)}
-                    onReject={() => handleRejectProposal(proposal.id)}
+                    onReject={(decision) => handleRejectProposal(proposal.id, decision)}
+                    onStartReview={() => handleStartReviewProposal(proposal.id)}
                   />
                 ))}
                 {otherProposals.length > 0 && (
@@ -912,7 +939,8 @@ export default function AdminDashboard(): JSX.Element {
                         key={proposal.id}
                         proposal={proposal}
                         onApprove={() => setPromotingProposal(proposal)}
-                        onReject={() => handleRejectProposal(proposal.id)}
+                        onReject={(decision) => handleRejectProposal(proposal.id, decision)}
+                        onStartReview={() => handleStartReviewProposal(proposal.id)}
                       />
                     ))}
                   </>

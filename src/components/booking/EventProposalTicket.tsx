@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
-import { Calendar, Clock, Mail, User, PartyPopper, CheckCircle, Hourglass, XCircle, Archive } from 'lucide-react';
+import { Calendar, Clock, Mail, User, PartyPopper, CheckCircle, Hourglass, XCircle, Archive, Eye } from 'lucide-react';
+import CancelTicketControl from './CancelTicketControl';
+import { describeDecision, type DecisionReason, type StatusDecision } from '../../lib/decisionReasons';
 
-export interface EventProposalTicketData {
+export interface EventProposalTicketData extends StatusDecision {
   proposal_reference: string;
   organizer_name: string;
   organizer_email: string;
@@ -14,10 +16,16 @@ export interface EventProposalTicketData {
   facebook_page?: string | null;
 }
 
+// An organizer can withdraw a proposal only before it's approved —
+// approving publishes a calendar event, which needs an admin to unpublish.
+const GUEST_CANCELLABLE = ['pending_review', 'under_review'];
+
 const STATUS_STYLE: Record<string, { label: string; icon: typeof CheckCircle; classes: string }> = {
   pending_review: { label: 'Pending Review', icon: Hourglass, classes: 'bg-amber-100 text-amber-700 border-amber-300' },
+  under_review: { label: 'Being Reviewed by Admin', icon: Eye, classes: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
   approved: { label: 'Approved', icon: CheckCircle, classes: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
   rejected: { label: 'Rejected', icon: XCircle, classes: 'bg-red-100 text-red-700 border-red-300' },
+  cancelled: { label: 'Cancelled', icon: XCircle, classes: 'bg-gray-100 text-gray-600 border-gray-300' },
   archived: { label: 'Archived', icon: Archive, classes: 'bg-gray-100 text-gray-600 border-gray-300' },
 };
 
@@ -28,8 +36,17 @@ const STATUS_STYLE: Record<string, { label: string; icon: typeof CheckCircle; cl
 // rather than forcing both shapes through one generic ticket.
 export default function EventProposalTicket({ proposal }: { proposal: EventProposalTicketData }): JSX.Element {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const statusInfo = STATUS_STYLE[proposal.status] ?? STATUS_STYLE.pending_review;
+  // Set when the organizer withdraws from this very ticket, so it flips to
+  // "Cancelled" immediately instead of waiting on a re-lookup.
+  const [cancelled, setCancelled] = useState<DecisionReason | null>(null);
+
+  const status = cancelled ? 'cancelled' : proposal.status;
+  const decision: StatusDecision = cancelled
+    ? { status_reason: cancelled.reason || null, status_note: cancelled.note || null, status_changed_by: 'guest' }
+    : proposal;
+  const statusInfo = STATUS_STYLE[status] ?? STATUS_STYLE.pending_review;
   const StatusIcon = statusInfo.icon;
+  const isClosed = status === 'rejected' || status === 'cancelled';
 
   useEffect(() => {
     const lookupUrl = `${window.location.origin}/booking-lookup?ref=${encodeURIComponent(proposal.proposal_reference)}`;
@@ -100,9 +117,35 @@ export default function EventProposalTicket({ proposal }: { proposal: EventPropo
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 text-center">
-          Screenshot this ticket to keep for reference. We&apos;ll follow up by {contactText} once it&apos;s reviewed — please keep an eye out.
-        </p>
+        {isClosed ? (
+          <div className={`rounded-2xl border-2 px-4 py-3 text-sm ${status === 'rejected' ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+            <p className="font-bold text-gray-900">
+              {status === 'cancelled'
+                ? decision.status_changed_by === 'admin' ? 'Cancelled by the Hub' : 'You cancelled this proposal'
+                : "Sorry — we couldn't take this proposal forward"}
+            </p>
+            <p className="text-gray-700 mt-0.5">
+              {describeDecision(decision) ?? (decision.status_changed_by === 'guest' ? 'No reason given.' : 'Please contact the Hub if you have questions.')}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 text-center">
+            {status === 'under_review'
+              ? `An admin is reviewing your proposal right now. We'll follow up by ${contactText} — please keep an eye out.`
+              : status === 'approved'
+                ? "Great news — your event is approved! Need to change or cancel it? Please contact the Hub."
+                : `Screenshot this ticket to keep for reference. We'll follow up by ${contactText} once it's reviewed — please keep an eye out.`}
+          </p>
+        )}
+
+        {GUEST_CANCELLABLE.includes(status) && !cancelled && proposal.organizer_email && (
+          <CancelTicketControl
+            kind="proposal"
+            reference={proposal.proposal_reference}
+            email={proposal.organizer_email}
+            onCancelled={setCancelled}
+          />
+        )}
       </div>
     </div>
   );

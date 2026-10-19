@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Plus, RefreshCw, Filter, ArrowLeft, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getErrorMessage } from '../lib/getErrorMessage';
+import type { DecisionReason } from '../lib/decisionReasons';
 import toast from 'react-hot-toast';
 import type { CalendarEvent } from '../types';
 import AdminEventCard from '../components/admin/AdminEventCard';
@@ -100,19 +102,38 @@ export default function EventManagement(): JSX.Element {
   };
 
   // ── Reject proposal ─────────────────
-  const handleRejectProposal = async (id: string): Promise<void> => {
-    if (!window.confirm('Are you sure you want to reject this proposal?')) return;
+  // The card asks for a reason first; it's saved and shown to the
+  // organizer on their ticket.
+  const handleRejectProposal = async (id: string, decision: DecisionReason): Promise<void> => {
     try {
       const { error } = await supabase
         .from('hub_events')
-        .update({ status: 'rejected' })
+        .update({
+          status: 'rejected',
+          status_reason: decision.reason,
+          status_note: decision.note || null,
+          status_changed_by: 'admin',
+        })
         .eq('id', id);
       if (error) throw error;
       toast.success('Event proposal rejected');
       fetchProposals();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to reject proposal';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Failed to reject proposal'));
+    }
+  };
+
+  const handleStartReviewProposal = async (id: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('hub_events')
+        .update({ status: 'under_review' })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Marked as under review — the organizer can see this on their ticket');
+      fetchProposals();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to update proposal'));
     }
   };
 
@@ -220,20 +241,21 @@ export default function EventManagement(): JSX.Element {
           // once published (published_event_id set) they drop off both
           // tabs instead of piling up in them forever.
           (filter === 'proposed'
-            ? proposals.filter(p => p.status === 'pending_review')
+            ? proposals.filter(p => p.status === 'pending_review' || p.status === 'under_review')
             : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
           ).length === 0 ? (
             <EventProposalEmptyState message={filter === 'proposed' ? 'No pending event proposals found' : 'No approved proposals awaiting publish'} />
           ) : (
             (filter === 'proposed'
-              ? proposals.filter(p => p.status === 'pending_review')
+              ? proposals.filter(p => p.status === 'pending_review' || p.status === 'under_review')
               : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
             ).map((proposal) => (
               <EventProposalCard
                 key={proposal.id}
                 proposal={proposal}
                 onApprove={() => setPromotingProposal(proposal)}
-                onReject={() => handleRejectProposal(proposal.id)}
+                onReject={(decision) => handleRejectProposal(proposal.id, decision)}
+                onStartReview={() => handleStartReviewProposal(proposal.id)}
               />
             ))
           )

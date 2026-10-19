@@ -38,8 +38,13 @@ export default function AdminBookings(): JSX.Element {
 
   // Apply filter and search
   const filteredBookings = allBookings.filter(booking => {
-    // Filter by status first
-    if (filter !== 'all' && booking.status !== filter) return false;
+    // Filter by status first. "Pending" means "still needs a decision", so
+    // it includes bookings an admin has already started reviewing.
+    if (filter === 'pending') {
+      if (booking.status !== 'pending' && booking.status !== 'under_review') return false;
+    } else if (filter !== 'all' && booking.status !== filter) {
+      return false;
+    }
     
     // Then filter by search term
     if (!searchTerm) return true;
@@ -56,7 +61,7 @@ export default function AdminBookings(): JSX.Element {
   // Calculate stats from ALL bookings
   const stats = {
     all: allBookings.length,
-    pending: allBookings.filter(b => b.status === 'pending').length,
+    pending: allBookings.filter(b => b.status === 'pending' || b.status === 'under_review').length,
     approved: allBookings.filter(b => b.status === 'approved').length,
     cancelled: allBookings.filter(b => b.status === 'cancelled').length,
     rejected: allBookings.filter(b => b.status === 'rejected').length,

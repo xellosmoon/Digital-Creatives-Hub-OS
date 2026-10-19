@@ -6,6 +6,7 @@ export type PackageBillingMode = 'hourly' | 'daily' | 'hourly_or_daily';
 
 export type HubBookingStatus =
   | 'pending'
+  | 'under_review'
   | 'approved'
   | 'active'
   | 'completed'
@@ -125,6 +126,9 @@ export interface AdminBookingRow {
   group_size: number | null;
   organization: string | null;
   gathering_type: string | null;
+  status_reason?: string | null;
+  status_note?: string | null;
+  status_changed_by?: 'guest' | 'admin' | null;
   package?: {
     id: string;
     slug: string;

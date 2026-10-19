@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
-import { Calendar, Clock, Mail, User, Users, CheckCircle, Hourglass, XCircle } from 'lucide-react';
+import { Calendar, Clock, Mail, User, Users, CheckCircle, Hourglass, XCircle, Eye } from 'lucide-react';
+import CancelTicketControl from './CancelTicketControl';
+import { describeDecision, type DecisionReason, type StatusDecision } from '../../lib/decisionReasons';
 
-export interface BookingTicketData {
+export interface BookingTicketData extends StatusDecision {
   booking_reference: string;
   guest_name: string;
   guest_email: string;
@@ -30,9 +32,16 @@ function contactChannelsText(booking: BookingTicketData): string {
   return `${channels.slice(0, -1).join(', ')}, and ${channels[channels.length - 1]}`;
 }
 
+// A guest can cancel their own booking until it's finished — the database
+// also refuses once it's been promoted to a published event.
+const GUEST_CANCELLABLE = ['pending', 'under_review', 'approved'];
+
 const STATUS_STYLE: Record<string, { label: string; icon: typeof CheckCircle; classes: string }> = {
   pending: { label: 'Pending Approval', icon: Hourglass, classes: 'bg-amber-100 text-amber-700 border-amber-300' },
+  under_review: { label: 'Being Reviewed by Admin', icon: Eye, classes: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
   approved: { label: 'Approved', icon: CheckCircle, classes: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  active: { label: 'In Progress', icon: CheckCircle, classes: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  completed: { label: 'Completed', icon: CheckCircle, classes: 'bg-blue-100 text-blue-700 border-blue-300' },
   rejected: { label: 'Rejected', icon: XCircle, classes: 'bg-red-100 text-red-700 border-red-300' },
   cancelled: { label: 'Cancelled', icon: XCircle, classes: 'bg-gray-100 text-gray-600 border-gray-300' },
 };
@@ -43,8 +52,17 @@ const STATUS_STYLE: Record<string, { label: string; icon: typeof CheckCircle; cl
 // the same document just with an updated status.
 export default function BookingTicket({ booking }: { booking: BookingTicketData }): JSX.Element {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const statusInfo = STATUS_STYLE[booking.status] ?? STATUS_STYLE.pending;
+  // Set when the guest cancels from this very ticket, so it flips to
+  // "Cancelled" immediately instead of waiting on a re-lookup.
+  const [cancelled, setCancelled] = useState<DecisionReason | null>(null);
+
+  const status = cancelled ? 'cancelled' : booking.status;
+  const decision: StatusDecision = cancelled
+    ? { status_reason: cancelled.reason || null, status_note: cancelled.note || null, status_changed_by: 'guest' }
+    : booking;
+  const statusInfo = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
   const StatusIcon = statusInfo.icon;
+  const isClosed = status === 'rejected' || status === 'cancelled';
 
   useEffect(() => {
     const lookupUrl = `${window.location.origin}/booking-lookup?ref=${encodeURIComponent(booking.booking_reference)}`;
@@ -115,9 +133,37 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 text-center">
-          Screenshot this ticket to show at the hub. We'll follow up by {contactChannelsText(booking)} once it's reviewed — please keep an eye out.
-        </p>
+        {isClosed ? (
+          <div className={`rounded-2xl border-2 px-4 py-3 text-sm ${status === 'rejected' ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+            <p className="font-bold text-gray-900">
+              {status === 'cancelled'
+                ? decision.status_changed_by === 'admin' ? 'Cancelled by the Hub' : 'You cancelled this booking'
+                : "Sorry — we couldn't accommodate this booking"}
+            </p>
+            <p className="text-gray-700 mt-0.5">
+              {describeDecision(decision) ?? (decision.status_changed_by === 'guest' ? 'No reason given.' : 'Please contact the Hub if you have questions.')}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 text-center">
+            {status === 'under_review'
+              ? `An admin is reviewing your request right now. We'll follow up by ${contactChannelsText(booking)} — please keep an eye out.`
+              : status === 'approved' || status === 'active'
+                ? 'Screenshot this ticket and show it at the Hub. See you there!'
+                : status === 'completed'
+                  ? 'Thanks for visiting the Hub!'
+                  : `Screenshot this ticket to show at the hub. We'll follow up by ${contactChannelsText(booking)} once it's reviewed — please keep an eye out.`}
+          </p>
+        )}
+
+        {GUEST_CANCELLABLE.includes(status) && !cancelled && booking.guest_email && (
+          <CancelTicketControl
+            kind="booking"
+            reference={booking.booking_reference}
+            email={booking.guest_email}
+            onCancelled={setCancelled}
+          />
+        )}
       </div>
     </div>
   );

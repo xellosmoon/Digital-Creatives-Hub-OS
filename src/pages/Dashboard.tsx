@@ -99,7 +99,7 @@ export default function Dashboard(): JSX.Element {
   const stats = {
     total: bookings.length,
     approved: bookings.filter(b => b.status === 'approved').length,
-    pending: bookings.filter(b => b.status === 'pending').length,
+    pending: bookings.filter(b => b.status === 'pending' || b.status === 'under_review').length,
     upcoming: bookings.filter(b =>
       b.status === 'approved' && new Date(b.booking_date) >= new Date(new Date().toISOString().split('T')[0])
     ).length,

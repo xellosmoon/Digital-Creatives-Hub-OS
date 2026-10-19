@@ -771,6 +771,7 @@ export default function Analytics(): JSX.Element {
                     colorClass={
                       status === 'approved' ? 'bg-green-500' :
                       status === 'pending' ? 'bg-yellow-500' :
+                      status === 'under_review' ? 'bg-indigo-500' :
                       status === 'rejected' ? 'bg-red-500' :
                       'bg-gray-400'
                     }
