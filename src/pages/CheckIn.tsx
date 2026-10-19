@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { getErrorMessage } from '../lib/getErrorMessage';
 import confetti from 'canvas-confetti';
 import { PCIDA_DOMAINS, PURPOSE_OF_VISIT_OPTIONS, SECTOR_OPTIONS, GENDER_OPTIONS } from '../types/hub';
 import ChipGrid, { CHIP_GRADIENTS, CHIP_TINTS } from '../components/shared/ChipGrid';
@@ -41,6 +42,7 @@ export default function CheckIn(): JSX.Element {
     sector: '',
     creative_domains: [] as string[],
     purpose_of_visit: [] as string[],
+    purpose_other_detail: '',
     organization: '',
     designation: '',
     email: '',
@@ -147,6 +149,7 @@ export default function CheckIn(): JSX.Element {
           sector: user.sector || '',
           creative_domains: cleanDomains,
           purpose_of_visit: resetPurpose,
+          purpose_other_detail: '',
           organization: user.organization || '',
           designation: user.designation || '',
           email: user.email || '',
@@ -161,6 +164,7 @@ export default function CheckIn(): JSX.Element {
           sector: '',
           creative_domains: [],
           purpose_of_visit: resetPurpose,
+          purpose_other_detail: '',
           organization: '',
           designation: '',
           email: '',
@@ -176,6 +180,7 @@ export default function CheckIn(): JSX.Element {
         sector: '',
         creative_domains: [],
         purpose_of_visit: resetPurpose,
+        purpose_other_detail: '',
         organization: '',
         designation: '',
         email: '',
@@ -238,6 +243,7 @@ export default function CheckIn(): JSX.Element {
         sector: '',
         creative_domains: [],
         purpose_of_visit: selectedEventId ? ['Event'] : [],
+        purpose_other_detail: '',
         organization: '',
         designation: '',
         email: '',
@@ -259,6 +265,7 @@ export default function CheckIn(): JSX.Element {
         sector: '',
         creative_domains: [],
         purpose_of_visit: selectedEventId ? ['Event'] : [],
+        purpose_other_detail: '',
         organization: '',
         designation: '',
         email: '',
@@ -295,6 +302,7 @@ export default function CheckIn(): JSX.Element {
       sector: '',
       creative_domains: [],
       purpose_of_visit: selectedEventId ? ['Event'] : [],
+      purpose_other_detail: '',
       organization: '',
       designation: '',
       email: '',
@@ -309,6 +317,10 @@ export default function CheckIn(): JSX.Element {
     // Validate purpose of visit is always required
     if (form.purpose_of_visit.length === 0) {
       toast.error('Please select at least one purpose of visit');
+      return;
+    }
+    if (form.purpose_of_visit.includes('Other') && !form.purpose_other_detail.trim()) {
+      toast.error('Please tell us what "Other" means');
       return;
     }
     if (!isValidEmail(effectiveEmail)) {
@@ -329,6 +341,7 @@ export default function CheckIn(): JSX.Element {
           sector?: string;
           creative_domains?: string[];
           purpose_of_visit?: string[];
+          purpose_other_detail?: string | null;
           organization?: string;
           designation?: string;
           email?: string;
@@ -338,7 +351,10 @@ export default function CheckIn(): JSX.Element {
         if (form.name) updateData.full_name = form.name;
         if (form.sector) updateData.sector = form.sector;
         if (form.creative_domains.length > 0) updateData.creative_domains = form.creative_domains;
-        if (form.purpose_of_visit.length > 0) updateData.purpose_of_visit = form.purpose_of_visit;
+        if (form.purpose_of_visit.length > 0) {
+          updateData.purpose_of_visit = form.purpose_of_visit;
+          updateData.purpose_other_detail = form.purpose_of_visit.includes('Other') ? form.purpose_other_detail.trim() : null;
+        }
         if (form.organization) updateData.organization = form.organization;
         if (form.designation) updateData.designation = form.designation;
         if (form.email) updateData.email = form.email;
@@ -361,6 +377,7 @@ export default function CheckIn(): JSX.Element {
         sector: form.sector || foundUser?.sector || null,
         creative_domains: form.creative_domains.length > 0 ? form.creative_domains : (foundUser?.creative_domains || null),
         purpose_of_visit: form.purpose_of_visit, // Always use current selection (required)
+        purpose_other_detail: form.purpose_of_visit.includes('Other') ? form.purpose_other_detail.trim() : null,
         organization: form.organization || foundUser?.organization || null,
         designation: form.designation || foundUser?.designation || null,
         email: form.email || foundUser?.email || null,
@@ -379,8 +396,7 @@ export default function CheckIn(): JSX.Element {
       setHasEdits(false);
       setSelectedEventId(null); // Reset event selection
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Check-in failed';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Check-in failed'));
       setSubmitting(false);
     }
   };
@@ -423,6 +439,7 @@ export default function CheckIn(): JSX.Element {
           sector: '',
           creative_domains: [],
           purpose_of_visit: [],
+          purpose_other_detail: '',
           organization: '',
           designation: '',
           email: '',
@@ -975,6 +992,21 @@ export default function CheckIn(): JSX.Element {
                   {form.purpose_of_visit.length === 0 && (
                     <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">Please select at least one purpose</p>
                   )}
+
+                  {form.purpose_of_visit.includes('Other') && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={form.purpose_other_detail}
+                        onChange={e => update({ purpose_other_detail: e.target.value })}
+                        placeholder="Please tell us what brings you in today"
+                        className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all placeholder:text-slate-400 dark:placeholder:text-white/40"
+                      />
+                      {!form.purpose_other_detail.trim() && (
+                        <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">Please tell us what "Other" means</p>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 
@@ -992,7 +1024,7 @@ export default function CheckIn(): JSX.Element {
               <button
                 type="button"
                 onClick={handleCheckIn}
-                disabled={form.purpose_of_visit.length === 0 || !isValidEmail(effectiveEmail) || !isValidAge(form.age) || submitting}
+                disabled={form.purpose_of_visit.length === 0 || (form.purpose_of_visit.includes('Other') && !form.purpose_other_detail.trim()) || !isValidEmail(effectiveEmail) || !isValidAge(form.age) || submitting}
                 className="w-full mt-4 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {submitting ? (
@@ -1159,6 +1191,21 @@ export default function CheckIn(): JSX.Element {
                     {form.purpose_of_visit.length === 0 && (
                       <p className="text-xs text-red-500 dark:text-red-400 mt-2">Please select at least one purpose</p>
                     )}
+
+                    {form.purpose_of_visit.includes('Other') && (
+                      <div className="mt-3">
+                        <input
+                          type="text"
+                          value={form.purpose_other_detail}
+                          onChange={e => update({ purpose_other_detail: e.target.value })}
+                          placeholder="Please tell us what brings you in today"
+                          className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all placeholder:text-slate-400 dark:placeholder:text-white/40"
+                        />
+                        {!form.purpose_other_detail.trim() && (
+                          <p className="text-xs text-red-500 dark:text-red-400 mt-2">Please tell us what "Other" means</p>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -1167,7 +1214,7 @@ export default function CheckIn(): JSX.Element {
                 <button
                   type="button"
                   onClick={handleCheckIn}
-                  disabled={!form.name.trim() || !isValidEmail(form.email) || !isValidAge(form.age) || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || submitting}
+                  disabled={!form.name.trim() || !isValidEmail(form.email) || !isValidAge(form.age) || !form.sector.trim() || form.creative_domains.length === 0 || form.purpose_of_visit.length === 0 || (form.purpose_of_visit.includes('Other') && !form.purpose_other_detail.trim()) || submitting}
                   className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-lg font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
                 >
                   {submitting ? (
