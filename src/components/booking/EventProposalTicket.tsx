@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Calendar, Clock, Mail, User, PartyPopper, CheckCircle, Hourglass, XCircle, Archive, Eye } from 'lucide-react';
 import CancelTicketControl from './CancelTicketControl';
 import { describeDecision, type DecisionReason, type StatusDecision } from '../../lib/decisionReasons';
+import { finalProposalDates, proposalScheduleChanged, cleanDates } from '../../lib/scheduleChange';
 
 export interface EventProposalTicketData extends StatusDecision {
   proposal_reference: string;
@@ -14,6 +15,11 @@ export interface EventProposalTicketData extends StatusDecision {
   event_dates: { date: string; start_time: string; end_time: string }[];
   status: string;
   facebook_page?: string | null;
+  /** Once approved, the published calendar event — its dates are the real
+   *  schedule, which may differ from what the organizer first submitted. */
+  published_title?: string | null;
+  published_event_dates?: { date: string; start_time: string; end_time: string }[] | null;
+  published_event_status?: string | null;
 }
 
 // An organizer can withdraw a proposal only before it's approved —
@@ -44,9 +50,24 @@ export default function EventProposalTicket({ proposal }: { proposal: EventPropo
   const decision: StatusDecision = cancelled
     ? { status_reason: cancelled.reason || null, status_note: cancelled.note || null, status_changed_by: 'guest' }
     : proposal;
-  const statusInfo = STATUS_STYLE[status] ?? STATUS_STYLE.pending_review;
+  // The proposal stays "approved" even if the published event is later
+  // cancelled, so look through to the event itself.
+  const eventWasCancelled = proposal.published_event_status === 'cancelled' && status === 'approved';
+  const statusInfo = eventWasCancelled
+    ? { ...STATUS_STYLE.cancelled, label: 'Event Cancelled' }
+    : STATUS_STYLE[status] ?? STATUS_STYLE.pending_review;
   const StatusIcon = statusInfo.icon;
   const isClosed = status === 'rejected' || status === 'cancelled';
+
+  // After approval the calendar event is the source of truth — if an admin
+  // changed the dates (say, after a phone call), show those as the schedule
+  // and say so, instead of the originally submitted dates.
+  const dates = finalProposalDates(proposal.event_dates, proposal.published_event_dates);
+  const rescheduled = !isClosed && proposalScheduleChanged(proposal.event_dates, proposal.published_event_dates);
+  const eventTitle = proposal.published_title || proposal.title;
+
+  const formatDateLine = (d: { date: string; start_time: string; end_time: string }): string =>
+    `${format(new Date(d.date + 'T00:00'), 'EEE, MMM d, yyyy')} · ${d.start_time} – ${d.end_time}`;
 
   useEffect(() => {
     const lookupUrl = `${window.location.origin}/booking-lookup?ref=${encodeURIComponent(proposal.proposal_reference)}`;
@@ -97,9 +118,9 @@ export default function EventProposalTicket({ proposal }: { proposal: EventPropo
         <div className="rounded-2xl bg-gray-50/80 p-4 space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <PartyPopper className="h-4 w-4 text-amber-500 flex-shrink-0" />
-            <span className="font-semibold text-gray-900">{proposal.title}</span>
+            <span className="font-semibold text-gray-900">{eventTitle}</span>
           </div>
-          {proposal.event_dates.map((d, i) => (
+          {dates.map((d, i) => (
             <div key={i} className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-amber-500 flex-shrink-0" />
               <span className="text-gray-700">{format(new Date(d.date + 'T00:00'), 'EEE, MMM d, yyyy')}</span>
@@ -117,6 +138,25 @@ export default function EventProposalTicket({ proposal }: { proposal: EventPropo
           </div>
         </div>
 
+        {rescheduled && (
+          <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+            <p className="font-bold text-amber-900">Schedule updated</p>
+            <p className="text-amber-800 text-xs mt-0.5">The Hub adjusted your event. The schedule above is the current one.</p>
+            <div className="mt-1.5 space-y-0.5">
+              {cleanDates(proposal.event_dates).map((d, i) => (
+                <p key={i} className="text-xs text-amber-700 line-through">{formatDateLine(d)}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {eventWasCancelled && (
+          <div className="rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm">
+            <p className="font-bold text-red-900">This event has been cancelled</p>
+            <p className="text-red-800 text-xs mt-0.5">It's no longer on the calendar. Please contact the Hub if you have questions.</p>
+          </div>
+        )}
+
         {isClosed ? (
           <div className={`rounded-2xl border-2 px-4 py-3 text-sm ${status === 'rejected' ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
             <p className="font-bold text-gray-900">
@@ -130,7 +170,9 @@ export default function EventProposalTicket({ proposal }: { proposal: EventPropo
           </div>
         ) : (
           <p className="text-xs text-gray-400 text-center">
-            {status === 'under_review'
+            {eventWasCancelled
+              ? "We're sorry for the inconvenience."
+              : status === 'under_review'
               ? `An admin is reviewing your proposal right now. We'll follow up by ${contactText} — please keep an eye out.`
               : status === 'approved'
                 ? "Great news — your event is approved! Need to change or cancel it? Please contact the Hub."

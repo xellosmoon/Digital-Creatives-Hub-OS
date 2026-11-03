@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Calendar, Clock, Mail, User, Users, CheckCircle, Hourglass, XCircle, Eye } from 'lucide-react';
 import CancelTicketControl from './CancelTicketControl';
 import { describeDecision, type DecisionReason, type StatusDecision } from '../../lib/decisionReasons';
+import { bookingScheduleChanged } from '../../lib/scheduleChange';
 
 export interface BookingTicketData extends StatusDecision {
   booking_reference: string;
@@ -18,6 +19,11 @@ export interface BookingTicketData extends StatusDecision {
   gathering_type?: string | null;
   group_size?: number | null;
   package?: { name: string } | null;
+  /** Set by the database the first time an admin changes the date/time —
+   *  what the guest originally booked. */
+  original_booking_date?: string | null;
+  original_start_time?: string | null;
+  original_end_time?: string | null;
 }
 
 // Builds a grammatically correct "email, phone, and Facebook Messenger"
@@ -63,6 +69,7 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
   const statusInfo = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
   const StatusIcon = statusInfo.icon;
   const isClosed = status === 'rejected' || status === 'cancelled';
+  const rescheduled = !isClosed && bookingScheduleChanged(booking);
 
   useEffect(() => {
     const lookupUrl = `${window.location.origin}/booking-lookup?ref=${encodeURIComponent(booking.booking_reference)}`;
@@ -132,6 +139,16 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
             <span className="text-gray-700 truncate">{booking.guest_email}</span>
           </div>
         </div>
+
+        {rescheduled && booking.original_booking_date && booking.original_start_time && booking.original_end_time && (
+          <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+            <p className="font-bold text-amber-900">Schedule updated</p>
+            <p className="text-amber-800 text-xs mt-0.5">The Hub adjusted your booking. The time above is the current one.</p>
+            <p className="text-xs text-amber-700 line-through mt-1.5">
+              {format(new Date(booking.original_booking_date + 'T00:00'), 'EEE, MMM d, yyyy')} · {format(new Date(booking.original_start_time), 'h:mm a')} – {format(new Date(booking.original_end_time), 'h:mm a')}
+            </p>
+          </div>
+        )}
 
         {isClosed ? (
           <div className={`rounded-2xl border-2 px-4 py-3 text-sm ${status === 'rejected' ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
