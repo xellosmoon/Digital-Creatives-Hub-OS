@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
+import { getErrorMessage } from '../../lib/getErrorMessage';
 import {
   calculateTotalRate,
   resolveLocation,
@@ -167,8 +168,7 @@ export default function BorrowWizard({
         setBorrowerContact(lookupMobile.trim());
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Lookup failed';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Lookup failed'));
     } finally {
       setLookingUp(false);
     }
@@ -220,8 +220,6 @@ export default function BorrowWizard({
   const handleSubmit = async (): Promise<void> => {
     setSubmitting(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const userId = session?.session?.user?.id ?? null;
       const startISO = new Date(startTime).toISOString();
       const endISO = new Date(endTime).toISOString();
 
@@ -251,33 +249,45 @@ export default function BorrowWizard({
         }
 
         for (const itemId of ids) {
-          const { data: inserted, error } = await supabase.from('borrowings').insert({
-            user_id: userId,
-            item_id: itemId,
-            asset_id: sel.asset.id,
-            usage_type: resolvedLoc,
-            destination_location: venue.trim(),
-            start_time: startISO,
-            end_time: endISO,
-            duration_hours: priceEstimate?.durationHours ?? computeDurationHours(startISO, endISO),
-            matched_tier_hours: priceEstimate?.matchedTier.duration_hours ?? 0,
-            total_price: priceEstimate?.totalPrice ?? 0,
-            purpose: purpose.trim(),
-            borrower_name: borrowerName.trim(),
-            borrower_office: borrowerOffice.trim() || null,
-            borrower_contact: borrowerContact.trim(),
-            device_operator_name: deviceOperatorName.trim() || borrowerName.trim(),
-            late_fee_rate: sel.asset.default_late_fee_rate,
-            late_fee_unit: sel.asset.default_late_fee_unit,
-          }).select('borrowing_reference').single();
+          // Saved through a SECURITY DEFINER function rather than a plain
+          // insert().select(): a guest has no account, so the table's
+          // "own rows only" read rule would refuse the read-back of their
+          // own new row and fail the whole save (see
+          // 069_create_borrowing_function.sql). The function also sets
+          // user_id from the caller's own session, so it isn't passed here.
+          const { data: borrowingReference, error } = await supabase.rpc('create_borrowing', {
+            payload: {
+              item_id: itemId,
+              asset_id: sel.asset.id,
+              usage_type: resolvedLoc,
+              destination_location: venue.trim(),
+              start_time: startISO,
+              end_time: endISO,
+              duration_hours: priceEstimate?.durationHours ?? computeDurationHours(startISO, endISO),
+              matched_tier_hours: priceEstimate?.matchedTier.duration_hours ?? 0,
+              total_price: priceEstimate?.totalPrice ?? 0,
+              purpose: purpose.trim(),
+              borrower_name: borrowerName.trim(),
+              borrower_office: borrowerOffice.trim() || null,
+              borrower_contact: borrowerContact.trim(),
+              device_operator_name: deviceOperatorName.trim() || borrowerName.trim(),
+              late_fee_rate: sel.asset.default_late_fee_rate,
+              late_fee_unit: sel.asset.default_late_fee_unit,
+            },
+          });
           if (error) {
-            // Most likely the DB double-booking guard (23P01) racing another
-            // submission for the same unit — surface it instead of failing silently.
             console.error('Failed to reserve unit', error);
-            toast.error(`Couldn't reserve one ${sel.asset.name} unit — it may have just been taken.`);
+            // 23P01 is the database's double-booking guard — another request
+            // took this exact unit a moment ago. Anything else is a real
+            // fault, so say what it was instead of blaming a race.
+            toast.error(
+              error.code === '23P01'
+                ? `Couldn't reserve one ${sel.asset.name} unit — it may have just been taken.`
+                : `Couldn't reserve ${sel.asset.name}: ${getErrorMessage(error, 'unknown error')}`,
+            );
           } else {
             insertedPages.push({
-              borrowingReference: inserted?.borrowing_reference,
+              borrowingReference: borrowingReference ?? undefined,
               borrowerName,
               borrowerOffice,
               borrowerContact,
@@ -306,8 +316,7 @@ export default function BorrowWizard({
       toast.success('Request submitted! Print your Receiving Form, sign it, and bring it to the Hub desk.');
       setStep('done');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit request.';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Failed to submit request.'));
     } finally {
       setSubmitting(false);
     }
