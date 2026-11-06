@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Filter, ArrowLeft, Download } from 'lucide-react';
+import { Plus, RefreshCw, Filter, ArrowLeft, Download, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getErrorMessage } from '../lib/getErrorMessage';
@@ -10,9 +10,21 @@ import AdminEventCard from '../components/admin/AdminEventCard';
 import EventFormModal from '../components/admin/EventFormModal';
 import EventProposalCard, { EventProposalEmptyState, prefillFromProposal, type EventProposalData } from '../components/admin/EventProposalCard';
 import { format } from 'date-fns';
-import { exportToCSV, formatEventForExport } from '../utils/csvExport';
+import { fetchEventReport, downloadEventReportCsv } from '../lib/eventReport';
 
-type StatusFilter = 'all' | 'proposed' | 'approved' | 'published' | 'draft' | 'cancelled';
+type StatusFilter = 'all' | 'proposed' | 'approved' | 'rejected' | 'published' | 'draft' | 'cancelled';
+
+const FILTER_LABELS: Record<StatusFilter, string> = {
+  all: 'All',
+  proposed: 'Proposed',
+  approved: 'Approved',
+  // Includes proposals the organizer withdrew themselves, so nothing a
+  // proposal can end up as is invisible on this page.
+  rejected: 'Rejected / Withdrawn',
+  published: 'Published',
+  draft: 'Draft',
+  cancelled: 'Cancelled',
+};
 
 type EventProposal = EventProposalData;
 
@@ -42,7 +54,7 @@ export default function EventManagement(): JSX.Element {
         .select('*')
         .order('start_time', { ascending: false });
 
-      if (filter !== 'all' && filter !== 'proposed') {
+      if (filter !== 'all' && filter !== 'proposed' && filter !== 'rejected') {
         query = query.eq('status', filter);
       }
 
@@ -138,36 +150,37 @@ export default function EventManagement(): JSX.Element {
   };
 
   // ── Export all events ─────────────────
+  // Same report as /admin/event-report (every event, all time) — one
+  // builder, so this button can't drift from the report page again.
   const handleExportEvents = async (): Promise<void> => {
     try {
-      toast.loading('Fetching all historical event data...', { id: 'export-events' });
-      
-      // Fetch ALL event records (not just filtered)
-      const { data: allEvents, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      if (!allEvents || allEvents.length === 0) {
-        toast.dismiss('export-events');
+      toast.loading('Building event report...', { id: 'export-events' });
+      const range = { start: null, end: null };
+      const rows = await fetchEventReport(range);
+
+      toast.dismiss('export-events');
+      if (rows.length === 0) {
         toast.error('No event data to export');
         return;
       }
-      
-      const exportData = allEvents.map(event => formatEventForExport(event));
-      const filename = `Events_AllRecords_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      exportToCSV(exportData, filename);
-      
-      toast.dismiss('export-events');
-      toast.success(`Exported ${allEvents.length} event records!`);
+      downloadEventReportCsv(rows, range, `Events_AllRecords_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      toast.success(`Exported ${rows.length} event records!`);
     } catch (err) {
       toast.dismiss('export-events');
       console.error('Export error:', err);
-      toast.error('Failed to export event data');
+      toast.error(getErrorMessage(err, 'Failed to export event data'));
     }
   };
+
+  const proposalsForFilter =
+    filter === 'proposed' ? proposals.filter(p => p.status === 'pending_review' || p.status === 'under_review')
+    : filter === 'approved' ? proposals.filter(p => p.status === 'approved' && !p.published_event_id)
+    : filter === 'rejected' ? proposals.filter(p => p.status === 'rejected' || p.status === 'cancelled')
+    : [];
+  const proposalEmptyMessage =
+    filter === 'proposed' ? 'No pending event proposals found'
+    : filter === 'approved' ? 'No approved proposals awaiting publish'
+    : 'No rejected or withdrawn proposals';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -193,6 +206,12 @@ export default function EventManagement(): JSX.Element {
             >
               <RefreshCw className="h-4 w-4 mr-2" /> Refresh
             </button>
+            <Link
+              to="/admin/event-report"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-gradient-to-r from-[#0C2340] to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" /> Event Report
+            </Link>
             <button
               onClick={handleExportEvents}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:bg-slate-800 dark:hover:bg-slate-700"
@@ -212,18 +231,18 @@ export default function EventManagement(): JSX.Element {
       {/* Filters */}
       <div className="mb-6 flex items-center gap-4">
         <Filter className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-        <nav className="flex gap-2">
-          {(['all', 'proposed', 'approved', 'published', 'draft', 'cancelled'] as const).map((s) => (
+        <nav className="flex flex-wrap gap-2">
+          {(['all', 'proposed', 'approved', 'rejected', 'published', 'draft', 'cancelled'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-3 py-2 text-sm font-medium rounded-md ${
+              className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
                 filter === s
                   ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {FILTER_LABELS[s]}
             </button>
           ))}
         </nav>
@@ -235,21 +254,15 @@ export default function EventManagement(): JSX.Element {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500" />
           </div>
-        ) : filter === 'proposed' || filter === 'approved' ? (
+        ) : filter === 'proposed' || filter === 'approved' || filter === 'rejected' ? (
           // Show proposals. The 'approved' tab only holds ones that were
           // approved under the old flow but never actually got published —
           // once published (published_event_id set) they drop off both
           // tabs instead of piling up in them forever.
-          (filter === 'proposed'
-            ? proposals.filter(p => p.status === 'pending_review' || p.status === 'under_review')
-            : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
-          ).length === 0 ? (
-            <EventProposalEmptyState message={filter === 'proposed' ? 'No pending event proposals found' : 'No approved proposals awaiting publish'} />
+          proposalsForFilter.length === 0 ? (
+            <EventProposalEmptyState message={proposalEmptyMessage} />
           ) : (
-            (filter === 'proposed'
-              ? proposals.filter(p => p.status === 'pending_review' || p.status === 'under_review')
-              : proposals.filter(p => p.status === 'approved' && !p.published_event_id)
-            ).map((proposal) => (
+            proposalsForFilter.map((proposal) => (
               <EventProposalCard
                 key={proposal.id}
                 proposal={proposal}

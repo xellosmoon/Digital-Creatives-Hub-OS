@@ -20,6 +20,7 @@ const SpaceManagement = lazy(() => import('./pages/SpaceManagement'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
 const EventManagement = lazy(() => import('./pages/EventManagement'));
+const EventReport = lazy(() => import('./pages/EventReport'));
 const TestDashboard = lazy(() => import('./pages/TestDashboard'));
 const Gadgets = lazy(() => import('./pages/Gadgets'));
 const AdminGadgets = lazy(() => import('./pages/AdminGadgets'));
@@ -149,6 +150,16 @@ function App(): JSX.Element {
                 <Layout session={session}>
                   <ProtectedRoute session={session} requireAdmin>
                     <EventManagement />
+                  </ProtectedRoute>
+                </Layout>
+              }
+            />
+            <Route
+              path="/admin/event-report"
+              element={
+                <Layout session={session}>
+                  <ProtectedRoute session={session} requireAdmin>
+                    <EventReport />
                   </ProtectedRoute>
                 </Layout>
               }

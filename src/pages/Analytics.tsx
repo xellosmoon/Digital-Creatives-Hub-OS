@@ -3,6 +3,8 @@ import { TrendingUp, Calendar, DollarSign, Clock, Download, Trash, Users, Buildi
 import { Link } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { supabase } from '../lib/supabase';
+import { fetchEventReport, downloadEventReportCsv } from '../lib/eventReport';
+import { getErrorMessage } from '../lib/getErrorMessage';
 import toast from 'react-hot-toast';
 
 interface Booking {
@@ -184,11 +186,10 @@ export default function Analytics(): JSX.Element {
           .select('*')
           .gte('created_at', dateRange.start.toISOString())
           .lte('created_at', dateRange.end.toISOString()),
-        supabase
-          .from('events')
-          .select('*')
-          .gte('created_at', dateRange.start.toISOString())
-          .lte('created_at', dateRange.end.toISOString()),
+        // Events in the period by when they *happen* (not when they were
+        // added to the system), cancelled ones excluded from the count below.
+        fetchEventReport({ start: format(dateRange.start, 'yyyy-MM-dd'), end: format(dateRange.end, 'yyyy-MM-dd') })
+          .catch((err: unknown) => { console.error('Event stats failed:', err); return []; }),
         supabase
           .from('borrowings')
           .select('*, asset:assets(name)')
@@ -204,7 +205,7 @@ export default function Analytics(): JSX.Element {
         bookingsRes.data || [],
         spacesRes.data || [],
         attendanceRes.data || [],
-        eventsRes.data || [],
+        eventsRes.filter((e) => e.status !== 'cancelled'),
         borrowingsRes.data || [],
         []
       );
@@ -540,43 +541,21 @@ export default function Analytics(): JSX.Element {
     }
   };
 
+  // Same report as /admin/event-report, for this dashboard's period — the
+  // old version read organizer columns that don't exist (blank in every
+  // row), picked events by creation date, and hand-built unescaped CSV.
   const exportEvents = async (): Promise<void> => {
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .gte('created_at', dateRange.start.toISOString())
-        .lte('created_at', dateRange.end.toISOString());
-      
-      if (error) throw error;
-      
-      const csvData = (data || []).map(e => ({
-        'Title': e.title,
-        'Organizer': e.organizer_name || '',
-        'Email': e.organizer_email || '',
-        'Start Time': new Date(e.start_time).toLocaleString(),
-        'End Time': new Date(e.end_time).toLocaleString(),
-        'Status': e.status,
-        'Featured': e.is_featured ? 'Yes' : 'No',
-        'Registration Link': e.registration_link || '',
-      }));
-
-      const headers = Object.keys(csvData[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...csvData.map(row => headers.map(h => `"${row[h as keyof typeof row] ?? ''}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `events_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const range = { start: format(dateRange.start, 'yyyy-MM-dd'), end: format(dateRange.end, 'yyyy-MM-dd') };
+      const rows = await fetchEventReport(range);
+      if (rows.length === 0) {
+        toast.error('No events in this period');
+        return;
+      }
+      downloadEventReportCsv(rows, range, `events_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       toast.success('Events exported');
     } catch (err) {
-      toast.error('Export failed');
+      toast.error(getErrorMessage(err, 'Export failed'));
     }
   };
 

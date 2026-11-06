@@ -110,19 +110,6 @@ export function formatAttendanceForDTIExport(attendance: Record<string, unknown>
   };
 }
 
-export function formatEventForExport(event: Record<string, unknown>): Record<string, string> {
-  return {
-    'Title': String(event.title || 'N/A'),
-    'Description': String(event.description || 'N/A'),
-    'Status': String(event.status || 'N/A'),
-    'Start Time': event.start_time ? new Date(String(event.start_time)).toLocaleString() : 'N/A',
-    'End Time': event.end_time ? new Date(String(event.end_time)).toLocaleString() : 'N/A',
-    'Location': String(event.location || 'N/A'),
-    'Expected Guests': String(event.expected_guests || 'N/A'),
-    'Created At': event.created_at ? new Date(String(event.created_at)).toLocaleString() : 'N/A',
-  };
-}
-
 export function formatAnalyticsForExport(analytics: Record<string, unknown>): Record<string, string>[] {
   const exportData: Record<string, string>[] = [];
   
