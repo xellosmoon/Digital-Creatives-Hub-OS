@@ -11,7 +11,10 @@ export type HubBookingStatus =
   | 'active'
   | 'completed'
   | 'cancelled'
-  | 'rejected';
+  | 'rejected'
+  // Turned into a calendar event via "Promote to Event" — the event now
+  // owns the reservation, so the booking itself stops holding seats.
+  | 'promoted';
 
 // ----- Database Row Types -----
 

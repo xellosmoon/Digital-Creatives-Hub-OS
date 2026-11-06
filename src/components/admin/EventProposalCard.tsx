@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, XCircle, Sparkles, Eye } from 'lucide-react';
+import { Check, XCircle, Sparkles, Eye, RotateCcw } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import type { EventFormPrefill } from './EventFormModal';
 import DecisionReasonDialog from './DecisionReasonDialog';
@@ -44,12 +44,15 @@ interface EventProposalCardProps {
   /** Marks the proposal "under review" so the organizer sees on their
    *  ticket that an admin has picked it up. */
   onStartReview: () => void;
+  /** Puts a rejected/withdrawn proposal back under review, so the normal
+   *  Approve & Publish / Reject actions are available again. */
+  onReopen: () => void;
 }
 
 // Shared between EventManagement.tsx (the full bulk-review page, with
 // filters/export) and AdminDashboard.tsx's Events tab (the daily quick
 // pass) — same card, same actions, so the two surfaces can't drift apart.
-export default function EventProposalCard({ proposal, onApprove, onReject, onStartReview }: EventProposalCardProps): JSX.Element {
+export default function EventProposalCard({ proposal, onApprove, onReject, onStartReview, onReopen }: EventProposalCardProps): JSX.Element {
   const [rejecting, setRejecting] = useState(false);
   const isOpen = proposal.status === 'pending_review' || proposal.status === 'under_review';
 
@@ -176,6 +179,13 @@ export default function EventProposalCard({ proposal, onApprove, onReject, onSta
             {proposal.status_changed_by === 'guest' ? ' by the organizer' : proposal.status_changed_by === 'admin' ? ' by an admin' : ''}
           </p>
           <p className="text-red-700 dark:text-red-400">{describeDecision(proposal) ?? 'No reason recorded'}</p>
+          <button
+            onClick={onReopen}
+            className="mt-2 inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 transition-all dark:text-indigo-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-indigo-800"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+            Reopen for review
+          </button>
         </div>
       )}
 

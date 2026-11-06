@@ -135,6 +135,28 @@ export default function EventManagement(): JSX.Element {
     }
   };
 
+  // Brings a rejected/withdrawn proposal back to "under review". The old
+  // decision reason is cleared so the organizer's ticket stops showing it;
+  // from there the usual Approve & Publish / Reject apply again.
+  const handleReopenProposal = async (id: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('hub_events')
+        .update({
+          status: 'under_review',
+          status_reason: null,
+          status_note: null,
+          status_changed_by: null,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Proposal reopened — it is under review again');
+      fetchProposals();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to reopen proposal'));
+    }
+  };
+
   const handleStartReviewProposal = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
@@ -269,6 +291,7 @@ export default function EventManagement(): JSX.Element {
                 onApprove={() => setPromotingProposal(proposal)}
                 onReject={(decision) => handleRejectProposal(proposal.id, decision)}
                 onStartReview={() => handleStartReviewProposal(proposal.id)}
+                onReopen={() => handleReopenProposal(proposal.id)}
               />
             ))
           )

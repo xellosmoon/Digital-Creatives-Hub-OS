@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
-import { Calendar, Clock, Mail, User, Users, CheckCircle, Hourglass, XCircle, Eye } from 'lucide-react';
+import { Calendar, Clock, Mail, User, Users, CheckCircle, Hourglass, XCircle, Eye, Sparkles } from 'lucide-react';
 import CancelTicketControl from './CancelTicketControl';
 import { describeDecision, type DecisionReason, type StatusDecision } from '../../lib/decisionReasons';
-import { bookingScheduleChanged } from '../../lib/scheduleChange';
+import { bookingScheduleChanged, cleanDates, type ScheduleDate } from '../../lib/scheduleChange';
 
 export interface BookingTicketData extends StatusDecision {
   booking_reference: string;
@@ -24,6 +24,10 @@ export interface BookingTicketData extends StatusDecision {
   original_booking_date?: string | null;
   original_start_time?: string | null;
   original_end_time?: string | null;
+  /** Set once an admin turns this booking into a calendar event. */
+  promoted_event_title?: string | null;
+  promoted_event_dates?: ScheduleDate[] | null;
+  promoted_event_status?: string | null;
 }
 
 // Builds a grammatically correct "email, phone, and Facebook Messenger"
@@ -50,6 +54,7 @@ const STATUS_STYLE: Record<string, { label: string; icon: typeof CheckCircle; cl
   completed: { label: 'Completed', icon: CheckCircle, classes: 'bg-blue-100 text-blue-700 border-blue-300' },
   rejected: { label: 'Rejected', icon: XCircle, classes: 'bg-red-100 text-red-700 border-red-300' },
   cancelled: { label: 'Cancelled', icon: XCircle, classes: 'bg-gray-100 text-gray-600 border-gray-300' },
+  promoted: { label: 'Now a Hub Event', icon: Sparkles, classes: 'bg-violet-100 text-violet-700 border-violet-300' },
 };
 
 // Rendered both right after a guest submits a booking and whenever one is
@@ -69,7 +74,9 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
   const statusInfo = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
   const StatusIcon = statusInfo.icon;
   const isClosed = status === 'rejected' || status === 'cancelled';
-  const rescheduled = !isClosed && bookingScheduleChanged(booking);
+  const promoted = status === 'promoted';
+  const promotedDates = cleanDates(booking.promoted_event_dates);
+  const rescheduled = !isClosed && !promoted && bookingScheduleChanged(booking);
 
   useEffect(() => {
     const lookupUrl = `${window.location.origin}/booking-lookup?ref=${encodeURIComponent(booking.booking_reference)}`;
@@ -140,6 +147,26 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
           </div>
         </div>
 
+        {promoted && (
+          <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 px-4 py-3 text-sm">
+            <p className="font-bold text-violet-900">
+              Your booking is now a Hub event{booking.promoted_event_title ? `: ${booking.promoted_event_title}` : ''}
+            </p>
+            {promotedDates.length > 0 ? (
+              <ul className="mt-1.5 space-y-0.5">
+                {promotedDates.map((d) => (
+                  <li key={`${d.date}-${d.start_time}`} className="text-xs text-violet-800">
+                    {format(new Date(d.date + 'T00:00'), 'EEE, MMM d, yyyy')} · {format(new Date(`${d.date}T${d.start_time.slice(0, 5)}`), 'h:mm a')} – {format(new Date(`${d.date}T${d.end_time.slice(0, 5)}`), 'h:mm a')}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p className="text-violet-700 text-xs mt-1.5">
+              {promotedDates.length > 0 ? 'Please go by the event date above — the request date shown here is no longer used.' : 'The Hub will confirm the event date with you.'}
+            </p>
+          </div>
+        )}
+
         {rescheduled && booking.original_booking_date && booking.original_start_time && booking.original_end_time && (
           <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm">
             <p className="font-bold text-amber-900">Schedule updated</p>
@@ -165,6 +192,8 @@ export default function BookingTicket({ booking }: { booking: BookingTicketData 
           <p className="text-xs text-gray-400 text-center">
             {status === 'under_review'
               ? `An admin is reviewing your request right now. We'll follow up by ${contactChannelsText(booking)} — please keep an eye out.`
+              : status === 'promoted'
+                ? `The Hub will follow up by ${contactChannelsText(booking)} with the event details.`
               : status === 'approved' || status === 'active'
                 ? 'Screenshot this ticket and show it at the Hub. See you there!'
                 : status === 'completed'

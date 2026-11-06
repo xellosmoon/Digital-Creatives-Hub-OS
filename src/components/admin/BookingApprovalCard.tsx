@@ -174,7 +174,11 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       const { error } = await supabase
         .from('hub_bookings')
         .update({
-          status: 'approved',
+          // 'promoted', not 'approved': the event (with its own seat
+          // reservation, on the date the admin chose) replaces this
+          // booking. Leaving it approved kept its seats reserved on the
+          // ORIGINAL date and left a duplicate in the Approved list.
+          status: 'promoted',
           promoted_to_event_id: eventId,
           updated_at: new Date().toISOString(),
         })
@@ -214,7 +218,8 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
     }
   };
 
-  const statusLabel = (s: string): string => (s === 'under_review' ? 'under review' : s);
+  const statusLabel = (s: string): string =>
+    s === 'under_review' ? 'under review' : s === 'promoted' ? 'promoted to event' : s;
 
   const statusColor = (s: string): string => {
     switch (s) {
@@ -223,6 +228,7 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
       case 'approved': case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'rejected': case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'promoted': return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-gray-300';
     }
   };
@@ -438,6 +444,14 @@ export default function BookingApprovalCard({ booking, onUpdate }: BookingApprov
               </p>
               <p className="text-red-700 dark:text-red-400">
                 {describeDecision(booking) ?? 'No reason recorded'}
+              </p>
+            </div>
+          )}
+          {booking.status === 'promoted' && (
+            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-sm">
+              <p className="font-semibold text-violet-800 dark:text-violet-300">Promoted to an event</p>
+              <p className="text-violet-700 dark:text-violet-400">
+                This request became a calendar event, which now holds the reservation. Manage it from the Events tab — this booking no longer reserves seats.
               </p>
             </div>
           )}
