@@ -43,7 +43,10 @@ export function computeHours(startISO: string, endISO: string): number {
 export function calculatePackagePrice(
   pkg: RentalPackage,
   startISO: string,
-  endISO: string
+  endISO: string,
+  /** Price at the real list price even while open-house mode is on —
+   *  used by Analytics' "mock sales" (what it would have earned). */
+  ignoreToggle = false
 ): HubPriceEstimate | null {
   const hours = computeHours(startISO, endISO);
   if (hours <= 0) return null;
@@ -52,7 +55,7 @@ export function calculatePackagePrice(
   let breakdown = '';
 
   // If pricing is disabled (open house mode), set everything to free
-  if (!PRICING_ENABLED) {
+  if (!PRICING_ENABLED && !ignoreToggle) {
     return {
       packageSlug: pkg.slug,
       billingMode: pkg.billing_mode,

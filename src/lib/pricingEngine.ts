@@ -77,7 +77,10 @@ export function calculateTotalRate(
   asset: Pick<Asset, 'location_mode'>,
   userLocation: BorrowLocation,
   startISO: string,
-  endISO: string
+  endISO: string,
+  /** Price at the real list price even while open-house mode is on —
+   *  used by Analytics' "mock sales" (what it would have earned). */
+  ignoreToggle = false
 ): PriceEstimate | null {
   const location = resolveLocation(asset, userLocation);
   const rawHours = computeDurationHours(startISO, endISO);
@@ -89,7 +92,7 @@ export function calculateTotalRate(
   let totalPrice: number;
 
   // If pricing is disabled (open house mode), set everything to free
-  if (!PRICING_ENABLED) {
+  if (!PRICING_ENABLED && !ignoreToggle) {
     return {
       durationHours: rawHours,
       matchedTier: tier,

@@ -85,7 +85,13 @@ export default function Footer(): JSX.Element {
       {/* Bottom Bar */}
       <div className="relative border-t border-slate-800/50 bg-black/20 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left text-[11px] text-slate-500">
-          <p className="font-medium tracking-wide">© {year} Digital Creatives Hub Iligan. All rights reserved.</p>
+          <p className="font-medium tracking-wide">
+            © {year} Digital Creatives Hub Iligan. All rights reserved.
+            <span className="mx-2 text-slate-700" aria-hidden="true">·</span>
+            <Link to="/login" className="font-semibold text-slate-400 hover:text-white transition-colors">
+              Staff Login
+            </Link>
+          </p>
           <p className="flex items-center gap-1.5 font-medium tracking-wide">
             Made with
             <Heart className="w-3 h-3 text-red-500 fill-red-500" />

@@ -5,7 +5,7 @@ import {
   Plus, Pencil, Trash2, Settings2, Layers, ArrowLeft, Download, Trash,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { isPast } from 'date-fns';
+import { isCountedLoan, isOverdueLoan } from '../lib/borrowHours';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { formatPeso } from '../lib/pricingEngine';
@@ -82,13 +82,12 @@ export default function AdminGadgets(): JSX.Element {
 
   // ── Derived counts ──
   const pendingCount = borrowings.filter((b) => b.status === 'pending').length;
-  const overdueCount = borrowings.filter(
-    (b) => b.status === 'active' && isPast(new Date(b.end_time))
-  ).length;
+  // Approved is the in-use state, so overdue = still out past the scheduled end.
+  const overdueCount = borrowings.filter((b) => isOverdueLoan(b)).length;
   const maintenanceCount = items.filter((i) => i.status === 'maintenance').length;
   const brokenCount = items.filter((i) => i.status === 'broken').length;
   const totalCollected = borrowings
-    .filter((b) => b.status === 'returned' || b.status === 'active')
+    .filter((b) => isCountedLoan(b))
     .reduce((s, b) => s + (b.total_price ?? 0), 0);
 
   // ── Filtered data per tab ──
@@ -263,7 +262,11 @@ export default function AdminGadgets(): JSX.Element {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <KPI label="Total Items" value={items.length} color="text-gray-900 dark:text-white" />
           <KPI label="Available" value={items.filter((i) => i.status === 'available').length} color="text-green-600 dark:text-green-400" />
-          <KPI label="Borrowed" value={items.filter((i) => i.status === 'borrowed').length} color="text-blue-600 dark:text-blue-400" />
+          {/* Counted from the borrowings themselves (the same list the Active tab
+              shows), not from items flagged 'borrowed' — two approved loans of
+              one unit, or a flag reset by an unrelated cancellation, made this
+              undercount. */}
+          <KPI label="Borrowed" value={activeBorrowings.length} color="text-blue-600 dark:text-blue-400" />
           <KPI label="Pending" value={pendingCount} color="text-yellow-600 dark:text-yellow-400" />
           <KPI label="Overdue" value={overdueCount} color="text-red-600 dark:text-red-400" />
           <KPI label="Revenue" value={formatPeso(totalCollected)} color="text-green-700 dark:text-green-400" isText />

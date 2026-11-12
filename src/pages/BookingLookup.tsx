@@ -4,6 +4,7 @@ import { Search, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import BookingTicket, { type BookingTicketData } from '../components/booking/BookingTicket';
 import EventProposalTicket, { type EventProposalTicketData } from '../components/booking/EventProposalTicket';
+import RequestQueue from '../components/booking/RequestQueue';
 import toast from 'react-hot-toast';
 
 // hub_bookings is the live booking table (the one Bookings.tsx writes to).
@@ -206,6 +207,9 @@ export default function BookingLookup(): JSX.Element {
           )}
         </div>
       )}
+
+      {/* Anonymous queue: code, status, date — no personal details */}
+      <RequestQueue />
 
       {/* Help Text */}
       <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">

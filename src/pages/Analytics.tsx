@@ -5,6 +5,11 @@ import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { fetchEventReport, downloadEventReportCsv } from '../lib/eventReport';
 import { getErrorMessage } from '../lib/getErrorMessage';
+import { isCountedLoan, isOverdueLoan, loanHours, formatHours } from '../lib/borrowHours';
+import { calculateTotalRate, PRICING_ENABLED } from '../lib/pricingEngine';
+import { calculatePackagePrice } from '../lib/hubPricingEngine';
+import type { PricingTier } from '../types/gadgets';
+import type { RentalPackage } from '../types/hub';
 import toast from 'react-hot-toast';
 
 interface Booking {
@@ -68,8 +73,10 @@ interface Borrowing {
   id: string;
   status?: string;
   borrowing_reference?: string;
-  asset?: { name: string };
+  asset?: { name: string; location_mode?: string };
   asset_id?: string;
+  usage_type?: string;
+  location?: string;
   total_price?: number;
   duration_hours?: number;
   start_time?: string;
@@ -107,7 +114,7 @@ interface AnalyticsData {
   spaceUtilization: { [key: string]: number };
   bookingsByStatus: { [key: string]: number };
   revenueByMonth: { month: string; revenue: number }[];
-  popularSpaces: { name: string; bookings: number; revenue: number }[];
+  popularSpaces: { name: string; bookings: number; sales: number }[];
   peakHours: { hour: number; bookings: number }[];
   totalCheckins: number;
   activeCheckins: number;
@@ -122,9 +129,18 @@ interface AnalyticsData {
   creativeDomains: { domain: string; count: number }[];
   purposeBreakdown: { purpose: string; count: number }[];
   gadgetRevenue: number;
+  /** "Mock sales": what space bookings / gadget loans would have earned at
+   *  list prices. Everything is saved at ₱0 in open-house mode, so the
+   *  revenue figures above are all zero; these are computed from the price
+   *  lists instead and are not money that was collected. */
+  mockSpaceSales: number;
+  mockGadgetSales: number;
+  /** Hours counted to each loan's scheduled end (plus any time an admin added) — not to when it was checked in. */
+  gadgetHours: number;
+  avgGadgetHours: number;
   overdueBorrowings: number;
   borrowingsByStatus: { [key: string]: number };
-  popularGadgets: { name: string; borrows: number; revenue: number }[];
+  popularGadgets: { name: string; borrows: number; sales: number; hours: number }[];
 }
 
 export default function Analytics(): JSX.Element {
@@ -160,6 +176,10 @@ export default function Analytics(): JSX.Element {
     creativeDomains: [],
     purposeBreakdown: [],
     gadgetRevenue: 0,
+    mockSpaceSales: 0,
+    mockGadgetSales: 0,
+    gadgetHours: 0,
+    avgGadgetHours: 0,
     overdueBorrowings: 0,
     borrowingsByStatus: {},
     popularGadgets: []
@@ -174,10 +194,10 @@ export default function Analytics(): JSX.Element {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [bookingsRes, spacesRes, attendanceRes, eventsRes, borrowingsRes] = await Promise.all([
+      const [bookingsRes, spacesRes, attendanceRes, eventsRes, borrowingsRes, tiersRes] = await Promise.all([
         supabase
           .from('hub_bookings')
-          .select('*, package:rental_packages(name, hourly_rate)')
+          .select('*, package:rental_packages(name, slug, billing_mode, hourly_rate, daily_rate)')
           .gte('created_at', dateRange.start.toISOString())
           .lte('created_at', dateRange.end.toISOString()),
         supabase.from('hub_zones').select('id, name, seats'),
@@ -192,9 +212,10 @@ export default function Analytics(): JSX.Element {
           .catch((err: unknown) => { console.error('Event stats failed:', err); return []; }),
         supabase
           .from('borrowings')
-          .select('*, asset:assets(name)')
+          .select('*, asset:assets(name, location_mode)')
           .gte('created_at', dateRange.start.toISOString())
-          .lte('created_at', dateRange.end.toISOString())
+          .lte('created_at', dateRange.end.toISOString()),
+        supabase.from('pricing_config').select('*'),
       ]);
 
       if (bookingsRes.error) throw bookingsRes.error;
@@ -207,7 +228,10 @@ export default function Analytics(): JSX.Element {
         attendanceRes.data || [],
         eventsRes.filter((e) => e.status !== 'cancelled'),
         borrowingsRes.data || [],
-        []
+        [],
+        // If the price list can't load, mock sales just come out as ₱0
+        // rather than breaking the whole page.
+        (tiersRes.data as PricingTier[] | null) ?? []
       );
       setAnalytics(analyticsData);
     } catch (error) {
@@ -224,7 +248,8 @@ export default function Analytics(): JSX.Element {
     attendance: any[],
     events: any[],
     borrowings: any[],
-    proposals: any[]
+    proposals: any[],
+    tiers: PricingTier[]
   ): AnalyticsData => {
     const approvedBookings = bookings.filter(b => b.status === 'approved');
 
@@ -267,19 +292,30 @@ export default function Analytics(): JSX.Element {
     });
 
     // Popular packages (replaces popular spaces)
-    const packageStats: { [key: string]: { bookings: number; revenue: number } } = {};
-    approvedBookings.forEach(booking => {
+    // Mock sales for spaces: the package's list price for the booked time
+    // (what total_price would hold if pricing were on). Only package
+    // bookings — equipment is priced separately from the borrowings, and
+    // an event's own seat reservation has no package, so it adds nothing.
+    const soldBookings = bookings.filter(b => b.status === 'approved' || b.status === 'active' || b.status === 'completed');
+    const spaceSaleOf = (booking: { package?: unknown; start_time?: string; end_time?: string }): number => {
+      if (!booking.package || !booking.start_time || !booking.end_time) return 0;
+      return calculatePackagePrice(booking.package as RentalPackage, booking.start_time, booking.end_time, true)?.totalPrice ?? 0;
+    };
+    const mockSpaceSales = soldBookings.reduce((sum, b) => sum + spaceSaleOf(b), 0);
+
+    const packageStats: { [key: string]: { bookings: number; sales: number } } = {};
+    soldBookings.filter(b => b.package).forEach(booking => {
       const packageName = booking.package?.name || 'Unknown';
       if (!packageStats[packageName]) {
-        packageStats[packageName] = { bookings: 0, revenue: 0 };
+        packageStats[packageName] = { bookings: 0, sales: 0 };
       }
       packageStats[packageName].bookings += 1;
-      packageStats[packageName].revenue += booking.total_price || 0;
+      packageStats[packageName].sales += spaceSaleOf(booking);
     });
 
     const popularSpaces = Object.entries(packageStats)
       .map(([name, stats]) => ({ name, ...stats }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.sales - a.sales || b.bookings - a.bookings)
       .slice(0, 5);
 
     // Peak hours
@@ -331,18 +367,23 @@ export default function Analytics(): JSX.Element {
       .sort((a, b) => b.count - a.count);
 
     const totalEvents = events.length;
-    const gadgetsBorrowed = borrowings.filter(b => b.status === 'returned' || b.status === 'active').length;
+    // 'approved' is the in-use state (nothing moves a loan to 'active'), so
+    // counting only returned/active left every loan that is currently out
+    // — and its revenue and hours — out of the numbers until it came back.
+    const countedLoans = borrowings.filter((b: Borrowing) => isCountedLoan(b));
+    const gadgetsBorrowed = countedLoans.length;
     const spacesOccupied = new Set(approvedBookings.map(b => b.workshop_zones).flat()).size;
 
     // Gadget revenue (returned/active borrowings, mirroring how booking revenue only counts approved)
-    const gadgetRevenue = borrowings
-      .filter((b: Borrowing) => b.status === 'returned' || b.status === 'active')
-      .reduce((sum, b: Borrowing) => sum + (b.total_price || 0), 0);
+    const gadgetRevenue = countedLoans.reduce((sum, b: Borrowing) => sum + (b.total_price || 0), 0);
 
-    // Overdue borrowings: still active but past their end_time
-    const overdueBorrowings = borrowings.filter(
-      (b: Borrowing) => b.status === 'active' && b.end_time && new Date(b.end_time) < new Date()
-    ).length;
+    // Hours stop at the scheduled end, not at check-in; an admin adds more
+    // time explicitly if the borrower kept it longer.
+    const gadgetHours = countedLoans.reduce((sum, b: Borrowing) => sum + loanHours(b), 0);
+    const avgGadgetHours = countedLoans.length > 0 ? gadgetHours / countedLoans.length : 0;
+
+    // Overdue borrowings: still out (approved/active) but past their end_time
+    const overdueBorrowings = borrowings.filter((b: Borrowing) => isOverdueLoan(b)).length;
 
     // Borrowing status distribution
     const borrowingsByStatus: { [key: string]: number } = {
@@ -358,12 +399,24 @@ export default function Analytics(): JSX.Element {
     });
 
     // Popular gadgets by borrow count
-    const gadgetStats: { [key: string]: { borrows: number; revenue: number } } = {};
-    borrowings.forEach((b: Borrowing) => {
+    // Mock sales for gadgets: the asset's tier price for the borrowed hours
+    // (including any time an admin added), at the loan's inside/outside rate.
+    const gadgetSaleOf = (b: Borrowing): number => {
+      if (!b.asset_id || !b.start_time || !b.end_time) return 0;
+      const assetTiers = tiers.filter((t) => t.asset_id === b.asset_id);
+      const location = (b.usage_type ?? b.location ?? 'inside') as 'inside' | 'outside';
+      const asset = { location_mode: (b.asset?.location_mode ?? 'both') as 'both' | 'inside_only' | 'outside_only' };
+      return calculateTotalRate(assetTiers, asset, location, b.start_time, b.end_time, true)?.totalPrice ?? 0;
+    };
+    const mockGadgetSales = countedLoans.reduce((sum, b: Borrowing) => sum + gadgetSaleOf(b), 0);
+
+    const gadgetStats: { [key: string]: { borrows: number; sales: number; hours: number } } = {};
+    countedLoans.forEach((b: Borrowing) => {
       const name = b.asset?.name || 'Unknown';
-      if (!gadgetStats[name]) gadgetStats[name] = { borrows: 0, revenue: 0 };
+      if (!gadgetStats[name]) gadgetStats[name] = { borrows: 0, sales: 0, hours: 0 };
       gadgetStats[name].borrows += 1;
-      gadgetStats[name].revenue += b.total_price || 0;
+      gadgetStats[name].sales += gadgetSaleOf(b);
+      gadgetStats[name].hours += loanHours(b);
     });
     const popularGadgets = Object.entries(gadgetStats)
       .map(([name, stats]) => ({ name, ...stats }))
@@ -447,6 +500,10 @@ export default function Analytics(): JSX.Element {
       creativeDomains,
       purposeBreakdown,
       gadgetRevenue,
+      mockSpaceSales,
+      mockGadgetSales,
+      gadgetHours,
+      avgGadgetHours,
       overdueBorrowings,
       borrowingsByStatus,
       popularGadgets
@@ -608,7 +665,6 @@ export default function Analytics(): JSX.Element {
     { label: 'Total Check-ins', value: analytics.totalCheckins, icon: Users, badge: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' },
     { label: 'Active Now', value: analytics.activeCheckins, icon: UserCheck, badge: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400' },
     { label: 'Walk-ins', value: analytics.walkInCheckins, icon: Footprints, badge: 'bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400' },
-    { label: 'Total Revenue', value: `₱${analytics.totalRevenue.toFixed(2)}`, icon: DollarSign, badge: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
     { label: 'Avg. Duration', value: `${analytics.averageBookingDuration.toFixed(1)}h`, icon: Clock, badge: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
     { label: 'Total Events', value: analytics.totalEvents, icon: Calendar, badge: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
     {
@@ -619,7 +675,8 @@ export default function Analytics(): JSX.Element {
     },
     { label: 'Spaces Occupied', value: analytics.spacesOccupied, icon: Building2, badge: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400' },
     { label: 'Gadgets Borrowed', value: analytics.gadgetsBorrowed, icon: Package, badge: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
-    { label: 'Gadget Revenue', value: `₱${analytics.gadgetRevenue.toFixed(2)}`, icon: DollarSign, badge: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+    { label: 'Gadget Hours', value: formatHours(analytics.gadgetHours), icon: Clock, badge: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' },
+    { label: 'Avg. Gadget Hours', value: formatHours(analytics.avgGadgetHours), icon: Clock, badge: 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400' },
     { label: 'Overdue Borrows', value: analytics.overdueBorrowings, icon: AlertTriangle, badge: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
   ];
 
@@ -729,6 +786,13 @@ export default function Analytics(): JSX.Element {
         </div>
       ) : (
         <>
+          <SalesPanel
+            spaceSales={analytics.mockSpaceSales}
+            gadgetSales={analytics.mockGadgetSales}
+            collected={analytics.totalRevenue + analytics.gadgetRevenue}
+            pricingOn={PRICING_ENABLED}
+          />
+
           {/* Key Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
             {kpiTiles.map((tile) => (
@@ -760,7 +824,7 @@ export default function Analytics(): JSX.Element {
             </ChartCard>
 
             {/* Popular Spaces */}
-            <ChartCard icon={Building2} title="Top 5 Spaces by Revenue">
+            <ChartCard icon={Building2} title="Top 5 Spaces by Sales">
               <div className="space-y-3">
                 {analytics.popularSpaces.map((space, _index) => (
                   <RankedRow
@@ -768,9 +832,9 @@ export default function Analytics(): JSX.Element {
                     rank={_index + 1}
                     label={space.name}
                     sublabel={`${space.bookings} bookings`}
-                    value={space.revenue}
-                    valueLabel={`₱${space.revenue.toFixed(2)}`}
-                    max={Math.max(...analytics.popularSpaces.map((s) => s.revenue), 1)}
+                    value={space.sales}
+                    valueLabel={`₱${space.sales.toLocaleString('en-PH', { maximumFractionDigits: 0 })}`}
+                    max={Math.max(...analytics.popularSpaces.map((s) => s.sales), 1)}
                   />
                 ))}
                 {analytics.popularSpaces.length === 0 && <EmptyNote />}
@@ -881,16 +945,16 @@ export default function Analytics(): JSX.Element {
             </ChartCard>
 
             {/* Popular Gadgets */}
-            <ChartCard icon={TrendingUp} title="Top 5 Gadgets by Borrows">
+            <ChartCard icon={TrendingUp} title="Top 5 Gadgets by Borrows (value at list price)">
               <div className="space-y-3">
                 {analytics.popularGadgets.map((gadget, _index) => (
                   <RankedRow
                     key={gadget.name}
                     rank={_index + 1}
                     label={gadget.name}
-                    sublabel={`${gadget.borrows} borrows`}
+                    sublabel={`${gadget.borrows} borrows · ${formatHours(gadget.hours)}`}
                     value={gadget.borrows}
-                    valueLabel={`₱${gadget.revenue.toFixed(2)}`}
+                    valueLabel={`₱${gadget.sales.toLocaleString('en-PH', { maximumFractionDigits: 0 })}`}
                     max={Math.max(...analytics.popularGadgets.map((g) => g.borrows), 1)}
                   />
                 ))}
@@ -1091,6 +1155,79 @@ function StatTile({
         </div>
       </div>
     </div>
+  );
+}
+
+const pesoText = (n: number): string =>
+  `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+/**
+ * Sales at a glance. While open-house mode is on everything is saved at
+ * ₱0, so a plain "revenue" number is always zero and says nothing — this
+ * shows the "mock sales" instead: what the period's bookings and gadget
+ * loans would have earned at list prices. Real money collected is shown
+ * separately so the two can't be confused.
+ */
+function SalesPanel({
+  spaceSales,
+  gadgetSales,
+  collected,
+  pricingOn,
+}: {
+  spaceSales: number;
+  gadgetSales: number;
+  collected: number;
+  pricingOn: boolean;
+}): JSX.Element {
+  const total = spaceSales + gadgetSales;
+  const share = (n: number): number => (total > 0 ? Math.round((n / total) * 100) : 0);
+  const rows = [
+    { label: 'Space bookings', value: spaceSales, bar: 'from-cyan-400 to-blue-500' },
+    { label: 'Gadget borrowing', value: gadgetSales, bar: 'from-fuchsia-500 to-orange-400' },
+  ];
+
+  return (
+    <section className="mb-8 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-[#0C2340] via-indigo-800 to-fuchsia-700 text-white">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 p-6">
+        <div className="lg:col-span-2">
+          <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest font-bold text-violet-200">
+            <DollarSign className="h-3.5 w-3.5" />
+            {pricingOn ? 'Sales at list price' : 'Mock sales'}
+          </p>
+          <p className="mt-1 text-5xl font-extrabold tracking-tight">{pesoText(total)}</p>
+          <p className="mt-2 text-xs text-violet-100 leading-relaxed">
+            {pricingOn
+              ? 'Bookings and gadget loans in this period, priced from the price lists.'
+              : 'What this period would have earned at list prices. Nothing was charged — the Hub is in open-house mode — so this is value given, not money collected.'}
+          </p>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">
+            Actually collected: {pesoText(collected)}
+          </span>
+        </div>
+
+        <div className="lg:col-span-3 space-y-4 self-center">
+          {rows.map((r) => (
+            <div key={r.label}>
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-semibold">{r.label}</span>
+                <span className="font-extrabold">
+                  {pesoText(r.value)} <span className="text-xs font-semibold text-violet-200">· {share(r.value)}%</span>
+                </span>
+              </div>
+              <div className="mt-1.5 h-2.5 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className={`h-full rounded-full bg-gradient-to-r ${r.bar} transition-all duration-700`}
+                  style={{ width: `${share(r.value)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-violet-200">
+            Counts approved, in-use and completed bookings, and gadget loans at their borrowed hours (including any time you added).
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

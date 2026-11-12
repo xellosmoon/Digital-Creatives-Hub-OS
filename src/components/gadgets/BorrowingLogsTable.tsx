@@ -28,7 +28,7 @@ const STATUS_BADGE: Record<BorrowingStatus, { cls: string; label: string }> = {
 export default function BorrowingLogsTable({ borrowings }: BorrowingLogsTableProps): JSX.Element {
   const [viewingForm, setViewingForm] = useState<Row | null>(null);
   const totalCollected = borrowings
-    .filter((b) => b.status === 'returned' || b.status === 'active')
+    .filter((b) => b.status === 'returned' || b.status === 'active' || b.status === 'approved')
     .reduce((sum, b) => sum + (b.total_price ?? 0), 0);
 
   const handleExportCSV = (): void => {
@@ -137,7 +137,10 @@ export default function BorrowingLogsTable({ borrowings }: BorrowingLogsTablePro
                         <span>Due: {format(new Date(b.end_time), 'MMM d, h:mm a')}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs">{b.duration_hours?.toFixed(1)}h</td>
+                    <td className="px-4 py-3 text-xs">
+                      {b.duration_hours?.toFixed(1)}h
+                      {(b.extra_hours ?? 0) > 0 && <span className="block text-amber-600 dark:text-amber-400">+{b.extra_hours}h added</span>}
+                    </td>
                     <td className="px-4 py-3 font-medium">{formatPeso(b.total_price)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center text-xs px-2 py-1 rounded-full font-medium ${badge.cls}`}>

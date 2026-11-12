@@ -156,13 +156,6 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Link to="/about" className={navLinkClass('/about')}>
                   About
                 </Link>
-                <Link
-                  to="/booking-lookup"
-                  className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-bold px-3 py-1.5 rounded-full border-2 border-[#0C2340]/20 text-[#0C2340] dark:border-white/30 dark:text-white whitespace-nowrap transition-all duration-300 hover:bg-[#0C2340]/5 dark:hover:bg-white/10 hover:border-[#0C2340]/40 dark:hover:border-white/50 active:scale-95"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  Find Booking
-                </Link>
               </div>
             </div>
 
@@ -181,6 +174,17 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                   <Moon className="h-5 w-5" />
                 )}
               </button>
+
+              {/* Find Booking is the main call-to-action for guests now that
+                  there are no public accounts — it took over the spot Login
+                  used to have. Staff sign in from the footer. */}
+              <Link
+                to="/booking-lookup"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)] active:scale-95"
+              >
+                <Search className="w-3.5 h-3.5" />
+                Find Booking
+              </Link>
 
               {session ? (
                 <>
@@ -314,16 +318,7 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                     )}
                   </div>
                 </>
-              ) : (
-                <div className="hidden sm:flex items-center space-x-3">
-                  <Link
-                    to="/login"
-                    className="bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)]"
-                  >
-                    Login
-                  </Link>
-                </div>
-              )}
+              ) : null}
 
               {/* Mobile menu button */}
               <button
@@ -371,23 +366,19 @@ export default function Layout({ children, session }: LayoutProps): JSX.Element 
                 <Info className="w-4 h-4 mr-3" />
                 About
               </Link>
-              <Link to="/booking-lookup" className={mobileNavLinkClass('/booking-lookup')}>
-                <Search className="w-4 h-4 mr-3" />
+            </div>
+
+            {/* Mobile: Find Booking is the main call-to-action (no public
+                accounts); staff sign in from the footer. */}
+            <div className="px-4 pt-3 border-t border-slate-800/60 space-y-2">
+              <Link
+                to="/booking-lookup"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)]"
+              >
+                <Search className="w-3.5 h-3.5" />
                 Find Booking
               </Link>
             </div>
-
-            {/* Mobile auth buttons */}
-            {!session && (
-              <div className="px-4 pt-3 border-t border-slate-800/60 space-y-2">
-                <Link
-                  to="/login"
-                  className="flex items-center justify-center w-full px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.45)] hover:shadow-[0_0_25px_rgba(34,211,238,0.65)]"
-                >
-                  Login
-                </Link>
-              </div>
-            )}
 
             {/* Mobile logout */}
             {session && (

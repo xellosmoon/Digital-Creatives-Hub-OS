@@ -79,6 +79,8 @@ export interface Borrowing {
   end_time: string;
   actual_return_time: string | null;
   duration_hours: number;
+  /** Hours an admin added after approval (already inside duration_hours). */
+  extra_hours?: number;
   matched_tier_hours: number;
   total_price: number;
   status: BorrowingStatus;

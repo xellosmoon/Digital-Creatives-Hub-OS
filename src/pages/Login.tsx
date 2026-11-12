@@ -39,19 +39,10 @@ export default function Login(): JSX.Element {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Sign in to your account
+            Staff sign in
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Or{' '}
-            <Link
-              to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              create a new account
-            </Link>
-          </p>
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            Note: You can book spaces without an account. Creating an account gives you access to booking history and faster checkout.
+            This is for Hub staff only. Guests don't need an account — you can book spaces, propose events and borrow gadgets without one, and check on a request any time with Find Booking.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

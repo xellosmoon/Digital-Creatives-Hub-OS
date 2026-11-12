@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, isPast } from 'date-fns';
+import { format, addHours } from 'date-fns';
 import {
   CheckCircle,
   XCircle,
@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Wrench,
   FileText,
+  Timer,
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -16,6 +17,8 @@ import { formatPeso } from '../../lib/pricingEngine';
 import type { Borrowing, Item, BorrowingStatus, ReturnCondition } from '../../types/gadgets';
 import { RETURN_CONDITION_LABELS } from '../../types/gadgets';
 import ReceivingForm, { borrowingToFormData } from './ReceivingForm';
+import { formatHours, isOverdueLoan } from '../../lib/borrowHours';
+import { getErrorMessage } from '../../lib/getErrorMessage';
 
 type Row = Borrowing & {
   item?: Item;
@@ -45,6 +48,7 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [viewingForm, setViewingForm] = useState<Row | null>(null);
   const [returning, setReturning] = useState<Row | null>(null);
+  const [extending, setExtending] = useState<Row | null>(null);
 
   const updateStatus = async (id: string, status: BorrowingStatus): Promise<void> => {
     setUpdatingId(id);
@@ -106,7 +110,9 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
           {borrowings.map((b) => {
             const cfg = STATUS_CONFIG[b.status];
             const StatusIcon = cfg.icon;
-            const isOverdue = b.status === 'active' && isPast(new Date(b.end_time));
+            // Approved is the in-use state (nothing moves a loan to 'active'),
+            // so overdue means: still out and past the scheduled end.
+            const isOverdue = isOverdueLoan(b);
 
             return (
               <tr key={b.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700 ${isOverdue ? 'bg-red-50/50 dark:bg-red-900/20' : ''}`}>
@@ -144,6 +150,17 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
                   {format(new Date(b.start_time), 'MMM d, h:mm a')}
                   <br />
                   → {format(new Date(b.end_time), 'MMM d, h:mm a')}
+                  <span className="mt-1 flex flex-wrap items-center gap-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 font-bold">
+                      <Timer className="h-3 w-3" />
+                      {formatHours(b.duration_hours)}
+                    </span>
+                    {(b.extra_hours ?? 0) > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-semibold">
+                        +{formatHours(b.extra_hours ?? 0)} added
+                      </span>
+                    )}
+                  </span>
                   {isOverdue && (
                     <span className="block text-red-600 dark:text-red-400 font-semibold mt-0.5">OVERDUE</span>
                   )}
@@ -183,6 +200,15 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
                           <XCircle className="h-4 w-4" />
                         </button>
                       </>
+                    )}
+                    {(b.status === 'approved' || b.status === 'active') && (
+                      <button
+                        onClick={() => setExtending(b)}
+                        className="p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
+                        title="Add time"
+                      >
+                        <Timer className="h-4 w-4" />
+                      </button>
                     )}
                     {(b.status === 'approved' || b.status === 'active') && (
                       <button
@@ -239,6 +265,14 @@ export default function AdminBorrowingTable({ borrowings, onRefresh }: AdminBorr
         </div>
       )}
 
+      {extending && (
+        <ExtendTimeModal
+          borrowing={extending}
+          onClose={() => setExtending(null)}
+          onDone={() => { setExtending(null); onRefresh(); }}
+        />
+      )}
+
       {returning && (
         <ReturnModal
           borrowing={returning}
@@ -263,6 +297,27 @@ function ReturnModal({
   const [remarks, setRemarks] = useState('');
   const [receivedBy, setReceivedBy] = useState('');
   const [saving, setSaving] = useState(false);
+  // Hours only count to the scheduled end — checking an item in late doesn't
+  // add to them. If the borrower really kept it longer, the admin can add
+  // that time right here (rounded up to the next half hour).
+  const [endTime, setEndTime] = useState(borrowing.end_time);
+  const [added, setAdded] = useState(0);
+  const lateHours = Math.max(0, (Date.now() - new Date(endTime).getTime()) / 3_600_000);
+  const suggestedAdd = Math.max(0.5, Math.ceil(lateHours * 2) / 2);
+
+  const handleAddLateTime = async (): Promise<void> => {
+    setSaving(true);
+    try {
+      const newEnd = await extendBorrowing(borrowing.id, suggestedAdd);
+      setEndTime(newEnd);
+      setAdded((a) => a + suggestedAdd);
+      toast.success(`Added ${formatHours(suggestedAdd)}`);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Could not add time'));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleConfirm = async (): Promise<void> => {
     if (!receivedBy.trim()) {
@@ -302,6 +357,24 @@ function ReturnModal({
           </button>
         </div>
         <div className="px-6 py-5 space-y-4">
+          <div className="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 text-sm text-indigo-900 dark:text-indigo-200">
+            Counted: <span className="font-bold">{formatHours(borrowing.duration_hours + added)}</span>
+            {' '}— until {format(new Date(endTime), 'EEE, MMM d · h:mm a')}
+            {added > 0 && <span className="text-indigo-700 dark:text-indigo-300"> (+{formatHours(added)} added)</span>}
+            {lateHours > 0.02 && (
+              <div className="mt-2 text-amber-800 dark:text-amber-200">
+                Checked in <span className="font-bold">{formatHours(lateHours)}</span> after that. Those hours don&apos;t count unless you add them.
+                <button
+                  type="button"
+                  onClick={handleAddLateTime}
+                  disabled={saving}
+                  className="mt-1.5 block px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold disabled:opacity-50"
+                >
+                  Add {formatHours(suggestedAdd)} to count it
+                </button>
+              </div>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Condition Upon Return</label>
             <div className="space-y-2">
@@ -351,6 +424,117 @@ function ReturnModal({
             className="px-5 py-2.5 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Confirm Return'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Calls the admin-only extend_borrowing RPC and turns its errors into
+ *  something readable (notably another request starting right after). */
+async function extendBorrowing(id: string, hours: number): Promise<string> {
+  const { data, error } = await supabase.rpc('extend_borrowing', { p_borrowing_id: id, p_hours: hours });
+  if (error) {
+    if (error.code === '23P01') {
+      throw new Error('Another request for this unit starts right after — there is no room to add that much time.');
+    }
+    throw error;
+  }
+  return data as string;
+}
+
+const QUICK_HOURS = [1, 2, 3, 4, 8];
+
+function ExtendTimeModal({
+  borrowing,
+  onClose,
+  onDone,
+}: {
+  borrowing: Row;
+  onClose: () => void;
+  onDone: () => void;
+}): JSX.Element {
+  const [hours, setHours] = useState('1');
+  const [saving, setSaving] = useState(false);
+  const amount = Number(hours);
+  const valid = Number.isFinite(amount) && amount > 0 && amount <= 720;
+  const newEnd = valid ? addHours(new Date(borrowing.end_time), amount) : null;
+
+  const handleSave = async (): Promise<void> => {
+    if (!valid) return;
+    setSaving(true);
+    try {
+      await extendBorrowing(borrowing.id, amount);
+      toast.success(`Added ${formatHours(amount)} to ${borrowing.borrowing_reference}`);
+      onDone();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Could not add time'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add time</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            <span className="font-semibold">{borrowing.borrower_name ?? 'Borrower'}</span> · {borrowing.asset?.name}
+            <br />
+            Now ends {format(new Date(borrowing.end_time), 'EEE, MMM d · h:mm a')} ({formatHours(borrowing.duration_hours)})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_HOURS.map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => setHours(String(h))}
+                className={`px-3 py-1.5 rounded-full text-sm font-bold border transition-colors ${
+                  amount === h
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600 hover:border-indigo-400'
+                }`}
+              >
+                +{h}h
+              </button>
+            ))}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hours to add</label>
+            <input
+              type="number"
+              min="0.5"
+              step="0.5"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white text-sm"
+            />
+          </div>
+          {newEnd && (
+            <p className="text-sm rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-3 py-2">
+              New end: <span className="font-bold">{format(newEnd, 'EEE, MMM d · h:mm a')}</span>
+              <br />
+              Total: <span className="font-bold">{formatHours(borrowing.duration_hours + amount)}</span>
+            </p>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !valid}
+            className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Add time'}
           </button>
         </div>
       </div>
